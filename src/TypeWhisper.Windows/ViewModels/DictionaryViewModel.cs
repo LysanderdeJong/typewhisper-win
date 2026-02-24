@@ -16,11 +16,29 @@ public partial class DictionaryViewModel : ObservableObject
     // Tab: 0=Alle, 1=Begriffe, 2=Korrekturen, 3=Packs
     [ObservableProperty] private int _selectedTab;
 
+    // Search
+    [ObservableProperty] private string _searchText = "";
+
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
+
     // Add form
     [ObservableProperty] private string _newOriginal = "";
     [ObservableProperty] private string _newReplacement = "";
     [ObservableProperty] private DictionaryEntryType _newEntryType = DictionaryEntryType.Correction;
     [ObservableProperty] private bool _newCaseSensitive;
+
+    // Segmented button helpers
+    public bool IsNewTypeCorrection
+    {
+        get => NewEntryType == DictionaryEntryType.Correction;
+        set { if (value) NewEntryType = DictionaryEntryType.Correction; }
+    }
+
+    public bool IsNewTypeTerm
+    {
+        get => NewEntryType == DictionaryEntryType.Term;
+        set { if (value) NewEntryType = DictionaryEntryType.Term; }
+    }
 
     // Edit modal
     [ObservableProperty] private bool _isEditing;
@@ -28,6 +46,9 @@ public partial class DictionaryViewModel : ObservableObject
     [ObservableProperty] private string _editOriginal = "";
     [ObservableProperty] private string _editReplacement = "";
     [ObservableProperty] private bool _editCaseSensitive;
+
+    // Entry count for display
+    public int EntryCount => FilteredEntries.Cast<object>().Count();
 
     public ObservableCollection<DictionaryEntry> Entries { get; } = [];
     public ICollectionView FilteredEntries { get; }
@@ -46,17 +67,50 @@ public partial class DictionaryViewModel : ObservableObject
         InitializePacks();
     }
 
-    partial void OnSelectedTabChanged(int value) => FilteredEntries.Refresh();
+    partial void OnSelectedTabChanged(int value)
+    {
+        FilteredEntries.Refresh();
+        OnPropertyChanged(nameof(EntryCount));
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchText));
+        FilteredEntries.Refresh();
+        OnPropertyChanged(nameof(EntryCount));
+    }
+
+    partial void OnNewEntryTypeChanged(DictionaryEntryType value)
+    {
+        OnPropertyChanged(nameof(IsNewTypeCorrection));
+        OnPropertyChanged(nameof(IsNewTypeTerm));
+    }
+
+    [RelayCommand]
+    private void ClearSearch() => SearchText = "";
 
     private bool FilterByTab(object obj)
     {
         if (obj is not DictionaryEntry entry) return false;
-        return SelectedTab switch
+
+        // Tab filter
+        var tabMatch = SelectedTab switch
         {
             1 => entry.EntryType == DictionaryEntryType.Term,
             2 => entry.EntryType == DictionaryEntryType.Correction,
             _ => true // 0=Alle, 3=Packs (entries hidden, packs shown)
         };
+        if (!tabMatch) return false;
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var search = SearchText.Trim();
+            return entry.Original.Contains(search, StringComparison.OrdinalIgnoreCase)
+                || (entry.Replacement?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false);
+        }
+
+        return true;
     }
 
     [RelayCommand]
@@ -167,6 +221,7 @@ public partial class DictionaryViewModel : ObservableObject
         foreach (var e in _dictionary.Entries)
             Entries.Add(e);
         FilteredEntries.Refresh();
+        OnPropertyChanged(nameof(EntryCount));
     }
 }
 

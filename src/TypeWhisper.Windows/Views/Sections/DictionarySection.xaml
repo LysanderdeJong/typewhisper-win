@@ -59,6 +59,78 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <!-- Segmented Button Left Style -->
+            <Style x:Key="SegmentedButtonLeftStyle" TargetType="RadioButton">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Bd" Background="#2A2A2A"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,1,0,1"
+                                    CornerRadius="6,0,0,6" Padding="10,6">
+                                <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                           FontSize="12" FontWeight="Medium"
+                                           Foreground="{StaticResource HintBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#3A2A1A"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#5A3A1A"/>
+                                    <Setter TargetName="Txt" Property="Foreground" Value="#D4915B"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#333333"/>
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="#3A2A1A"/>
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Segmented Button Right Style -->
+            <Style x:Key="SegmentedButtonRightStyle" TargetType="RadioButton">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Bd" Background="#2A2A2A"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="0,6,6,0" Padding="10,6">
+                                <TextBlock x:Name="Txt" Text="{TemplateBinding Content}"
+                                           FontSize="12" FontWeight="Medium"
+                                           Foreground="{StaticResource HintBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#2A3A5A"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#1A3A5A"/>
+                                    <Setter TargetName="Txt" Property="Foreground" Value="#5B9BD5"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#333333"/>
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Bd" Property="Background" Value="#2A3A5A"/>
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -66,7 +138,7 @@
         <TextBlock DockPanel.Dock="Top" Text="Wörterbuch" Style="{StaticResource SectionHeaderStyle}"/>
 
         <!-- Tabs -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
             <RadioButton Content="Alle" IsChecked="True" GroupName="DictTab"
                          Checked="Tab_Checked" Tag="0" Style="{StaticResource TabRadioStyle}"/>
             <RadioButton Content="Begriffe" GroupName="DictTab"
@@ -77,8 +149,77 @@
                          Checked="Tab_Checked" Tag="3" Style="{StaticResource TabRadioStyle}"/>
         </StackPanel>
 
+        <!-- Search Bar (hidden on Packs tab) -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="3">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Search field with icon -->
+            <Border Grid.Column="0" Background="{StaticResource InputBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search icon -->
+                    <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
+                               FontSize="14" Foreground="{StaticResource HintBrush}"
+                               VerticalAlignment="Center" Margin="10,0,6,0"/>
+
+                    <!-- Placeholder -->
+                    <TextBlock Grid.Column="1" Text="Einträge durchsuchen..."
+                               Foreground="{StaticResource HintBrush}" FontSize="13"
+                               VerticalAlignment="Center" IsHitTestVisible="False"
+                               Visibility="{Binding Dictionary.HasSearchText, Converter={StaticResource InverseBoolToVis}}"/>
+
+                    <!-- Search TextBox -->
+                    <TextBox Grid.Column="1"
+                             Text="{Binding Dictionary.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource TextBrush}" FontSize="13"
+                             VerticalAlignment="Center" Padding="0,8"
+                             CaretBrush="{StaticResource TextBrush}"/>
+
+                    <!-- Clear button -->
+                    <Button Grid.Column="2" Style="{StaticResource IconButtonStyle}"
+                            Command="{Binding Dictionary.ClearSearchCommand}"
+                            Visibility="{Binding Dictionary.HasSearchText, Converter={StaticResource BoolToVis}}"
+                            ToolTip="Suche löschen" Margin="0,0,4,0">
+                        <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                   Foreground="{StaticResource HintBrush}"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Entry count -->
+            <TextBlock Grid.Column="1" Foreground="{StaticResource HintBrush}" FontSize="12"
+                       VerticalAlignment="Center" Margin="12,0,0,0">
+                <Run Text="{Binding Dictionary.EntryCount, Mode=OneWay}"/>
+                <Run Text="Einträge"/>
+            </TextBlock>
+        </Grid>
+
         <!-- Add Entry Form (hidden on Packs tab) -->
-        <Border DockPanel.Dock="Bottom" Margin="0,12,0,0">
+        <Border DockPanel.Dock="Bottom" Margin="0,12,0,0"
+                Background="{StaticResource InputBackgroundBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="10" Padding="16,14">
             <Border.Style>
                 <Style TargetType="Border">
                     <Setter Property="Visibility" Value="Visible"/>
@@ -89,33 +230,110 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding Dictionary.NewOriginal, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource InputTextBoxStyle}" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding Dictionary.NewReplacement, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource InputTextBoxStyle}" Margin="0,0,4,0"/>
-                <ComboBox Grid.Column="2" SelectedIndex="{Binding Dictionary.NewEntryType}" Width="110" Margin="0,0,4,0"
-                          Style="{StaticResource InputComboBoxStyle}" ItemContainerStyle="{StaticResource InputComboBoxItemStyle}">
-                    <ComboBoxItem Content="Korrektur"/>
-                    <ComboBoxItem Content="Begriff"/>
-                </ComboBox>
-                <CheckBox Grid.Column="3" Content="Aa" ToolTip="Groß-/Kleinschreibung beachten"
-                          IsChecked="{Binding Dictionary.NewCaseSensitive}"
-                          Style="{StaticResource InputCheckBoxStyle}" Margin="0,0,8,0"
-                          VerticalAlignment="Center"/>
-                <Button Grid.Column="4" Content="+" Command="{Binding Dictionary.AddEntryCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}" Padding="12,8" FontSize="16" FontWeight="Bold"/>
-            </Grid>
+            <StackPanel>
+                <!-- Input fields row -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Original field with watermark -->
+                    <Grid Grid.Column="0">
+                        <TextBox Text="{Binding Dictionary.NewOriginal, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputTextBoxStyle}" x:Name="OriginalBox"/>
+                        <TextBlock Text="Original eingeben..." Foreground="{StaticResource HintBrush}"
+                                   FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   IsHitTestVisible="False" Opacity="0.5">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=OriginalBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- Arrow between fields -->
+                    <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource HintBrush}"
+                               FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Margin="8,0" Opacity="0.4"/>
+
+                    <!-- Replacement field with watermark -->
+                    <Grid Grid.Column="2">
+                        <TextBox Text="{Binding Dictionary.NewReplacement, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputTextBoxStyle}" x:Name="ReplacementBox"/>
+                        <TextBlock Foreground="{StaticResource HintBrush}"
+                                   FontSize="13" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   IsHitTestVisible="False" Opacity="0.5">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Setter Property="Text" Value="Ersetzung (optional)"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=ReplacementBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- Segmented Type Buttons -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0,0,0"
+                                VerticalAlignment="Center">
+                        <RadioButton Content="Korrektur" GroupName="EntryType"
+                                     IsChecked="{Binding Dictionary.IsNewTypeCorrection}"
+                                     Style="{StaticResource SegmentedButtonLeftStyle}"/>
+                        <RadioButton Content="Begriff" GroupName="EntryType"
+                                     IsChecked="{Binding Dictionary.IsNewTypeTerm}"
+                                     Style="{StaticResource SegmentedButtonRightStyle}"/>
+                    </StackPanel>
+
+                    <!-- Case sensitive (subtle icon button) -->
+                    <Border Grid.Column="4" CornerRadius="6" Margin="6,0,0,0"
+                            VerticalAlignment="Center" Cursor="Hand"
+                            ToolTip="Groß-/Kleinschreibung beachten">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="5,4"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Dictionary.NewCaseSensitive}" Value="True">
+                                        <Setter Property="Background" Value="#2A3A2A"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <CheckBox IsChecked="{Binding Dictionary.NewCaseSensitive}"
+                                  Style="{StaticResource InputCheckBoxStyle}"
+                                  Content="Aa" FontSize="12" Opacity="0.6"/>
+                    </Border>
+
+                    <!-- Add button -->
+                    <Button Grid.Column="5" Command="{Binding Dictionary.AddEntryCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" Padding="14,8"
+                            Margin="8,0,0,0" VerticalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Hinzufügen" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
         </Border>
 
-        <!-- Edit Overlay -->
+        <!-- Edit Overlay + Lists -->
         <Grid>
             <!-- Entries List (Tabs 0-2) -->
             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -134,158 +352,248 @@
                 </ScrollViewer.Style>
 
                 <StackPanel>
-                    <!-- Empty state -->
-                    <TextBlock Foreground="{StaticResource HintBrush}" FontSize="14"
-                               HorizontalAlignment="Center" Margin="0,40,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
+                    <!-- Rich Empty State -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,48,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                <Setter Property="Text" Value="Noch keine Einträge"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Dictionary.FilteredEntries.IsEmpty}" Value="True">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding Dictionary.FilteredEntries.IsEmpty}" Value="True"/>
-                                            <Condition Binding="{Binding Dictionary.SelectedTab}" Value="1"/>
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter Property="Text" Value="Keine Begriffe — füge Fachwörter hinzu oder aktiviere ein Pack"/>
-                                    </MultiDataTrigger>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding Dictionary.FilteredEntries.IsEmpty}" Value="True"/>
-                                            <Condition Binding="{Binding Dictionary.SelectedTab}" Value="2"/>
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter Property="Text" Value="Keine Korrekturen — bearbeite einen Verlaufseintrag um automatisch zu lernen"/>
-                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        </StackPanel.Style>
+
+                        <!-- Icon -->
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="48"
+                                   Foreground="{StaticResource HintBrush}" Opacity="0.4"
+                                   HorizontalAlignment="Center" Margin="0,0,0,12">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#xE82D;"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="1">
+                                            <Setter Property="Text" Value="&#xE8F1;"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="2">
+                                            <Setter Property="Text" Value="&#xE8AC;"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.HasSearchText}" Value="True">
+                                            <Setter Property="Text" Value="&#xE721;"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Heading -->
+                        <TextBlock Foreground="{StaticResource TextBrush}" FontSize="16"
+                                   FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,6">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Noch keine Einträge"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="1">
+                                            <Setter Property="Text" Value="Keine Begriffe"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="2">
+                                            <Setter Property="Text" Value="Keine Korrekturen"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.HasSearchText}" Value="True">
+                                            <Setter Property="Text" Value="Keine Treffer"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Subtitle -->
+                        <TextBlock Foreground="{StaticResource HintBrush}" FontSize="13"
+                                   Opacity="0.6" HorizontalAlignment="Center"
+                                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="320">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Füge Begriffe und Korrekturen hinzu oder aktiviere ein Pack"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="1">
+                                            <Setter Property="Text" Value="Füge Fachwörter hinzu damit Whisper sie erkennt"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.SelectedTab}" Value="2">
+                                            <Setter Property="Text" Value="Bearbeite einen Verlaufseintrag oder füge eine Korrektur hinzu"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Dictionary.HasSearchText}" Value="True">
+                                            <Setter Property="Text" Value="Versuche einen anderen Suchbegriff"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
 
                     <!-- Entry Cards -->
                     <ItemsControl ItemsSource="{Binding Dictionary.FilteredEntries}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource InputBackgroundBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1" CornerRadius="8"
-                                        Padding="12,10" Margin="0,0,0,6">
+                                <!-- Outer wrapper for opacity on disabled -->
+                                <Border Margin="0,0,0,6">
                                     <Border.Style>
                                         <Style TargetType="Border">
+                                            <Setter Property="Opacity" Value="1"/>
                                             <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="BorderBrush" Value="#555555"/>
-                                                    <Setter Property="Background" Value="#333333"/>
-                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                    <Setter Property="Opacity" Value="0.5"/>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                    <!-- Card with accent stripe -->
+                                    <Border Background="{StaticResource InputBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1" CornerRadius="8"
+                                            ClipToBounds="True">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="#555555"/>
+                                                        <Setter Property="Background" Value="#333333"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
 
-                                        <!-- Left: Type badge + content -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                            <StackPanel Orientation="Horizontal">
-                                                <!-- Type Badge -->
-                                                <Border CornerRadius="4" Padding="6,2" Margin="0,0,8,0"
-                                                        VerticalAlignment="Center">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#2A3A5A"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding EntryType}" Value="Correction">
-                                                                    <Setter Property="Background" Value="#3A2A1A"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <TextBlock FontSize="11" FontWeight="Medium">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Accent stripe -->
+                                            <Border Grid.Column="0" CornerRadius="8,0,0,8">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#5B9BD5"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding EntryType}" Value="Correction">
+                                                                <Setter Property="Background" Value="#D4915B"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+
+                                            <!-- Card content -->
+                                            <Grid Grid.Column="1" Margin="12,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Left: Type badge + content -->
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <!-- Type Badge -->
+                                                        <Border CornerRadius="4" Padding="6,2" Margin="0,0,8,0"
+                                                                VerticalAlignment="Center">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="#2A3A5A"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding EntryType}" Value="Correction">
+                                                                            <Setter Property="Background" Value="#3A2A1A"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <TextBlock FontSize="11" FontWeight="Medium">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="#5B9BD5"/>
+                                                                        <Setter Property="Text" Value="Begriff"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding EntryType}" Value="Correction">
+                                                                                <Setter Property="Foreground" Value="#D4915B"/>
+                                                                                <Setter Property="Text" Value="Korrektur"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Border>
+
+                                                        <!-- Original text -->
+                                                        <TextBlock Text="{Binding Original}"
+                                                                   Foreground="{StaticResource TextBrush}"
+                                                                   FontSize="13" VerticalAlignment="Center"/>
+
+                                                        <!-- Arrow + Replacement (for corrections) -->
+                                                        <StackPanel Orientation="Horizontal" Margin="6,0,0,0"
+                                                                    VerticalAlignment="Center"
+                                                                    Visibility="{Binding Replacement, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                                                            <TextBlock Text="→" Foreground="#D4915B" FontSize="13"
+                                                                       FontWeight="Medium"/>
+                                                            <TextBlock Text="{Binding Replacement}"
+                                                                       Foreground="{StaticResource TextBrush}"
+                                                                       FontSize="13" FontWeight="Medium" Margin="4,0,0,0"/>
+                                                        </StackPanel>
+
+                                                        <!-- Case-sensitive indicator -->
+                                                        <Border CornerRadius="3" Padding="4,1" Margin="8,0,0,0"
+                                                                Background="#333333" VerticalAlignment="Center"
+                                                                Visibility="{Binding CaseSensitive, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="Aa" FontSize="10"
+                                                                       Foreground="{StaticResource HintBrush}"
+                                                                       ToolTip="Groß-/Kleinschreibung wird beachtet"/>
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!-- Usage count if > 0 -->
+                                                    <TextBlock FontSize="11" Foreground="{StaticResource HintBrush}"
+                                                               Margin="0,2,0,0">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="#5B9BD5"/>
-                                                                <Setter Property="Text" Value="Begriff"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding EntryType}" Value="Correction">
-                                                                        <Setter Property="Foreground" Value="#D4915B"/>
-                                                                        <Setter Property="Text" Value="Korrektur"/>
+                                                                    <DataTrigger Binding="{Binding UsageCount}" Value="0">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </TextBlock.Style>
+                                                        <Run Text="{Binding UsageCount, StringFormat='{}{0}x verwendet', Mode=OneWay}"/>
                                                     </TextBlock>
-                                                </Border>
+                                                </StackPanel>
 
-                                                <!-- Original text -->
-                                                <TextBlock Text="{Binding Original}"
-                                                           Foreground="{StaticResource TextBrush}"
-                                                           FontSize="13" VerticalAlignment="Center"/>
-
-                                                <!-- Arrow + Replacement (for corrections) -->
-                                                <TextBlock Foreground="{StaticResource HintBrush}" FontSize="13"
-                                                           VerticalAlignment="Center" Margin="6,0,0,0"
-                                                           Visibility="{Binding Replacement, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
-                                                    <Run Text="→"/>
-                                                    <Run Text="{Binding Replacement, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
-                                                </TextBlock>
-
-                                                <!-- Case-sensitive indicator -->
-                                                <Border CornerRadius="3" Padding="4,1" Margin="8,0,0,0"
-                                                        Background="#333333" VerticalAlignment="Center"
-                                                        Visibility="{Binding CaseSensitive, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="Aa" FontSize="10"
-                                                               Foreground="{StaticResource HintBrush}"
-                                                               ToolTip="Groß-/Kleinschreibung wird beachtet"/>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <!-- Usage count if > 0 -->
-                                            <TextBlock FontSize="11" Foreground="{StaticResource HintBrush}"
-                                                       Margin="0,2,0,0">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding UsageCount}" Value="0">
-                                                                <!-- keep collapsed -->
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                                <Run Text="{Binding UsageCount, StringFormat='{}{0}x verwendet', Mode=OneWay}"/>
-                                            </TextBlock>
-                                        </StackPanel>
-
-                                        <!-- Right: Actions -->
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal"
-                                                    VerticalAlignment="Center">
-                                            <!-- Edit -->
-                                            <Button Style="{StaticResource IconButtonStyle}"
-                                                    ToolTip="Bearbeiten"
-                                                    Command="{Binding DataContext.Dictionary.StartEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}">
-                                                <TextBlock Text="✏" FontSize="14"/>
-                                            </Button>
-                                            <!-- Toggle -->
-                                            <CheckBox IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                                      Style="{StaticResource ToggleSwitchStyle}"
-                                                      Margin="4,0"
-                                                      Command="{Binding DataContext.Dictionary.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                      CommandParameter="{Binding}"/>
-                                            <!-- Delete -->
-                                            <Button Style="{StaticResource IconButtonStyle}"
-                                                    ToolTip="Löschen"
-                                                    Command="{Binding DataContext.Dictionary.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}">
-                                                <TextBlock Text="🗑" FontSize="14" Foreground="{StaticResource DangerBrush}"/>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
+                                                <!-- Right: Actions -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                            VerticalAlignment="Center">
+                                                    <!-- Edit -->
+                                                    <Button Style="{StaticResource IconButtonStyle}"
+                                                            ToolTip="Bearbeiten"
+                                                            Command="{Binding DataContext.Dictionary.StartEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="13"/>
+                                                    </Button>
+                                                    <!-- Toggle -->
+                                                    <CheckBox IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                              Style="{StaticResource ToggleSwitchStyle}"
+                                                              Margin="4,0"
+                                                              Command="{Binding DataContext.Dictionary.ToggleEnabledCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              CommandParameter="{Binding}"/>
+                                                    <!-- Delete -->
+                                                    <Button Style="{StaticResource IconButtonStyle}"
+                                                            ToolTip="Löschen"
+                                                            Command="{Binding DataContext.Dictionary.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                                   Foreground="{StaticResource DangerBrush}"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -309,85 +617,157 @@
                     </Style>
                 </ScrollViewer.Style>
 
-                <ItemsControl ItemsSource="{Binding Dictionary.Packs}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{StaticResource InputBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1" CornerRadius="8"
-                                    Padding="14,12" Margin="0,0,8,8"
-                                    Width="220">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                                            </DataTrigger>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#333333"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
+                <StackPanel>
+                    <!-- Description text -->
+                    <TextBlock Foreground="{StaticResource HintBrush}" FontSize="13"
+                               TextWrapping="Wrap" Margin="0,0,0,12" Opacity="0.8">
+                        Packs fügen spezialisierte Fachbegriffe hinzu, damit die Spracherkennung Fachvokabular besser versteht.
+                    </TextBlock>
 
-                                <StackPanel>
-                                    <Grid Margin="0,0,0,6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                    <ItemsControl ItemsSource="{Binding Dictionary.Packs}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Wrapper for disabled opacity -->
+                                <Border Width="220" Margin="0,0,8,8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Opacity" Value="0.55"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
 
-                                        <TextBlock Grid.Column="0" Text="{Binding Pack.Icon}"
-                                                   FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Pack.Name}"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="13" FontWeight="Medium"/>
-                                            <TextBlock Foreground="{StaticResource HintBrush}" FontSize="11">
-                                                <Run Text="{Binding Pack.Terms.Length, Mode=OneWay}"/>
-                                                <Run Text="Begriffe"/>
-                                            </TextBlock>
+                                    <Border Background="{StaticResource InputBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1" CornerRadius="8"
+                                            ClipToBounds="True">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#333333"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+
+                                        <StackPanel>
+                                            <!-- Top accent line -->
+                                            <Border Height="3">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{StaticResource BorderBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+
+                                            <StackPanel Margin="14,10,14,12">
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Text="{Binding Pack.Icon}"
+                                                               FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Pack.Name}"
+                                                                   Foreground="{StaticResource TextBrush}"
+                                                                   FontSize="13" FontWeight="Medium"/>
+                                                        <TextBlock Foreground="{StaticResource HintBrush}" FontSize="11">
+                                                            <Run Text="{Binding Pack.Terms.Length, Mode=OneWay}"/>
+                                                            <Run Text="Begriffe"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <CheckBox Grid.Column="2"
+                                                              IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                              Style="{StaticResource ToggleSwitchStyle}"
+                                                              VerticalAlignment="Center"
+                                                              Command="{Binding DataContext.Dictionary.TogglePackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              CommandParameter="{Binding}"/>
+                                                </Grid>
+
+                                                <TextBlock Text="{Binding TermsPreview}"
+                                                           Foreground="{StaticResource HintBrush}"
+                                                           FontSize="11" TextWrapping="Wrap"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxHeight="32"/>
+                                            </StackPanel>
                                         </StackPanel>
-                                        <CheckBox Grid.Column="2"
-                                                  IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                                  Style="{StaticResource ToggleSwitchStyle}"
-                                                  VerticalAlignment="Center"
-                                                  Command="{Binding DataContext.Dictionary.TogglePackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  CommandParameter="{Binding}"/>
-                                    </Grid>
-
-                                    <TextBlock Text="{Binding TermsPreview}"
-                                               Foreground="{StaticResource HintBrush}"
-                                               FontSize="11" TextWrapping="Wrap"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxHeight="32"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                    </Border>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </ScrollViewer>
 
             <!-- Edit Overlay -->
             <Border Background="#CC1E1E1E"
                     Visibility="{Binding Dictionary.IsEditing, Converter={StaticResource BoolToVis}}"
-                    MouseDown="EditOverlay_MouseDown">
+                    MouseDown="EditOverlay_MouseDown"
+                    KeyDown="EditOverlay_KeyDown" Focusable="True">
                 <Border Background="{StaticResource InputBackgroundBrush}"
                         BorderBrush="{StaticResource AccentBrush}"
                         BorderThickness="1" CornerRadius="12"
-                        Padding="20" MaxWidth="400" MaxHeight="300"
+                        Padding="24" MaxWidth="420" MaxHeight="320"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border.Effect>
+                        <DropShadowEffect Color="{StaticResource AccentColor}"
+                                          BlurRadius="20" ShadowDepth="0" Opacity="0.15"/>
+                    </Border.Effect>
                     <StackPanel>
-                        <TextBlock Text="Eintrag bearbeiten"
-                                   Foreground="{StaticResource TextBrush}"
-                                   FontSize="16" FontWeight="SemiBold"
-                                   Margin="0,0,0,16"/>
+                        <!-- Header with type badge -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="Eintrag bearbeiten"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Border CornerRadius="4" Padding="6,2" Margin="10,0,0,0"
+                                    VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#2A3A5A"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Dictionary.EditEntry.EntryType}" Value="Correction">
+                                                <Setter Property="Background" Value="#3A2A1A"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock FontSize="11" FontWeight="Medium">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#5B9BD5"/>
+                                            <Setter Property="Text" Value="Begriff"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Dictionary.EditEntry.EntryType}" Value="Correction">
+                                                    <Setter Property="Foreground" Value="#D4915B"/>
+                                                    <Setter Property="Text" Value="Korrektur"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                        </StackPanel>
 
                         <TextBlock Text="Original" Style="{StaticResource LabelStyle}"/>
                         <TextBox Text="{Binding Dictionary.EditOriginal, UpdateSourceTrigger=PropertyChanged}"

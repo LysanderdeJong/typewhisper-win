@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using TypeWhisper.Windows.ViewModels;
 
 namespace TypeWhisper.Windows.Views.Sections;
@@ -17,9 +18,18 @@ public partial class DictionarySection : UserControl
         }
     }
 
-    private void EditOverlay_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void EditOverlay_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is SettingsWindowViewModel vm)
             vm.Dictionary.CancelEditCommand.Execute(null);
+    }
+
+    private void EditOverlay_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && DataContext is SettingsWindowViewModel vm)
+        {
+            vm.Dictionary.CancelEditCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 }
