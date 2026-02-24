@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:TypeWhisper.Windows.ViewModels"
         xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters"
+        xmlns:overlay="clr-namespace:TypeWhisper.Windows.Controls.Overlay"
         Title="TypeWhisper"
-        Width="400" SizeToContent="Height"
+        SizeToContent="WidthAndHeight"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -14,167 +15,76 @@
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
         Focusable="False"
-        Loaded="OnLoaded">
+        Loaded="OnLoaded"
+        SizeChanged="OnSizeChanged">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <conv:AudioLevelWidthConverter x:Key="AudioLevelWidth"/>
-        <conv:SecondsToTimerConverter x:Key="SecondsToTimer"/>
-        <conv:HotkeyModeLabelConverter x:Key="HotkeyModeLabel"/>
         <conv:NonEmptyToVisibilityConverter x:Key="NonEmptyToVis"/>
     </Window.Resources>
 
-    <Border CornerRadius="12"
-            Background="#E0202020"
-            Padding="16,8"
-            Margin="4"
-            Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVis}}">
-        <Border.Effect>
-            <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="2"/>
-        </Border.Effect>
+    <Grid Margin="8"
+          Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVis}}">
 
-        <StackPanel>
-            <!-- Status row with badges -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        <Border x:Name="IslandBorder"
+                CornerRadius="22"
+                Background="#F0181818"
+                HorizontalAlignment="Center"
+                Padding="0">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="10" Opacity="0.4" ShadowDepth="0"/>
+            </Border.Effect>
 
-                <!-- Status indicator dot + text -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse Width="10" Height="10" Margin="0,0,8,0">
-                        <Ellipse.Style>
-                            <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="#888"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding State}" Value="Recording">
-                                        <Setter Property="Fill" Value="#FF4444"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State}" Value="Processing">
-                                        <Setter Property="Fill" Value="#FFaa00"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State}" Value="Inserting">
-                                        <Setter Property="Fill" Value="#44cc44"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State}" Value="Error">
-                                        <Setter Property="Fill" Value="#FF0000"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
-                    </Ellipse>
+            <StackPanel>
+                <!-- Main compact row: LeftWidget | StatusText | RightWidget -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Margin="18,7">
+
+                    <!-- Left widget -->
+                    <overlay:OverlayWidgetHost
+                        WidgetType="{Binding LeftWidget}"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0"/>
+
+                    <!-- Status text -->
                     <TextBlock Text="{Binding StatusText}"
-                               Foreground="White" FontSize="13"
+                               Foreground="White" FontSize="11"
                                FontWeight="SemiBold"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+
+                    <!-- Right widget -->
+                    <overlay:OverlayWidgetHost
+                        WidgetType="{Binding RightWidget}"
+                        VerticalAlignment="Center"
+                        Margin="12,0,0,0"/>
                 </StackPanel>
 
-                <!-- Inline badges (only during Recording) -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0"
-                            VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding State}" Value="Recording">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-
-                    <!-- Mode badge (TOG/PTT) -->
-                    <Border Background="#333" CornerRadius="6" Padding="5,2" Margin="0,0,4,0">
-                        <TextBlock Text="{Binding CurrentHotkeyMode, Converter={StaticResource HotkeyModeLabel}}"
-                                   Foreground="#AAA" FontSize="9" FontWeight="SemiBold"/>
-                    </Border>
-
-                    <!-- Process name badge -->
-                    <Border Background="#333" CornerRadius="6" Padding="5,2" Margin="0,0,4,0"
-                            Visibility="{Binding ActiveProcessName, Converter={StaticResource NonEmptyToVis}}">
-                        <TextBlock Text="{Binding ActiveProcessName}"
-                                   Foreground="#AAA" FontSize="10"
-                                   MaxWidth="80" TextTrimming="CharacterEllipsis"/>
-                    </Border>
-
-                    <!-- Profile name badge -->
-                    <Border Background="#1A3A6B" CornerRadius="6" Padding="5,2" Margin="0,0,4,0"
-                            Visibility="{Binding ActiveProfileName, Converter={StaticResource NonEmptyToVis}}">
-                        <TextBlock Text="{Binding ActiveProfileName}"
-                                   Foreground="#5B9FFF" FontSize="10"
-                                   MaxWidth="80" TextTrimming="CharacterEllipsis"/>
-                    </Border>
-                </StackPanel>
-
-                <!-- Spacer -->
-                <Border Grid.Column="2"/>
-
-                <!-- Audio level bar -->
-                <Border Grid.Column="3" Width="40" Height="8"
-                        CornerRadius="4" Background="#333"
-                        VerticalAlignment="Center" Margin="8,0,0,0">
-                    <Border CornerRadius="4" Background="#44cc44"
-                            HorizontalAlignment="Left">
-                        <Border.Width>
-                            <MultiBinding Converter="{StaticResource AudioLevelWidth}">
-                                <Binding Path="AudioLevel"/>
-                                <Binding RelativeSource="{RelativeSource AncestorType=Border}" Path="ActualWidth"/>
-                            </MultiBinding>
-                        </Border.Width>
-                    </Border>
+                <!-- Partial text area (expands pill) -->
+                <Border MaxHeight="120"
+                        Margin="16,0,16,8"
+                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock Text="{Binding PartialText}"
+                                   TextWrapping="Wrap"
+                                   Foreground="#AAAAAA" FontSize="11"/>
+                    </ScrollViewer>
                 </Border>
 
-                <!-- Duration timer -->
-                <TextBlock Grid.Column="4"
-                           Text="{Binding RecordingSeconds, Converter={StaticResource SecondsToTimer}}"
-                           Foreground="#999" FontSize="11"
-                           FontFamily="Consolas"
-                           VerticalAlignment="Center"
-                           Margin="8,0,0,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding State}" Value="Recording">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Grid>
-
-            <!-- Partial transcription text area -->
-            <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto"
-                          Margin="0,4,0,0">
-                <ScrollViewer.Style>
-                    <Style TargetType="ScrollViewer">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding State}" Value="Recording"/>
-                                    <Condition Binding="{Binding PartialText, Converter={StaticResource NonEmptyToVis}}" Value="Visible"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </MultiDataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ScrollViewer.Style>
-                <TextBlock Text="{Binding PartialText}" TextWrapping="Wrap"
-                           Foreground="#AAAAAA" FontSize="11" Padding="0,0,0,0"/>
-            </ScrollViewer>
-
-            <!-- Final transcribed text (post-processing) -->
-            <TextBlock Text="{Binding TranscribedText}"
-                       Foreground="#CCCCCC" FontSize="11"
-                       TextTrimming="CharacterEllipsis"
-                       MaxHeight="18" Margin="0,2,0,0"
-                       Visibility="{Binding TranscribedText.Length, Converter={StaticResource BoolToVis}}"/>
-        </StackPanel>
-    </Border>
+                <!-- Feedback banner (errors only) -->
+                <Border CornerRadius="0,0,22,22"
+                        Padding="16,4,16,6"
+                        Background="#1AFF4444"
+                        Visibility="{Binding ShowFeedback, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding FeedbackText}"
+                               Foreground="#FF6666"
+                               FontSize="11"
+                               HorizontalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Interop;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
-using TypeWhisper.Windows.ViewModels;
 
 namespace TypeWhisper.Windows.Views;
 
@@ -19,9 +18,35 @@ public partial class MainWindow : Window
     [LibraryImport("user32.dll")]
     private static partial int SetWindowLongW(IntPtr hWnd, int nIndex, int dwNewLong);
 
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetMonitorInfoW(IntPtr hMonitor, ref MonitorInfo lpmi);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetCursorPos(out POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
     private readonly ISettingsService _settings;
 
-    public MainWindow(DictationViewModel viewModel, ISettingsService settings)
+    public MainWindow(ViewModels.DictationViewModel viewModel, ISettingsService settings)
     {
         InitializeComponent();
         DataContext = viewModel;
@@ -32,7 +57,6 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
 
-        // Make overlay non-focusable so it never steals focus from the active app
         var hwnd = new WindowInteropHelper(this).Handle;
         var exStyle = GetWindowLongW(hwnd, GWL_EXSTYLE);
         SetWindowLongW(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
@@ -44,16 +68,46 @@ public partial class MainWindow : Window
         _settings.SettingsChanged += _ => Dispatcher.Invoke(PositionOverlay);
     }
 
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        PositionOverlay();
+    }
+
     private void PositionOverlay()
     {
-        var workArea = SystemParameters.WorkArea;
+        // Get the monitor where the cursor is
+        GetCursorPos(out var cursor);
+        var hMonitor = MonitorFromPoint(cursor, 2 /* MONITOR_DEFAULTTONEAREST */);
 
-        Left = (workArea.Width - Width) / 2 + workArea.Left;
+        var mi = new MonitorInfo { cbSize = Marshal.SizeOf<MonitorInfo>() };
+        if (!GetMonitorInfoW(hMonitor, ref mi))
+        {
+            var fallback = SystemParameters.WorkArea;
+            Left = fallback.Left + (fallback.Width - ActualWidth) / 2;
+            Top = _settings.Current.OverlayPosition == OverlayPosition.Top
+                ? fallback.Top
+                : fallback.Bottom - ActualHeight;
+            return;
+        }
 
-        var height = double.IsNaN(Height) ? ActualHeight : Height;
+        // Physical pixels to WPF DIPs
+        var source = PresentationSource.FromVisual(this);
+        var dpiToWpfX = source?.CompositionTarget?.TransformFromDevice.M11 ?? 1.0;
+        var dpiToWpfY = source?.CompositionTarget?.TransformFromDevice.M22 ?? 1.0;
+
+        var workLeft = mi.rcWork.Left * dpiToWpfX;
+        var workTop = mi.rcWork.Top * dpiToWpfY;
+        var workWidth = (mi.rcWork.Right - mi.rcWork.Left) * dpiToWpfX;
+        var workBottom = mi.rcWork.Bottom * dpiToWpfY;
+
+        var width = ActualWidth > 0 ? ActualWidth : 300;
+        var height = ActualHeight > 0 ? ActualHeight : 50;
+
+        Left = workLeft + (workWidth - width) / 2;
+
         if (_settings.Current.OverlayPosition == OverlayPosition.Top)
-            Top = workArea.Top + 20;
+            Top = workTop;
         else
-            Top = workArea.Bottom - Math.Max(height, 60) - 20;
+            Top = workBottom - height;
     }
 }

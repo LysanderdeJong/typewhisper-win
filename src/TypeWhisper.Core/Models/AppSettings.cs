@@ -32,6 +32,8 @@ public record AppSettings
 
     // Overlay
     public OverlayPosition OverlayPosition { get; init; } = OverlayPosition.Bottom;
+    public OverlayWidget OverlayLeftWidget { get; init; } = OverlayWidget.Waveform;
+    public OverlayWidget OverlayRightWidget { get; init; } = OverlayWidget.Timer;
 
     // Translation
     public string TranscriptionTask { get; init; } = "transcribe";
@@ -64,4 +66,16 @@ public enum OverlayPosition
 {
     Top,
     Bottom
+}
+
+public enum OverlayWidget
+{
+    None,
+    Indicator,
+    Timer,
+    Waveform,
+    Clock,
+    Profile,
+    HotkeyMode,
+    AppName
 }

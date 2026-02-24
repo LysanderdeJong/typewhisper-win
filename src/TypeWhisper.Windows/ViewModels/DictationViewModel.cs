@@ -62,6 +62,10 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string? _activeProcessName;
     [ObservableProperty] private string? _activeProfileName;
     [ObservableProperty] private string _partialText = "";
+    [ObservableProperty] private bool _isExpanded;
+    [ObservableProperty] private string? _feedbackText;
+    [ObservableProperty] private bool _feedbackIsError;
+    [ObservableProperty] private bool _showFeedback;
 
     public DictationViewModel(
         ISettingsService settings,
@@ -98,6 +102,11 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _consumerTask = Task.Run(() => ProcessJobsAsync(_consumerCts.Token));
 
         _audio.AudioLevelChanged += OnAudioLevelChanged;
+        _settings.SettingsChanged += _ =>
+        {
+            OnPropertyChanged(nameof(LeftWidget));
+            OnPropertyChanged(nameof(RightWidget));
+        };
         _hotkey.DictationStartRequested += (_, _) => Application.Current?.Dispatcher.InvokeAsync(async () => await StartRecording());
         _hotkey.DictationStopRequested += (_, _) => Application.Current?.Dispatcher.InvokeAsync(async () =>
         {
@@ -115,6 +124,32 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 UpdateVisualState();
             }
         });
+    }
+
+    public OverlayWidget LeftWidget => _settings.Current.OverlayLeftWidget;
+    public OverlayWidget RightWidget => _settings.Current.OverlayRightWidget;
+
+    partial void OnPartialTextChanged(string value)
+    {
+        IsExpanded = !string.IsNullOrEmpty(value);
+    }
+
+    private System.Timers.Timer? _feedbackTimer;
+
+    partial void OnShowFeedbackChanged(bool value)
+    {
+        _feedbackTimer?.Stop();
+        _feedbackTimer?.Dispose();
+        if (value)
+        {
+            _feedbackTimer = new System.Timers.Timer(2000);
+            _feedbackTimer.AutoReset = false;
+            _feedbackTimer.Elapsed += (_, _) =>
+            {
+                Application.Current?.Dispatcher.InvokeAsync(() => ShowFeedback = false);
+            };
+            _feedbackTimer.Start();
+        }
     }
 
     // Effective settings: profile override → global setting
@@ -456,6 +491,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             {
                 State = DictationState.Error;
                 StatusText = $"Fehler: {ex.Message}";
+                FeedbackText = StatusText;
+                FeedbackIsError = true;
+                ShowFeedback = true;
             });
             try { await Task.Delay(3000, ct); } catch (OperationCanceledException) { }
             await Application.Current.Dispatcher.InvokeAsync(() => UpdateVisualState());
@@ -482,6 +520,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             ActiveProcessName = null;
             ActiveProfileName = null;
             PartialText = "";
+            IsExpanded = false;
+            ShowFeedback = false;
         }
     }
 
@@ -580,6 +620,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             try { _consumerTask?.Wait(TimeSpan.FromSeconds(3)); } catch { /* shutting down */ }
             _consumerCts.Dispose();
             _durationTimer?.Dispose();
+            _feedbackTimer?.Dispose();
             _vad?.Dispose();
             _vadLock.Dispose();
             _audio.AudioLevelChanged -= OnAudioLevelChanged;

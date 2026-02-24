@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:TypeWhisper.Windows.Controls"
              xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters"
-             xmlns:models="clr-namespace:TypeWhisper.Core.Models;assembly=TypeWhisper.Core">
+             xmlns:models="clr-namespace:TypeWhisper.Core.Models;assembly=TypeWhisper.Core"
+             xmlns:vms="clr-namespace:TypeWhisper.Windows.ViewModels">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -117,17 +118,46 @@
 
             <!-- Overlay -->
             <TextBlock Text="Overlay" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Position" Style="{StaticResource LabelStyle}"/>
-                <ComboBox SelectedValue="{Binding Settings.OverlayPosition}"
-                          SelectedValuePath="Tag"
-                          Style="{StaticResource InputComboBoxStyle}"
-                          ItemContainerStyle="{StaticResource InputComboBoxItemStyle}"
-                          Width="200" HorizontalAlignment="Left">
-                    <ComboBoxItem Content="Oben" Tag="{x:Static models:OverlayPosition.Top}"/>
-                    <ComboBoxItem Content="Unten" Tag="{x:Static models:OverlayPosition.Bottom}"/>
-                </ComboBox>
-            </StackPanel>
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Position" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox SelectedValue="{Binding Settings.OverlayPosition}"
+                              SelectedValuePath="Tag"
+                              Style="{StaticResource InputComboBoxStyle}"
+                              ItemContainerStyle="{StaticResource InputComboBoxItemStyle}">
+                        <ComboBoxItem Content="Oben" Tag="{x:Static models:OverlayPosition.Top}"/>
+                        <ComboBoxItem Content="Unten" Tag="{x:Static models:OverlayPosition.Bottom}"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Links-Widget" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
+                              SelectedValue="{Binding Settings.OverlayLeftWidget}"
+                              SelectedValuePath="Value"
+                              DisplayMemberPath="DisplayName"
+                              Style="{StaticResource InputComboBoxStyle}"
+                              ItemContainerStyle="{StaticResource InputComboBoxItemStyle}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4">
+                    <TextBlock Text="Rechts-Widget" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
+                              SelectedValue="{Binding Settings.OverlayRightWidget}"
+                              SelectedValuePath="Value"
+                              DisplayMemberPath="DisplayName"
+                              Style="{StaticResource InputComboBoxStyle}"
+                              ItemContainerStyle="{StaticResource InputComboBoxItemStyle}"/>
+                </StackPanel>
+            </Grid>
 
             <!-- System -->
             <TextBlock Text="System" Style="{StaticResource SectionHeaderStyle}"/>

@@ -34,9 +34,23 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string? _translationTargetLanguage;
     [ObservableProperty] private bool _apiServerEnabled;
     [ObservableProperty] private int _apiServerPort = 9876;
+    [ObservableProperty] private OverlayWidget _overlayLeftWidget = OverlayWidget.Waveform;
+    [ObservableProperty] private OverlayWidget _overlayRightWidget = OverlayWidget.Timer;
 
     public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = TranslationModelInfo.GlobalTargetOptions;
     public ObservableCollection<MicrophoneItem> Microphones { get; } = [];
+
+    public static IReadOnlyList<OverlayWidgetOption> WidgetOptions { get; } =
+    [
+        new(OverlayWidget.None, "Keins"),
+        new(OverlayWidget.Indicator, "Status-LED"),
+        new(OverlayWidget.Timer, "Timer"),
+        new(OverlayWidget.Waveform, "Waveform"),
+        new(OverlayWidget.Clock, "Uhrzeit"),
+        new(OverlayWidget.Profile, "Profil"),
+        new(OverlayWidget.HotkeyMode, "Hotkey-Modus"),
+        new(OverlayWidget.AppName, "App-Name"),
+    ];
 
     private bool _isLoading;
 
@@ -93,7 +107,9 @@ public partial class SettingsViewModel : ObservableObject
             HoldOnlyHotkey = HoldOnlyHotkey,
             AudioDuckingEnabled = AudioDuckingEnabled,
             AudioDuckingLevel = AudioDuckingLevel,
-            PauseMediaDuringRecording = PauseMediaDuringRecording
+            PauseMediaDuringRecording = PauseMediaDuringRecording,
+            OverlayLeftWidget = OverlayLeftWidget,
+            OverlayRightWidget = OverlayRightWidget
         };
         _settings.Save(updated);
         StartupService.SetEnabled(AutostartEnabled);
@@ -122,7 +138,10 @@ public partial class SettingsViewModel : ObservableObject
         AudioDuckingEnabled = s.AudioDuckingEnabled;
         AudioDuckingLevel = s.AudioDuckingLevel;
         PauseMediaDuringRecording = s.PauseMediaDuringRecording;
+        OverlayLeftWidget = s.OverlayLeftWidget;
+        OverlayRightWidget = s.OverlayRightWidget;
     }
 }
 
 public sealed record MicrophoneItem(int? DeviceNumber, string Name);
+public sealed record OverlayWidgetOption(OverlayWidget Value, string DisplayName);
