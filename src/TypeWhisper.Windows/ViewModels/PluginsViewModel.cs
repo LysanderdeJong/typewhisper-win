@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -20,6 +21,8 @@ public partial class PluginsViewModel : ObservableObject
     {
         _pluginManager = pluginManager;
         _registryService = registryService;
+        _pluginManager.PluginStateChanged += (_, _) =>
+            Application.Current.Dispatcher.Invoke(RefreshPlugins);
         RefreshPlugins();
         _ = RefreshRegistryAsync();
     }

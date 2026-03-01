@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Core.Interfaces;
@@ -61,6 +62,31 @@ public partial class ModelManagerViewModel : ObservableObject
             foreach (var m in LocalModels)
                 m.RefreshStatus();
         };
+
+        _modelManager.PluginManager.PluginStateChanged += (_, _) =>
+            Application.Current.Dispatcher.Invoke(RebuildCloudProviders);
+    }
+
+    private void RebuildCloudProviders()
+    {
+        CloudProviders.Clear();
+        foreach (var engine in _modelManager.PluginManager.TranscriptionEngines)
+        {
+            var hasKey = engine.IsConfigured;
+            var isLlmProvider = _modelManager.PluginManager.LlmProviders
+                .Any(l => l.PluginId == engine.PluginId);
+            var providerVm = new CloudProviderViewModel(
+                engine.PluginId, engine.ProviderDisplayName, hasKey, isLlmProvider);
+            foreach (var model in engine.TranscriptionModels)
+            {
+                var fullId = ModelManagerService.GetPluginModelId(engine.PluginId, model.Id);
+                providerVm.Models.Add(new CloudModelItemViewModel(
+                    fullId, model.DisplayName, hasKey,
+                    _modelManager.ActiveModelId == fullId,
+                    engine.SupportsTranslation));
+            }
+            CloudProviders.Add(providerVm);
+        }
     }
 
     /// <summary>
