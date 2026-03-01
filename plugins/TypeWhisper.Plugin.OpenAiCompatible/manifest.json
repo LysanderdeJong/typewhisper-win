@@ -1,0 +1,9 @@
+{
+  "id": "com.typewhisper.openai-compatible",
+  "name": "OpenAI Compatible",
+  "version": "1.0.0",
+  "author": "TypeWhisper",
+  "description": "Connect to any OpenAI-compatible server (Ollama, LM Studio, vLLM, etc.)",
+  "assemblyName": "TypeWhisper.Plugin.OpenAiCompatible.dll",
+  "pluginClass": "TypeWhisper.Plugin.OpenAiCompatible.OpenAiCompatiblePlugin"
+}

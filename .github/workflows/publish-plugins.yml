@@ -35,10 +35,11 @@ jobs:
         run: |
           # Map plugin name to project directory
           $map = @{
-            'sherpa-onnx' = 'TypeWhisper.Plugin.SherpaOnnx'
-            'openai'      = 'TypeWhisper.Plugin.OpenAI'
-            'groq'        = 'TypeWhisper.Plugin.Groq'
-            'webhook'     = 'TypeWhisper.Plugin.Webhook'
+            'sherpa-onnx'        = 'TypeWhisper.Plugin.SherpaOnnx'
+            'openai'             = 'TypeWhisper.Plugin.OpenAI'
+            'openai-compatible'  = 'TypeWhisper.Plugin.OpenAiCompatible'
+            'groq'               = 'TypeWhisper.Plugin.Groq'
+            'webhook'            = 'TypeWhisper.Plugin.Webhook'
           }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
