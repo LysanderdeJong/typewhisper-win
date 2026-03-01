@@ -190,6 +190,20 @@
                             </Button.Style>
                         </Button>
 
+                        <Button Content="Prompts"
+                                Command="{Binding NavigateCommand}" CommandParameter="Prompts">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Prompts">
+                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
                         <Button Content="Erweiterungen"
                                 Command="{Binding NavigateCommand}" CommandParameter="Erweiterungen">
                             <Button.Style>

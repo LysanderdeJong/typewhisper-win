@@ -20,6 +20,7 @@ public sealed class HotkeyService : IDisposable
     private readonly KeyboardHook _hybridHook;
     private readonly KeyboardHook _toggleOnlyHook;
     private readonly KeyboardHook _holdOnlyHook;
+    private readonly KeyboardHook _promptPaletteHook;
 
     private bool _disposed;
     private DateTime _keyDownTime;
@@ -27,6 +28,7 @@ public sealed class HotkeyService : IDisposable
 
     public event EventHandler? DictationStartRequested;
     public event EventHandler? DictationStopRequested;
+    public event EventHandler? PromptPaletteRequested;
     public HotkeyMode? CurrentMode { get; private set; }
     public bool IsEnabled { get; set; } = true;
 
@@ -44,6 +46,9 @@ public sealed class HotkeyService : IDisposable
         _holdOnlyHook = new KeyboardHook();
         _holdOnlyHook.KeyDown += OnHoldOnlyKeyDown;
         _holdOnlyHook.KeyUp += OnHoldOnlyKeyUp;
+
+        _promptPaletteHook = new KeyboardHook();
+        _promptPaletteHook.KeyDown += OnPromptPaletteKeyDown;
     }
 
     public void Initialize(Window window)
@@ -75,6 +80,12 @@ public sealed class HotkeyService : IDisposable
         {
             _holdOnlyHook.SetHotkey(s.HoldOnlyHotkey);
             _holdOnlyHook.Start();
+        }
+
+        if (!string.IsNullOrWhiteSpace(s.PromptPaletteHotkey))
+        {
+            _promptPaletteHook.SetHotkey(s.PromptPaletteHotkey);
+            _promptPaletteHook.Start();
         }
     }
 
@@ -155,6 +166,14 @@ public sealed class HotkeyService : IDisposable
         DictationStopRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    // --- Prompt Palette: single press = toggle ---
+
+    private void OnPromptPaletteKeyDown(object? sender, EventArgs e)
+    {
+        if (!IsEnabled) return;
+        PromptPaletteRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     // --- Common ---
 
     private void StopAllHooks()
@@ -162,6 +181,7 @@ public sealed class HotkeyService : IDisposable
         _hybridHook.Stop();
         _toggleOnlyHook.Stop();
         _holdOnlyHook.Stop();
+        _promptPaletteHook.Stop();
         _isActive = false;
         CurrentMode = null;
     }
@@ -183,6 +203,7 @@ public sealed class HotkeyService : IDisposable
             _hybridHook.Dispose();
             _toggleOnlyHook.Dispose();
             _holdOnlyHook.Dispose();
+            _promptPaletteHook.Dispose();
             _disposed = true;
         }
     }

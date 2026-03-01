@@ -62,6 +62,10 @@ public partial class App : Application
         var db = _serviceProvider.GetRequiredService<ITypeWhisperDatabase>();
         db.Initialize();
 
+        // Seed prompt presets
+        var promptActions = _serviceProvider.GetRequiredService<IPromptActionService>();
+        promptActions.SeedPresets();
+
         // Load settings
         var settings = _serviceProvider.GetRequiredService<ISettingsService>();
         settings.Load();
@@ -212,6 +216,7 @@ public partial class App : Application
         services.AddSingleton<IDictionaryService, DictionaryService>();
         services.AddSingleton<ISnippetService, SnippetService>();
         services.AddSingleton<IProfileService, ProfileService>();
+        services.AddSingleton<IPromptActionService, PromptActionService>();
 
         // Translation (uses plugin manager for LLM providers)
         services.AddSingleton<ITranslationService>(sp =>
@@ -225,6 +230,7 @@ public partial class App : Application
         services.AddSingleton<HttpApiService>();
         services.AddSingleton<TrayIconService>();
         services.AddSingleton<UpdateService>();
+        services.AddSingleton<PromptProcessingService>();
 
         // ViewModels
         services.AddSingleton<DictationViewModel>();
@@ -235,6 +241,8 @@ public partial class App : Application
         services.AddSingleton<SnippetsViewModel>();
         services.AddSingleton<ProfilesViewModel>();
         services.AddSingleton<PluginsViewModel>();
+        services.AddSingleton<PromptsViewModel>();
+        services.AddSingleton<PromptPaletteViewModel>();
         services.AddSingleton<SettingsWindowViewModel>();
         services.AddSingleton<FileTranscriptionViewModel>();
         services.AddSingleton<DashboardViewModel>();

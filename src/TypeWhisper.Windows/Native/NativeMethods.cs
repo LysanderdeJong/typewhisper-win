@@ -88,6 +88,14 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial int GetWindowTextLengthW(IntPtr hWnd);
 
+    // Navigation / editing keys
+    public const int VK_RETURN = 0x0D;
+    public const int VK_ESCAPE = 0x1B;
+    public const int VK_BACK = 0x08;
+    public const int VK_UP = 0x26;
+    public const int VK_DOWN = 0x28;
+    public const int VK_C = 0x43;
+
     // Clipboard
     public const int VK_V = 0x56;
 

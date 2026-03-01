@@ -49,6 +49,10 @@ public record AppSettings
     // Onboarding
     public bool HasCompletedOnboarding { get; init; }
 
+    // Prompt Palette
+    public string PromptPaletteHotkey { get; init; } = "";
+    public string? DefaultLlmProvider { get; init; }
+
     // Plugin state
     public Dictionary<string, bool> PluginEnabledState { get; init; } = new();
 

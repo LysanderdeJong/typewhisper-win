@@ -30,6 +30,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     private readonly IAudioDuckingService _audioDucking;
     private readonly IMediaPauseService _mediaPause;
     private readonly PluginEventBus _eventBus;
+    private readonly IPromptActionService _promptActions;
+    private readonly PromptProcessingService _promptProcessing;
 
     private CancellationTokenSource _consumerCts = new();
     private Task? _consumerTask;
@@ -67,6 +69,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _feedbackIsError;
     [ObservableProperty] private bool _showFeedback;
 
+    public PromptPaletteViewModel PromptPalette { get; }
+
     public DictationViewModel(
         ISettingsService settings,
         ModelManagerService modelManager,
@@ -81,7 +85,10 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         IProfileService profiles,
         ITranslationService translation,
         IAudioDuckingService audioDucking,
-        IMediaPauseService mediaPause)
+        IMediaPauseService mediaPause,
+        IPromptActionService promptActions,
+        PromptProcessingService promptProcessing,
+        PromptPaletteViewModel promptPalette)
     {
         _settings = settings;
         _modelManager = modelManager;
@@ -98,6 +105,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _audioDucking = audioDucking;
         _mediaPause = mediaPause;
         _eventBus = modelManager.PluginManager.EventBus;
+        PromptPalette = promptPalette;
+        _promptActions = promptActions;
+        _promptProcessing = promptProcessing;
 
         _consumerTask = Task.Run(() => ProcessJobsAsync(_consumerCts.Token));
 
@@ -124,6 +134,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 UpdateVisualState();
             }
         });
+
+        _hotkey.PromptPaletteRequested += (_, _) => Application.Current?.Dispatcher.InvokeAsync(() =>
+            PromptPalette.TogglePalette());
     }
 
     public OverlayWidget LeftWidget => _settings.Current.OverlayLeftWidget;
@@ -395,6 +408,17 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 foreach (var processor in postProcessors)
                 {
                     finalText = await processor.ProcessAsync(finalText, context, ct);
+                }
+            }
+
+            // Profile prompt action: run through LLM if configured
+            if (job.ActiveProfile?.PromptActionId is { } promptActionId)
+            {
+                var promptAction = _promptActions.Actions.FirstOrDefault(a => a.Id == promptActionId);
+                if (promptAction is not null && _promptProcessing.IsAnyProviderAvailable)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() => StatusText = "KI-Prompt...");
+                    finalText = await _promptProcessing.ProcessAsync(promptAction, finalText, ct);
                 }
             }
 

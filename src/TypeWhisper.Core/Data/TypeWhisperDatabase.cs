@@ -4,7 +4,7 @@ namespace TypeWhisper.Core.Data;
 
 public sealed class TypeWhisperDatabase : ITypeWhisperDatabase
 {
-    private const int CurrentSchemaVersion = 4;
+    private const int CurrentSchemaVersion = 5;
 
     private readonly string _connectionString;
     private SqliteConnection? _connection;
@@ -55,6 +55,8 @@ public sealed class TypeWhisperDatabase : ITypeWhisperDatabase
             MigrateToVersion3(connection);
         if (version < 4)
             MigrateToVersion4(connection);
+        if (version < 5)
+            MigrateToVersion5(connection);
     }
 
     private static int GetSchemaVersion(SqliteConnection connection)
@@ -188,6 +190,45 @@ public sealed class TypeWhisperDatabase : ITypeWhisperDatabase
             Exec(connection, "ALTER TABLE profiles ADD COLUMN transcription_model_override TEXT");
 
         SetSchemaVersion(connection, 4);
+    }
+
+    private static void MigrateToVersion5(SqliteConnection connection)
+    {
+        Exec(connection, """
+            CREATE TABLE IF NOT EXISTS prompt_actions (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                system_prompt TEXT NOT NULL,
+                icon TEXT NOT NULL DEFAULT '✨',
+                is_preset INTEGER NOT NULL DEFAULT 0,
+                is_enabled INTEGER NOT NULL DEFAULT 1,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                provider_override TEXT,
+                model_override TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """);
+
+        // Add prompt_action_id to profiles
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "PRAGMA table_info(profiles)";
+        using var reader = cmd.ExecuteReader();
+        var hasColumn = false;
+        while (reader.Read())
+        {
+            if (reader.GetString(1) == "prompt_action_id")
+            {
+                hasColumn = true;
+                break;
+            }
+        }
+        reader.Close();
+
+        if (!hasColumn)
+            Exec(connection, "ALTER TABLE profiles ADD COLUMN prompt_action_id TEXT");
+
+        SetSchemaVersion(connection, 5);
     }
 
     private static void Exec(SqliteConnection connection, string sql)

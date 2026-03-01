@@ -36,6 +36,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _apiServerPort = 9876;
     [ObservableProperty] private OverlayWidget _overlayLeftWidget = OverlayWidget.Waveform;
     [ObservableProperty] private OverlayWidget _overlayRightWidget = OverlayWidget.Timer;
+    [ObservableProperty] private string _promptPaletteHotkey = "";
 
     public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = TranslationModelInfo.GlobalTargetOptions;
     public ObservableCollection<MicrophoneItem> Microphones { get; } = [];
@@ -109,7 +110,8 @@ public partial class SettingsViewModel : ObservableObject
             AudioDuckingLevel = AudioDuckingLevel,
             PauseMediaDuringRecording = PauseMediaDuringRecording,
             OverlayLeftWidget = OverlayLeftWidget,
-            OverlayRightWidget = OverlayRightWidget
+            OverlayRightWidget = OverlayRightWidget,
+            PromptPaletteHotkey = PromptPaletteHotkey
         };
         _settings.Save(updated);
         StartupService.SetEnabled(AutostartEnabled);
@@ -140,6 +142,7 @@ public partial class SettingsViewModel : ObservableObject
         PauseMediaDuringRecording = s.PauseMediaDuringRecording;
         OverlayLeftWidget = s.OverlayLeftWidget;
         OverlayRightWidget = s.OverlayRightWidget;
+        PromptPaletteHotkey = s.PromptPaletteHotkey;
     }
 }
 

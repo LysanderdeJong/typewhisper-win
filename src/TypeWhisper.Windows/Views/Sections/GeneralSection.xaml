@@ -48,6 +48,16 @@
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
+            <!-- Prompt-Palette Hotkey -->
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="Prompt-Palette" Style="{StaticResource LabelStyle}"/>
+                <controls:HotkeyRecorderControl
+                    Hotkey="{Binding Settings.PromptPaletteHotkey}" AllowModifierOnly="True"
+                    Width="200" HorizontalAlignment="Left"/>
+                <TextBlock Text="Öffnet die KI-Prompt-Palette für markierten Text"
+                           Style="{StaticResource HintStyle}"/>
+            </StackPanel>
+
             <!-- Language -->
             <StackPanel Margin="0,0,0,20">
                 <TextBlock Text="Sprache" Style="{StaticResource LabelStyle}"/>
