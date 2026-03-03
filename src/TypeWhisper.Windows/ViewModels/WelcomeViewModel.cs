@@ -5,6 +5,7 @@ using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.ViewModels;
@@ -53,7 +54,7 @@ public partial class WelcomeViewModel : ObservableObject
     private async Task DownloadModel()
     {
         IsDownloading = true;
-        DownloadStatus = "Herunterladen...";
+        DownloadStatus = Loc.Instance["Welcome.DownloadProgress"];
 
         _modelManager.PropertyChanged += (_, args) =>
         {
@@ -67,7 +68,7 @@ public partial class WelcomeViewModel : ObservableObject
                 }
                 else if (status.Type == ModelStatusType.Loading)
                 {
-                    DownloadStatus = "Modell laden...";
+                    DownloadStatus = Loc.Instance["Welcome.LoadingModel"];
                 }
             }
         };
@@ -75,14 +76,14 @@ public partial class WelcomeViewModel : ObservableObject
         try
         {
             await _modelManager.DownloadAndLoadModelAsync(SelectedModelId);
-            DownloadStatus = "Fertig!";
+            DownloadStatus = Loc.Instance["Welcome.Done"];
 
             // Save selected model
             _settings.Save(_settings.Current with { SelectedModelId = SelectedModelId });
         }
         catch (Exception ex)
         {
-            DownloadStatus = $"Fehler: {ex.Message}";
+            DownloadStatus = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
             return;
         }
         finally
@@ -143,7 +144,7 @@ public partial class WelcomeViewModel : ObservableObject
     private void RefreshMicrophones()
     {
         Microphones.Clear();
-        Microphones.Add(new MicrophoneItem(null, "Standard"));
+        Microphones.Add(new MicrophoneItem(null, Loc.Instance["Microphone.Default"]));
         foreach (var (number, name) in AudioRecordingService.GetAvailableDevices())
             Microphones.Add(new MicrophoneItem(number, name));
     }

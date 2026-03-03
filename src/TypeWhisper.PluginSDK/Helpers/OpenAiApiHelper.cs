@@ -9,7 +9,7 @@ namespace TypeWhisper.PluginSDK.Helpers;
 public static class OpenAiApiHelper
 {
     /// <summary>
-    /// Sends an HTTP request and handles common API error responses with German error messages.
+    /// Sends an HTTP request and handles common API error responses.
     /// </summary>
     public static async Task<HttpResponseMessage> SendWithErrorHandlingAsync(
         HttpClient httpClient, HttpRequestMessage request, CancellationToken ct)
@@ -21,11 +21,11 @@ public static class OpenAiApiHelper
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException($"Netzwerkfehler: {ex.Message}", ex);
+            throw new InvalidOperationException($"Network error: {ex.Message}", ex);
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            throw new InvalidOperationException("Zeitüberschreitung bei der API-Anfrage.", ex);
+            throw new InvalidOperationException("API request timed out.", ex);
         }
 
         if (!response.IsSuccessStatusCode)
@@ -33,10 +33,10 @@ public static class OpenAiApiHelper
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             var message = (int)response.StatusCode switch
             {
-                401 => "Ungültiger API-Key",
-                413 => "Audio zu groß (max 25 MB)",
-                429 => "Rate-Limit erreicht, bitte warten",
-                _ => $"API-Fehler {(int)response.StatusCode}: {ExtractErrorMessage(errorBody)}"
+                401 => "Invalid API key",
+                413 => "Audio too large (max 25 MB)",
+                429 => "Rate limit reached, please wait",
+                _ => $"API error {(int)response.StatusCode}: {ExtractErrorMessage(errorBody)}"
             };
             throw new InvalidOperationException(message);
         }

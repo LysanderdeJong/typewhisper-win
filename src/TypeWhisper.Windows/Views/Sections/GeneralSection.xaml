@@ -5,7 +5,8 @@
              xmlns:controls="clr-namespace:TypeWhisper.Windows.Controls"
              xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters"
              xmlns:models="clr-namespace:TypeWhisper.Core.Models;assembly=TypeWhisper.Core"
-             xmlns:vms="clr-namespace:TypeWhisper.Windows.ViewModels">
+             xmlns:vms="clr-namespace:TypeWhisper.Windows.ViewModels"
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -17,54 +18,54 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel MaxWidth="500" Margin="24">
-            <TextBlock Text="Allgemein" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBlock Text="{loc:Str General.Title}" Style="{StaticResource SectionHeaderStyle}"/>
 
             <!-- Hotkey (Hybrid) -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Hotkey (Hybrid)" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.HotkeyHybrid}" Style="{StaticResource LabelStyle}"/>
                 <controls:HotkeyRecorderControl
                     Hotkey="{Binding Settings.PushToTalkHotkey}" AllowModifierOnly="True"
                     Width="200" HorizontalAlignment="Left"/>
-                <TextBlock Text="Kurz drücken = Ein/Aus, gedrückt halten = Push-to-Talk"
+                <TextBlock Text="{loc:Str General.HotkeyHybridHint}"
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
             <!-- Toggle-Hotkey -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Toggle-Hotkey" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.ToggleHotkey}" Style="{StaticResource LabelStyle}"/>
                 <controls:HotkeyRecorderControl
                     Hotkey="{Binding Settings.ToggleOnlyHotkey}" AllowModifierOnly="True"
                     Width="200" HorizontalAlignment="Left"/>
-                <TextBlock Text="Drücken = Start, nochmal drücken = Stop"
+                <TextBlock Text="{loc:Str General.ToggleHotkeyHint}"
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
             <!-- Hold-Hotkey -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Hold-Hotkey" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.HoldHotkey}" Style="{StaticResource LabelStyle}"/>
                 <controls:HotkeyRecorderControl
                     Hotkey="{Binding Settings.HoldOnlyHotkey}" AllowModifierOnly="True"
                     Width="200" HorizontalAlignment="Left"/>
-                <TextBlock Text="Gedrückt halten = Aufnahme, loslassen = Stop"
+                <TextBlock Text="{loc:Str General.HoldHotkeyHint}"
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
             <!-- Prompt-Palette Hotkey -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Prompt-Palette" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.PromptPalette}" Style="{StaticResource LabelStyle}"/>
                 <controls:HotkeyRecorderControl
                     Hotkey="{Binding Settings.PromptPaletteHotkey}" AllowModifierOnly="True"
                     Width="200" HorizontalAlignment="Left"/>
-                <TextBlock Text="Öffnet die KI-Prompt-Palette für markierten Text"
+                <TextBlock Text="{loc:Str General.PromptPaletteHint}"
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
             <!-- Language -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Sprache" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.Language}" Style="{StaticResource LabelStyle}"/>
                 <ComboBox SelectedValue="{Binding Settings.Language}" SelectedValuePath="Tag"
                           Width="280" HorizontalAlignment="Left">
-                    <ComboBoxItem Content="Auto (Automatisch erkennen)" Tag="auto"/>
+                    <ComboBoxItem Content="{loc:Str General.LanguageAuto}" Tag="auto"/>
                     <ComboBoxItem Content="Deutsch" Tag="de"/>
                     <ComboBoxItem Content="English" Tag="en"/>
                     <ComboBoxItem Content="Français" Tag="fr"/>
@@ -81,27 +82,27 @@
             </StackPanel>
 
             <!-- Behavior -->
-            <TextBlock Text="Verhalten" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBlock Text="{loc:Str General.Behavior}" Style="{StaticResource SectionHeaderStyle}"/>
             <StackPanel Margin="0,0,0,8">
                 <ui:ToggleSwitch IsChecked="{Binding Settings.AutoPaste}"
-                                 OnContent="Automatisch einfügen (Ctrl+V)"
-                                 OffContent="Automatisch einfügen (Ctrl+V)"/>
+                                 OnContent="{loc:Str General.AutoPaste}"
+                                 OffContent="{loc:Str General.AutoPaste}"/>
             </StackPanel>
             <StackPanel Margin="0,0,0,8">
                 <ui:ToggleSwitch IsChecked="{Binding Settings.WhisperModeEnabled}"
-                                 OnContent="Whisper-Modus (AGC)"
-                                 OffContent="Whisper-Modus (AGC)"/>
+                                 OnContent="{loc:Str General.WhisperMode}"
+                                 OffContent="{loc:Str General.WhisperMode}"/>
             </StackPanel>
             <StackPanel Margin="0,0,0,8">
                 <ui:ToggleSwitch IsChecked="{Binding Settings.SoundFeedbackEnabled}"
-                                 OnContent="Sound-Feedback"
-                                 OffContent="Sound-Feedback"/>
+                                 OnContent="{loc:Str General.SoundFeedback}"
+                                 OffContent="{loc:Str General.SoundFeedback}"/>
             </StackPanel>
 
             <!-- Translation -->
-            <TextBlock Text="Übersetzung" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
+            <TextBlock Text="{loc:Str General.Translation}" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Zielsprache" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.TargetLanguage}" Style="{StaticResource LabelStyle}"/>
                 <ComboBox ItemsSource="{Binding Settings.TranslationTargetOptions}"
                           SelectedValue="{Binding Settings.TranslationTargetLanguage}"
                           SelectedValuePath="Code"
@@ -122,12 +123,12 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-                <TextBlock Text="Text wird nach der Transkription lokal übersetzt (~106 MB pro Sprachpaar)"
+                <TextBlock Text="{loc:Str General.TranslationHint}"
                            Style="{StaticResource HintStyle}"/>
             </StackPanel>
 
             <!-- Overlay -->
-            <TextBlock Text="Overlay" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
+            <TextBlock Text="{loc:Str General.Overlay}" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
             <Grid Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -138,16 +139,16 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Position" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str General.Position}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox SelectedValue="{Binding Settings.OverlayPosition}"
                               SelectedValuePath="Tag">
-                        <ComboBoxItem Content="Oben" Tag="{x:Static models:OverlayPosition.Top}"/>
-                        <ComboBoxItem Content="Unten" Tag="{x:Static models:OverlayPosition.Bottom}"/>
+                        <ComboBoxItem Content="{loc:Str General.PositionTop}" Tag="{x:Static models:OverlayPosition.Top}"/>
+                        <ComboBoxItem Content="{loc:Str General.PositionBottom}" Tag="{x:Static models:OverlayPosition.Bottom}"/>
                     </ComboBox>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2">
-                    <TextBlock Text="Links-Widget" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str General.LeftWidget}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
                               SelectedValue="{Binding Settings.OverlayLeftWidget}"
                               SelectedValuePath="Value"
@@ -155,7 +156,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="4">
-                    <TextBlock Text="Rechts-Widget" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str General.RightWidget}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
                               SelectedValue="{Binding Settings.OverlayRightWidget}"
                               SelectedValuePath="Value"
@@ -164,28 +165,39 @@
             </Grid>
 
             <!-- System -->
-            <TextBlock Text="System" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBlock Text="{loc:Str General.System}" Style="{StaticResource SectionHeaderStyle}"/>
+
+            <StackPanel Margin="0,0,0,16">
+                <TextBlock Text="{loc:Str General.UiLanguage}" Style="{StaticResource LabelStyle}"/>
+                <ComboBox ItemsSource="{Binding Source={x:Static loc:Loc.Instance}, Path=AvailableUiLanguages}"
+                          SelectedValue="{Binding Settings.UiLanguage}"
+                          SelectedValuePath="Code"
+                          DisplayMemberPath="DisplayName"
+                          Width="200" HorizontalAlignment="Left"/>
+                <TextBlock Text="{loc:Str General.UiLanguageHint}" Style="{StaticResource HintStyle}"/>
+            </StackPanel>
+
             <StackPanel Margin="0,0,0,8">
                 <ui:ToggleSwitch IsChecked="{Binding Settings.AutostartEnabled}"
-                                 OnContent="Beim Systemstart automatisch starten"
-                                 OffContent="Beim Systemstart automatisch starten"/>
+                                 OnContent="{loc:Str General.Autostart}"
+                                 OffContent="{loc:Str General.Autostart}"/>
             </StackPanel>
 
             <!-- API Server -->
-            <TextBlock Text="API-Server" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
+            <TextBlock Text="{loc:Str General.ApiServer}" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
             <StackPanel Margin="0,0,0,8">
                 <ui:ToggleSwitch IsChecked="{Binding Settings.ApiServerEnabled}"
-                                 OnContent="REST-API aktivieren"
-                                 OffContent="REST-API aktivieren"/>
+                                 OnContent="{loc:Str General.RestApiEnable}"
+                                 OffContent="{loc:Str General.RestApiEnable}"/>
             </StackPanel>
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="Port" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str General.Port}" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Settings.ApiServerPort}"
                          Style="{StaticResource InputTextBoxStyle}"
                          Width="100" HorizontalAlignment="Left"/>
             </StackPanel>
 
-            <TextBlock Text="Einstellungen werden automatisch gespeichert."
+            <TextBlock Text="{loc:Str Settings.AutoSaveHint}"
                        Style="{StaticResource HintStyle}" Margin="0,8,0,0"/>
         </StackPanel>
     </ScrollViewer>

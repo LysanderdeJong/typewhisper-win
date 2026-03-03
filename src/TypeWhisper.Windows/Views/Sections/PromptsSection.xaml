@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters"
-             xmlns:vm="clr-namespace:TypeWhisper.Windows.ViewModels">
+             xmlns:vm="clr-namespace:TypeWhisper.Windows.ViewModels"
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -16,15 +17,15 @@
 
     <DockPanel Margin="24">
         <!-- Header -->
-        <TextBlock DockPanel.Dock="Top" Text="Prompts" Style="{StaticResource SectionHeaderStyle}"/>
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Str Prompts.Title}" Style="{StaticResource SectionHeaderStyle}"/>
         <TextBlock DockPanel.Dock="Top"
-                   Text="KI-Prompts für die Prompt-Palette. Text markieren + Hotkey = KI verarbeitet den Text."
+                   Text="{loc:Str Prompts.Subtitle}"
                    Style="{StaticResource HintStyle}" Margin="0,0,0,12"/>
 
         <!-- Warning: No LLM provider -->
         <ui:InfoBar DockPanel.Dock="Top"
-                    Title="Kein LLM-Provider konfiguriert"
-                    Message="Aktivieren Sie OpenAI oder Groq in den Erweiterungen."
+                    Title="{loc:Str Prompts.NoLlmProvider}"
+                    Message="{loc:Str Prompts.NoLlmProviderHint}"
                     Severity="Warning" IsOpen="True" IsClosable="False"
                     Margin="0,0,0,12"
                     Visibility="{Binding Prompts.HasLlmProviders, Converter={StaticResource InverseBoolToVis}}"/>
@@ -32,7 +33,7 @@
         <!-- Default LLM Provider -->
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16"
                     Visibility="{Binding Prompts.HasLlmProviders, Converter={StaticResource BoolToVis}}">
-            <TextBlock Text="Standard LLM-Provider" Style="{StaticResource LabelStyle}"/>
+            <TextBlock Text="{loc:Str Prompts.DefaultProvider}" Style="{StaticResource LabelStyle}"/>
             <ComboBox ItemsSource="{Binding Prompts.AvailableProviders}"
                       SelectedValue="{Binding Prompts.DefaultLlmProvider}"
                       SelectedValuePath="Value"
@@ -49,7 +50,7 @@
                            Foreground="{StaticResource TextBrush}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
 
                 <!-- Icon picker -->
-                <TextBlock Text="Icon" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str Prompts.Icon}" Style="{StaticResource LabelStyle}"/>
                 <ItemsControl ItemsSource="{x:Static vm:PromptsViewModel.IconOptions}" Margin="0,0,0,10">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -85,12 +86,12 @@
                 </ItemsControl>
 
                 <!-- Name -->
-                <TextBlock Text="Name" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str Prompts.NameLabel}" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Prompts.EditName, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource InputTextBoxStyle}" Margin="0,0,0,10"/>
 
                 <!-- System Prompt -->
-                <TextBlock Text="System-Prompt" Style="{StaticResource LabelStyle}"/>
+                <TextBlock Text="{loc:Str Prompts.SystemPrompt}" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Prompts.EditSystemPrompt, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource InputTextBoxStyle}"
                          AcceptsReturn="True" TextWrapping="Wrap"
@@ -100,10 +101,10 @@
 
                 <!-- Buttons -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="Abbrechen"
+                    <ui:Button Content="{loc:Str Prompts.Cancel}"
                               Command="{Binding Prompts.CancelEditorCommand}"
                               Appearance="Secondary" Padding="12,6" Margin="0,0,8,0"/>
-                    <ui:Button Content="Speichern"
+                    <ui:Button Content="{loc:Str Prompts.Save}"
                               Command="{Binding Prompts.SaveEditorCommand}"
                               Appearance="Primary" Padding="12,6"/>
                 </StackPanel>
@@ -117,7 +118,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <ui:Button Grid.Column="1" Content="+ Neu"
+            <ui:Button Grid.Column="1" Content="{loc:Str Prompts.New}"
                       Command="{Binding Prompts.StartCreateCommand}"
                       Appearance="Primary" Padding="12,6"/>
         </Grid>
@@ -125,9 +126,9 @@
         <!-- Empty State -->
         <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
                     Visibility="Collapsed">
-            <TextBlock Text="Noch keine Prompts vorhanden."
+            <TextBlock Text="{loc:Str Prompts.EmptyTitle}"
                        Foreground="#808080" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-            <ui:Button Content="+ Ersten Prompt erstellen"
+            <ui:Button Content="{loc:Str Prompts.CreateFirst}"
                       Command="{Binding Prompts.StartCreateCommand}"
                       Appearance="Primary" Padding="16,8"
                       HorizontalAlignment="Center"/>
@@ -142,11 +143,11 @@
                                 MouseLeftButtonDown="Card_MouseLeftButtonDown">
                             <Border.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Bearbeiten" Click="ContextEdit_Click"/>
-                                    <MenuItem Header="Nach oben" Click="ContextMoveUp_Click"/>
-                                    <MenuItem Header="Nach unten" Click="ContextMoveDown_Click"/>
+                                    <MenuItem Header="{loc:Str Prompts.ContextEdit}" Click="ContextEdit_Click"/>
+                                    <MenuItem Header="{loc:Str Prompts.ContextMoveUp}" Click="ContextMoveUp_Click"/>
+                                    <MenuItem Header="{loc:Str Prompts.ContextMoveDown}" Click="ContextMoveDown_Click"/>
                                     <Separator/>
-                                    <MenuItem Header="Löschen" Click="ContextDelete_Click"/>
+                                    <MenuItem Header="{loc:Str Prompts.ContextDelete}" Click="ContextDelete_Click"/>
                                 </ContextMenu>
                             </Border.ContextMenu>
                             <Grid>

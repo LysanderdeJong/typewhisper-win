@@ -1,7 +1,8 @@
 <Window x:Class="TypeWhisper.Windows.Views.FileTranscriptionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TypeWhisper - Datei-Transkription"
+        xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization"
+        Title="{loc:Str FileTranscription.Title}"
         Width="700" Height="520"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
@@ -20,10 +21,10 @@
                     CornerRadius="8" Padding="20" Margin="0,0,0,8"
                     Background="#F8F8F8" AllowDrop="True">
                 <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="Audio-/Video-Datei hierher ziehen"
+                    <TextBlock Text="{loc:Str FileTranscription.DragHint}"
                                HorizontalAlignment="Center" FontSize="14" Foreground="#666"/>
-                    <TextBlock Text="oder" HorizontalAlignment="Center" Foreground="#999" Margin="0,4"/>
-                    <Button Content="Datei auswählen..." Click="OnSelectFile"
+                    <TextBlock Text="{loc:Str FileTranscription.Or}" HorizontalAlignment="Center" Foreground="#999" Margin="0,4"/>
+                    <Button Content="{loc:Str FileTranscription.SelectFile}" Click="OnSelectFile"
                             HorizontalAlignment="Center" Padding="16,6" Margin="0,4"/>
                 </StackPanel>
             </Border>
@@ -34,7 +35,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Foreground="Gray"/>
-                <Button Grid.Column="1" Content="Abbrechen" Command="{Binding CancelCommand}"
+                <Button Grid.Column="1" Content="{loc:Str FileTranscription.Cancel}" Command="{Binding CancelCommand}"
                         Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"
                         Width="80"/>
             </Grid>
@@ -46,13 +47,13 @@
         <!-- Bottom: Export buttons -->
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0"
                     Visibility="{Binding HasResult, Converter={StaticResource BoolToVis}}">
-            <Button Content="Kopieren" Command="{Binding CopyToClipboardCommand}" Width="80" Margin="0,0,4,0"/>
-            <Button Content="Text (.txt)" Command="{Binding ExportTextCommand}" Width="80" Margin="0,0,4,0"/>
+            <Button Content="{loc:Str FileTranscription.Copy}" Command="{Binding CopyToClipboardCommand}" Width="80" Margin="0,0,4,0"/>
+            <Button Content="{loc:Str FileTranscription.TextExport}" Command="{Binding ExportTextCommand}" Width="80" Margin="0,0,4,0"/>
             <Button Content="SRT" Command="{Binding ExportSrtCommand}" Width="60" Margin="0,0,4,0"/>
             <Button Content="WebVTT" Command="{Binding ExportWebVttCommand}" Width="70" Margin="0,0,4,0"/>
 
             <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray">
-                <Run Text="Sprache:"/>
+                <Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[FileTranscription.DetectedLanguage], Mode=OneWay}"/>
                 <Run Text="{Binding DetectedLanguage, Mode=OneWay}"/>
             </TextBlock>
         </StackPanel>

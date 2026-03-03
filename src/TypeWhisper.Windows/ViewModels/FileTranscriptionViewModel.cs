@@ -5,6 +5,7 @@ using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Services;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -18,7 +19,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
     private TranscriptionResult? _lastResult;
 
     [ObservableProperty] private string? _filePath;
-    [ObservableProperty] private string _statusText = "Datei hierher ziehen oder auswählen";
+    [ObservableProperty] private string _statusText = Loc.Instance["FileTranscription.StatusDefault"];
     [ObservableProperty] private bool _isProcessing;
     [ObservableProperty] private string _resultText = "";
     [ObservableProperty] private bool _hasResult;
@@ -44,13 +45,13 @@ public partial class FileTranscriptionViewModel : ObservableObject
 
         if (!AudioFileService.IsSupported(filePath))
         {
-            StatusText = "Nicht unterstütztes Format";
+            StatusText = Loc.Instance["FileTranscription.UnsupportedFormat"];
             return;
         }
 
         if (!_modelManager.Engine.IsModelLoaded)
         {
-            StatusText = "Kein Modell geladen";
+            StatusText = Loc.Instance["Status.NoModelLoaded"];
             return;
         }
 
@@ -58,7 +59,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         IsProcessing = true;
         HasResult = false;
         ResultText = "";
-        StatusText = "Lade Audio...";
+        StatusText = Loc.Instance["FileTranscription.LoadingAudio"];
 
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
@@ -67,7 +68,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             var samples = await _audioFile.LoadAudioAsync(filePath, _cts.Token);
 
-            StatusText = "Transkribiere...";
+            StatusText = Loc.Instance["FileTranscription.Transcribing"];
 
             var s = _settings.Current;
             var language = s.Language == "auto" ? null : s.Language;
@@ -83,15 +84,15 @@ public partial class FileTranscriptionViewModel : ObservableObject
             ProcessingTime = result.ProcessingTime;
             AudioDuration = result.Duration;
             HasResult = true;
-            StatusText = $"Fertig in {result.ProcessingTime:F1}s ({result.Duration:F1}s Audio)";
+            StatusText = Loc.Instance.GetString("FileTranscription.DoneFormat", result.ProcessingTime, result.Duration);
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Abgebrochen";
+            StatusText = Loc.Instance["Status.Cancelled"];
         }
         catch (Exception ex)
         {
-            StatusText = $"Fehler: {ex.Message}";
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
         finally
         {
@@ -145,7 +146,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         if (dialog.ShowDialog() == true)
         {
             File.WriteAllText(dialog.FileName, content);
-            StatusText = $"Exportiert: {Path.GetFileName(dialog.FileName)}";
+            StatusText = Loc.Instance.GetString("FileTranscription.ExportedFormat", Path.GetFileName(dialog.FileName));
         }
     }
 

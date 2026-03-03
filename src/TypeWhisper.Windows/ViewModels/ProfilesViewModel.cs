@@ -6,6 +6,7 @@ using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Translation;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -36,10 +37,18 @@ public partial class ProfilesViewModel : ObservableObject
     [ObservableProperty] private string _currentProcessName = "-";
     [ObservableProperty] private string _currentWindowTitle = "-";
     [ObservableProperty] private string _currentUrl = "-";
-    [ObservableProperty] private string _matchedProfileName = "Kein Profil";
+    [ObservableProperty] private string _matchedProfileName = Loc.Instance["Profiles.NoProfile"];
     [ObservableProperty] private bool _hasMatchedProfile;
 
-    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = TranslationModelInfo.ProfileTargetOptions;
+    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = LocalizeTranslationOptions(TranslationModelInfo.ProfileTargetOptions);
+
+    private static IReadOnlyList<TranslationTargetOption> LocalizeTranslationOptions(IReadOnlyList<TranslationTargetOption> options) =>
+        options.Select(o => o.DisplayName switch
+        {
+            "Keine Übersetzung" => o with { DisplayName = Loc.Instance["Translation.None"] },
+            "Globale Einstellung" => o with { DisplayName = Loc.Instance["Translation.GlobalSetting"] },
+            _ => o
+        }).ToList();
     public ObservableCollection<string> ProcessNameChips { get; } = [];
     public ObservableCollection<string> UrlPatternChips { get; } = [];
     public ObservableCollection<Profile> Profiles { get; } = [];
@@ -70,7 +79,7 @@ public partial class ProfilesViewModel : ObservableObject
     {
         var selected = EditTranscriptionModelOverride;
         AvailableModelOptions.Clear();
-        AvailableModelOptions.Add(new(null, "Global (Standard)"));
+        AvailableModelOptions.Add(new(null, Loc.Instance["Profiles.GlobalDefault"]));
         foreach (var engine in _modelManager.PluginManager.TranscriptionEngines)
             foreach (var model in engine.TranscriptionModels)
                 AvailableModelOptions.Add(new(ModelManagerService.GetPluginModelId(engine.PluginId, model.Id),
@@ -90,7 +99,7 @@ public partial class ProfilesViewModel : ObservableObject
 
         var matched = _profiles.MatchProfile(processName, url);
         HasMatchedProfile = matched is not null;
-        MatchedProfileName = matched?.Name ?? "Kein Profil";
+        MatchedProfileName = matched?.Name ?? Loc.Instance["Profiles.NoProfile"];
 
         RefreshRunningApps();
     }
@@ -192,7 +201,7 @@ public partial class ProfilesViewModel : ObservableObject
         var profile = new Profile
         {
             Id = Guid.NewGuid().ToString(),
-            Name = "Neues Profil",
+            Name = Loc.Instance["Profiles.NewProfileName"],
             IsEnabled = true
         };
         _profiles.AddProfile(profile);

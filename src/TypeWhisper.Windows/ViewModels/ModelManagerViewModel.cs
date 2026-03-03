@@ -7,6 +7,7 @@ using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
 using TypeWhisper.PluginSDK.Models;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -104,17 +105,17 @@ public partial class ModelManagerViewModel : ObservableObject
     internal static string FormatStatus(ModelStatus status, bool isDownloaded) => status.Type switch
     {
         ModelStatusType.Downloading => $"Download {status.Progress:P0}",
-        ModelStatusType.Loading => "Laden...",
-        ModelStatusType.Ready => "Bereit",
-        ModelStatusType.Error => $"Fehler: {status.ErrorMessage}",
-        _ => isDownloaded ? "Heruntergeladen" : ""
+        ModelStatusType.Loading => Loc.Instance["Models.StatusLoading"],
+        ModelStatusType.Ready => Loc.Instance["Models.StatusReady"],
+        ModelStatusType.Error => Loc.Instance.GetString("Models.StatusErrorFormat", status.ErrorMessage ?? ""),
+        _ => isDownloaded ? Loc.Instance["Models.StatusDownloaded"] : ""
     };
 
     [RelayCommand]
     private async Task ActivateModel(string fullModelId)
     {
         IsBusy = true;
-        BusyMessage = "Lade Modell...";
+        BusyMessage = Loc.Instance["Models.LoadingModel"];
         try
         {
             await _modelManager.DownloadAndLoadModelAsync(fullModelId);
@@ -123,7 +124,7 @@ public partial class ModelManagerViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            BusyMessage = $"Fehler: {ex.Message}";
+            BusyMessage = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
             await Task.Delay(2000);
         }
         finally

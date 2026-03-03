@@ -57,6 +57,9 @@ public record AppSettings
     public Dictionary<string, bool> PluginEnabledState { get; init; } = new();
     public bool PluginFirstRunCompleted { get; init; }
 
+    // UI Language (null = auto-detect from system)
+    public string? UiLanguage { get; init; }
+
     public static AppSettings Default => new();
 }
 

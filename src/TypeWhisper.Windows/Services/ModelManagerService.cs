@@ -5,6 +5,7 @@ using TypeWhisper.Core.Audio;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.Services;
@@ -158,7 +159,7 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
             ?? throw new ArgumentException($"Unknown plugin: {pluginId}");
 
         if (!plugin.IsConfigured && !plugin.SupportsModelDownload)
-            throw new InvalidOperationException($"Kein API-Key für {plugin.ProviderDisplayName}");
+            throw new InvalidOperationException(Loc.Instance.GetString("Error.NoApiKeyFormat", plugin.ProviderDisplayName));
 
         SetStatus(modelId, ModelStatus.LoadingModel);
         try

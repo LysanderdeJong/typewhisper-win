@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.ViewModels;
@@ -126,8 +127,8 @@ public partial class PluginItemViewModel : ObservableObject
     private async Task UninstallAsync()
     {
         var result = MessageBox.Show(
-            $"Plugin \"{Name}\" wirklich deinstallieren?",
-            "Plugin deinstallieren",
+            Loc.Instance.GetString("Plugins.UninstallConfirm", Name),
+            Loc.Instance["Plugins.UninstallTitle"],
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 

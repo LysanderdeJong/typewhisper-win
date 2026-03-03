@@ -2,6 +2,7 @@ using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -61,7 +62,7 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     private async Task CheckForUpdatesAsync()
     {
         IsCheckingForUpdates = true;
-        UpdateStatusText = "Suche nach Updates\u2026";
+        UpdateStatusText = Loc.Instance["Update.Checking"];
 
         await _updateService.CheckForUpdatesAsync();
 
@@ -69,20 +70,20 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
         if (_updateService.IsUpdateAvailable)
         {
             IsUpdateAvailable = true;
-            UpdateStatusText = $"Version {_updateService.AvailableVersion} verfügbar!";
+            UpdateStatusText = Loc.Instance.GetString("Update.AvailableFormat", _updateService.AvailableVersion ?? "");
         }
         else
         {
-            UpdateStatusText = "Sie verwenden die neueste Version.";
+            UpdateStatusText = Loc.Instance["Update.UpToDate"];
         }
     }
 
     [RelayCommand]
     private async Task ApplyUpdateAsync()
     {
-        UpdateStatusText = "Update wird heruntergeladen\u2026";
+        UpdateStatusText = Loc.Instance["Update.Downloading"];
         await _updateService.DownloadAndApplyAsync();
-        UpdateStatusText = "Update fehlgeschlagen. Bitte erneut versuchen.";
+        UpdateStatusText = Loc.Instance["Update.Failed"];
     }
 
     public void RegisterSection(string name, Func<UserControl> factory)
@@ -100,7 +101,7 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     {
         NavigateSync(sectionName);
 
-        if (sectionName == "Verlauf")
+        if (sectionName == "History")
             await History.LoadAsync();
     }
 
@@ -118,9 +119,9 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
         CurrentSection = section;
         CurrentSectionName = sectionName;
 
-        // Refresh plugin availability when navigating to Modelle
-        // (API keys may have been changed in Erweiterungen)
-        if (sectionName == "Modelle")
+        // Refresh plugin availability when navigating to Models
+        // (API keys may have been changed in Plugins)
+        if (sectionName == "Models")
             ModelManager.RefreshPluginAvailability();
     }
 }

@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -117,8 +118,8 @@ public partial class HistoryViewModel : ObservableObject
     private void ClearAll()
     {
         var result = MessageBox.Show(
-            "Alle Verlaufseinträge unwiderruflich löschen?",
-            "Verlauf löschen",
+            Loc.Instance["History.ClearAllConfirm"],
+            Loc.Instance["History.ClearAllTitle"],
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
         if (result == MessageBoxResult.Yes)
@@ -135,7 +136,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             Filter = "Text (*.txt)|*.txt|CSV (*.csv)|*.csv",
             DefaultExt = ".txt",
-            FileName = $"TypeWhisper-Verlauf-{DateTime.Now:yyyy-MM-dd}"
+            FileName = Loc.Instance.GetString("History.ExportFilename", DateTime.Now)
         };
         if (dlg.ShowDialog() != true) return;
 
@@ -144,9 +145,22 @@ public partial class HistoryViewModel : ObservableObject
             .Select(e => e.Record)
             .ToList();
 
+        var labels = new ExportLabels
+        {
+            Header = Loc.Instance["Export.Header"],
+            Exported = Loc.Instance["Export.Exported"],
+            Entries = Loc.Instance["Export.Entries"],
+            Timestamp = Loc.Instance["Export.Timestamp"],
+            App = Loc.Instance["Export.App"],
+            Text = Loc.Instance["Export.Text"],
+            Duration = Loc.Instance["Export.Duration"],
+            Words = Loc.Instance["Export.Words"],
+            Language = Loc.Instance["Export.Language"],
+        };
+
         var content = dlg.FilterIndex == 2
-            ? _history.ExportToCsv(visibleRecords)
-            : _history.ExportToText(visibleRecords);
+            ? _history.ExportToCsv(visibleRecords, labels)
+            : _history.ExportToText(visibleRecords, labels);
 
         File.WriteAllText(dlg.FileName, content, System.Text.Encoding.UTF8);
     }
@@ -281,15 +295,15 @@ public partial class HistoryEntryViewModel : ObservableObject
         var today = DateTime.Today;
         var date = timestamp.Date;
 
-        if (date == today) return "Heute";
-        if (date == today.AddDays(-1)) return "Gestern";
+        if (date == today) return Loc.Instance["History.Today"];
+        if (date == today.AddDays(-1)) return Loc.Instance["History.Yesterday"];
 
         var daysSinceMonday = ((int)today.DayOfWeek + 6) % 7;
         var thisMonday = today.AddDays(-daysSinceMonday);
-        if (date >= thisMonday) return "Diese Woche";
+        if (date >= thisMonday) return Loc.Instance["History.ThisWeek"];
 
         var lastMonday = thisMonday.AddDays(-7);
-        if (date >= lastMonday) return "Letzte Woche";
+        if (date >= lastMonday) return Loc.Instance["History.LastWeek"];
 
         return timestamp.ToString("MMMM yyyy");
     }

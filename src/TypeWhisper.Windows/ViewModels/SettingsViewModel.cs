@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.ViewModels;
 
@@ -37,23 +38,38 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private OverlayWidget _overlayLeftWidget = OverlayWidget.Waveform;
     [ObservableProperty] private OverlayWidget _overlayRightWidget = OverlayWidget.Timer;
     [ObservableProperty] private string _promptPaletteHotkey = "";
+    [ObservableProperty] private string? _uiLanguage;
 
-    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = TranslationModelInfo.GlobalTargetOptions;
+    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions);
+
+    private static IReadOnlyList<TranslationTargetOption> LocalizeTranslationOptions(IReadOnlyList<TranslationTargetOption> options) =>
+        options.Select(o => o.DisplayName switch
+        {
+            "Keine Übersetzung" => o with { DisplayName = Loc.Instance["Translation.None"] },
+            "Globale Einstellung" => o with { DisplayName = Loc.Instance["Translation.GlobalSetting"] },
+            _ => o
+        }).ToList();
     public ObservableCollection<MicrophoneItem> Microphones { get; } = [];
 
     public static IReadOnlyList<OverlayWidgetOption> WidgetOptions { get; } =
     [
-        new(OverlayWidget.None, "Keins"),
-        new(OverlayWidget.Indicator, "Status-LED"),
-        new(OverlayWidget.Timer, "Timer"),
-        new(OverlayWidget.Waveform, "Waveform"),
-        new(OverlayWidget.Clock, "Uhrzeit"),
-        new(OverlayWidget.Profile, "Profil"),
-        new(OverlayWidget.HotkeyMode, "Hotkey-Modus"),
-        new(OverlayWidget.AppName, "App-Name"),
+        new(OverlayWidget.None, Loc.Instance["Widget.None"]),
+        new(OverlayWidget.Indicator, Loc.Instance["Widget.Indicator"]),
+        new(OverlayWidget.Timer, Loc.Instance["Widget.Timer"]),
+        new(OverlayWidget.Waveform, Loc.Instance["Widget.Waveform"]),
+        new(OverlayWidget.Clock, Loc.Instance["Widget.Clock"]),
+        new(OverlayWidget.Profile, Loc.Instance["Widget.Profile"]),
+        new(OverlayWidget.HotkeyMode, Loc.Instance["Widget.HotkeyMode"]),
+        new(OverlayWidget.AppName, Loc.Instance["Widget.AppName"]),
     ];
 
     private bool _isLoading;
+
+    partial void OnUiLanguageChanged(string? value)
+    {
+        if (_isLoading) return;
+        Loc.Instance.CurrentLanguage = value ?? Loc.Instance.DetectSystemLanguage();
+    }
 
     public SettingsViewModel(ISettingsService settings, AudioRecordingService audio)
     {
@@ -76,7 +92,7 @@ public partial class SettingsViewModel : ObservableObject
     private void RefreshMicrophones()
     {
         Microphones.Clear();
-        Microphones.Add(new MicrophoneItem(null, "Standard"));
+        Microphones.Add(new MicrophoneItem(null, Loc.Instance["Microphone.Default"]));
         foreach (var (number, name) in AudioRecordingService.GetAvailableDevices())
         {
             Microphones.Add(new MicrophoneItem(number, name));
@@ -111,7 +127,8 @@ public partial class SettingsViewModel : ObservableObject
             PauseMediaDuringRecording = PauseMediaDuringRecording,
             OverlayLeftWidget = OverlayLeftWidget,
             OverlayRightWidget = OverlayRightWidget,
-            PromptPaletteHotkey = PromptPaletteHotkey
+            PromptPaletteHotkey = PromptPaletteHotkey,
+            UiLanguage = UiLanguage
         };
         _settings.Save(updated);
         StartupService.SetEnabled(AutostartEnabled);
@@ -143,6 +160,7 @@ public partial class SettingsViewModel : ObservableObject
         OverlayLeftWidget = s.OverlayLeftWidget;
         OverlayRightWidget = s.OverlayRightWidget;
         PromptPaletteHotkey = s.PromptPaletteHotkey;
+        UiLanguage = s.UiLanguage;
     }
 }
 

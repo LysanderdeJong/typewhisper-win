@@ -4,7 +4,9 @@ using TypeWhisper.Core;
 using TypeWhisper.Core.Data;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Services;
+using System.Globalization;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 using TypeWhisper.Windows.ViewModels;
 using TypeWhisper.Windows.Views;
@@ -29,8 +31,8 @@ public partial class App : Application
         {
             System.Diagnostics.Debug.WriteLine($"Unhandled UI exception: {args.Exception}");
             LogCrash(args.Exception);
-            MessageBox.Show($"Ein Fehler ist aufgetreten:\n{args.Exception.Message}",
-                "TypeWhisper - Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(Loc.Instance.GetString("App.ErrorFormat", args.Exception.Message),
+                Loc.Instance["App.ErrorTitle"], MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
 
@@ -69,6 +71,12 @@ public partial class App : Application
         var settings = _serviceProvider.GetRequiredService<ISettingsService>();
         settings.Load();
 
+        // Initialize localization
+        Loc.Instance.Initialize();
+        var uiLang = settings.Current.UiLanguage
+            ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        Loc.Instance.CurrentLanguage = Loc.Instance.HasLanguage(uiLang) ? uiLang : "en";
+
         // Initialize plugins (must happen after settings.Load so enabled state is available)
         var pluginManager = _serviceProvider.GetRequiredService<PluginManager>();
         pluginManager.InitializeAsync().GetAwaiter().GetResult();
@@ -101,7 +109,7 @@ public partial class App : Application
             var update = _serviceProvider!.GetRequiredService<UpdateService>();
             await update.CheckForUpdatesAsync();
             if (!update.IsUpdateAvailable)
-                _trayIcon.ShowBalloon("Kein Update", "Sie haben bereits die neueste Version.");
+                _trayIcon.ShowBalloon(Loc.Instance["Update.NoUpdate"], Loc.Instance["Update.NoUpdateMessage"]);
         };
 
         // Create and show overlay window

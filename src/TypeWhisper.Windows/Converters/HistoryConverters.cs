@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.Converters;
 
@@ -34,7 +35,7 @@ public sealed class InverseBoolToVisibilityConverter : IValueConverter
 public sealed class ExpandCollapseTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value is true ? "Weniger \u25B2" : "Mehr anzeigen \u25BC";
+        => value is true ? $"{Loc.Instance["History.ShowLess"]} \u25B2" : $"{Loc.Instance["History.ShowMore"]} \u25BC";
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();

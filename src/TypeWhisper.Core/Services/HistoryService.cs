@@ -194,12 +194,13 @@ public sealed class HistoryService : IHistoryService
         RecordsChanged?.Invoke();
     }
 
-    public string ExportToText(IReadOnlyList<TranscriptionRecord> records)
+    public string ExportToText(IReadOnlyList<TranscriptionRecord> records, ExportLabels? labels = null)
     {
+        var l = labels ?? ExportLabels.Default;
         var sb = new StringBuilder();
-        sb.AppendLine("TypeWhisper — Transkriptions-Verlauf");
-        sb.AppendLine($"Exportiert: {DateTime.Now:dd.MM.yyyy HH:mm}");
-        sb.AppendLine($"Einträge: {records.Count}");
+        sb.AppendLine(l.Header);
+        sb.AppendLine($"{l.Exported}: {DateTime.Now:dd.MM.yyyy HH:mm}");
+        sb.AppendLine($"{l.Entries}: {records.Count}");
         sb.AppendLine(new string('─', 60));
         sb.AppendLine();
 
@@ -213,10 +214,11 @@ public sealed class HistoryService : IHistoryService
         return sb.ToString();
     }
 
-    public string ExportToCsv(IReadOnlyList<TranscriptionRecord> records)
+    public string ExportToCsv(IReadOnlyList<TranscriptionRecord> records, ExportLabels? labels = null)
     {
+        var l = labels ?? ExportLabels.Default;
         var sb = new StringBuilder();
-        sb.AppendLine("Zeitstempel,App,Text,Dauer (s),Wörter,Sprache");
+        sb.AppendLine($"{l.Timestamp},{l.App},{l.Text},{l.Duration},{l.Words},{l.Language}");
 
         foreach (var r in records)
         {

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.Services;
@@ -24,7 +25,7 @@ public sealed class PromptProcessingService
     {
         var (provider, modelId) = ResolveProvider(action);
         if (provider is null)
-            throw new InvalidOperationException("Kein LLM-Provider verfügbar. Bitte konfigurieren Sie einen API-Key in den Erweiterungen.");
+            throw new InvalidOperationException(Loc.Instance["Error.NoLlmProvider"]);
 
         Debug.WriteLine($"[PromptProcessing] Using provider '{provider.ProviderName}' model '{modelId}' for action '{action.Name}'");
 

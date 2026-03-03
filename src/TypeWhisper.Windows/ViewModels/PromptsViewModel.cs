@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.ViewModels;
@@ -137,8 +138,8 @@ public partial class PromptsViewModel : ObservableObject
         if (action is null) return;
 
         var result = MessageBox.Show(
-            $"Prompt \"{action.Name}\" wirklich löschen?",
-            "Prompt löschen",
+            Loc.Instance.GetString("Prompts.DeleteConfirm", action.Name),
+            Loc.Instance["Prompts.DeleteTitle"],
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -188,7 +189,7 @@ public partial class PromptsViewModel : ObservableObject
     public void RefreshProviders()
     {
         AvailableProviders.Clear();
-        AvailableProviders.Add(new ProviderOption(null, "(Standard)"));
+        AvailableProviders.Add(new ProviderOption(null, Loc.Instance["Prompts.DefaultProviderLabel"]));
         foreach (var provider in _pluginManager.LlmProviders)
         {
             if (!provider.IsAvailable) continue;

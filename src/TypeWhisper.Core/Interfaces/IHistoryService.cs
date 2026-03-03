@@ -21,6 +21,6 @@ public interface IHistoryService
     Task EnsureLoadedAsync();
     IReadOnlyList<string> GetDistinctApps();
 
-    string ExportToText(IReadOnlyList<TranscriptionRecord> records);
-    string ExportToCsv(IReadOnlyList<TranscriptionRecord> records);
+    string ExportToText(IReadOnlyList<TranscriptionRecord> records, ExportLabels? labels = null);
+    string ExportToCsv(IReadOnlyList<TranscriptionRecord> records, ExportLabels? labels = null);
 }

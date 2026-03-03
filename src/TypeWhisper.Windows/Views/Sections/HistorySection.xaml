@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             xmlns:converters="clr-namespace:TypeWhisper.Windows.Converters">
+             xmlns:converters="clr-namespace:TypeWhisper.Windows.Converters"
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,7 +16,7 @@
 
     <DockPanel Margin="24">
         <!-- Header -->
-        <TextBlock DockPanel.Dock="Top" Text="Verlauf" Style="{StaticResource SectionHeaderStyle}"/>
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Str History.Title}" Style="{StaticResource SectionHeaderStyle}"/>
 
         <!-- Toolbar -->
         <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -31,8 +32,8 @@
             </Grid.ColumnDefinitions>
 
             <!-- Labels row -->
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Suche" Style="{StaticResource LabelStyle}"/>
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="App" Style="{StaticResource LabelStyle}" Margin="0,0,8,0"/>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Str History.Search}" Style="{StaticResource LabelStyle}"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Str History.App}" Style="{StaticResource LabelStyle}" Margin="0,0,8,0"/>
 
             <!-- Controls row -->
             <TextBox Grid.Row="1" Grid.Column="0"
@@ -44,10 +45,10 @@
                       SelectedItem="{Binding History.SelectedAppFilter}"
                       Width="150" Margin="0,0,8,0" IsEditable="False"/>
 
-            <ui:Button Grid.Row="1" Grid.Column="2" Content="Exportieren"
+            <ui:Button Grid.Row="1" Grid.Column="2" Content="{loc:Str History.Export}"
                     Command="{Binding History.ExportCommand}"
                     Appearance="Secondary" Padding="12,7" Margin="0,0,8,0"/>
-            <ui:Button Grid.Row="1" Grid.Column="3" Content="Alle löschen"
+            <ui:Button Grid.Row="1" Grid.Column="3" Content="{loc:Str History.ClearAll}"
                     Command="{Binding History.ClearAllCommand}"
                     Appearance="Danger" Padding="12,7"/>
         </Grid>
@@ -55,20 +56,20 @@
         <!-- Stats -->
         <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Right"
                    Foreground="{StaticResource HintBrush}" Margin="0,0,0,12">
-            <Run Text="{Binding History.TotalRecords, Mode=OneWay}"/> Einträge,
-            <Run Text="{Binding History.TotalWords, Mode=OneWay}"/> Wörter
+            <Run Text="{Binding History.TotalRecords, Mode=OneWay}"/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[History.Entries], Mode=OneWay}"/>
+            <Run Text="{Binding History.TotalWords, Mode=OneWay}"/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[History.Words], Mode=OneWay}"/>
         </TextBlock>
 
         <!-- Loading indicator -->
         <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Center" Margin="0,40,0,0"
                     Visibility="{Binding History.IsLoading, Converter={StaticResource BoolToVis}}">
             <ui:ProgressRing IsIndeterminate="True" Width="32" Height="32"/>
-            <TextBlock Text="Verlauf wird geladen…" Foreground="{StaticResource HintBrush}"
+            <TextBlock Text="{loc:Str History.Loading}" Foreground="{StaticResource HintBrush}"
                        FontSize="13" HorizontalAlignment="Center" Margin="0,12,0,0"/>
         </StackPanel>
 
         <!-- Empty state -->
-        <TextBlock DockPanel.Dock="Top" Text="Noch keine Aufnahmen"
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Str History.NoRecordings}"
                    Foreground="{StaticResource HintBrush}" FontSize="14"
                    HorizontalAlignment="Center" Margin="0,40,0,0">
             <TextBlock.Style>
@@ -227,10 +228,10 @@
                                                  TextWrapping="Wrap" AcceptsReturn="True"
                                                  MinHeight="60" MaxHeight="200" Margin="0,0,0,8"/>
                                         <StackPanel Orientation="Horizontal">
-                                            <ui:Button Content="Speichern" Command="{Binding SaveEditCommand}"
+                                            <ui:Button Content="{loc:Str History.SaveEdit}" Command="{Binding SaveEditCommand}"
                                                     Appearance="Primary"
                                                     Padding="12,6" Margin="0,0,6,0"/>
-                                            <ui:Button Content="Abbrechen" Command="{Binding CancelEditCommand}"
+                                            <ui:Button Content="{loc:Str History.CancelEdit}" Command="{Binding CancelEditCommand}"
                                                     Appearance="Secondary"
                                                     Padding="12,6"/>
                                         </StackPanel>
@@ -248,9 +249,8 @@
                                         <Border.BorderThickness>1</Border.BorderThickness>
                                         <StackPanel>
                                             <TextBlock Foreground="#D4915B" FontSize="12" FontWeight="Medium"
-                                                       Margin="0,0,0,4">
-                                                Korrekturen erkannt
-                                            </TextBlock>
+                                                       Margin="0,0,0,4"
+                                                       Text="{loc:Str History.CorrectionsDetected}"/>
                                             <ItemsControl ItemsSource="{Binding CorrectionSuggestions}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -263,10 +263,10 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                <ui:Button Content="Ins Wörterbuch" Command="{Binding AcceptSuggestionsCommand}"
+                                                <ui:Button Content="{loc:Str History.AddToDictionary}" Command="{Binding AcceptSuggestionsCommand}"
                                                         Appearance="Primary"
                                                         Padding="10,5" FontSize="12" Margin="0,0,6,0"/>
-                                                <ui:Button Content="Verwerfen" Command="{Binding DismissSuggestionsCommand}"
+                                                <ui:Button Content="{loc:Str History.Dismiss}" Command="{Binding DismissSuggestionsCommand}"
                                                         Appearance="Secondary"
                                                         Padding="10,5" FontSize="12"/>
                                             </StackPanel>
@@ -279,7 +279,7 @@
                                         <TextBlock Foreground="{StaticResource HintBrush}" FontSize="11">
                                             <Run Text="{Binding Record.Timestamp, StringFormat='{}{0:dd.MM.yyyy HH:mm}', Mode=OneWay}"/>
                                             <Run Text=" · "/>
-                                            <Run Text="{Binding Record.WordCount, StringFormat='{}{0} Wörter', Mode=OneWay}"/>
+                                            <Run Text="{Binding Record.WordCount, StringFormat='{}{0} words', Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Foreground="{StaticResource HintBrush}" FontSize="11"
                                                    Margin="8,0,0,0"
@@ -292,11 +292,11 @@
                                     <!-- Action buttons -->
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
-                                        <Button Content="Bearbeiten" Command="{Binding StartEditCommand}"
+                                        <Button Content="{loc:Str History.Edit}" Command="{Binding StartEditCommand}"
                                                 Style="{StaticResource LinkButtonStyle}" Margin="0,0,12,0"/>
-                                        <Button Content="Kopieren" Command="{Binding CopyCommand}"
+                                        <Button Content="{loc:Str History.Copy}" Command="{Binding CopyCommand}"
                                                 Style="{StaticResource LinkButtonStyle}" Margin="0,0,12,0"/>
-                                        <Button Content="Löschen" Command="{Binding DeleteCommand}"
+                                        <Button Content="{loc:Str History.DeleteEntry}" Command="{Binding DeleteCommand}"
                                                 Style="{StaticResource LinkButtonStyle}"
                                                 Foreground="{StaticResource DangerBrush}"/>
                                     </StackPanel>

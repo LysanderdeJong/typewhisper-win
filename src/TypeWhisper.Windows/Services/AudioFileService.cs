@@ -1,5 +1,6 @@
 using System.IO;
 using NAudio.Wave;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.Services;
 
@@ -23,7 +24,7 @@ public sealed class AudioFileService
     public async Task<float[]> LoadAudioAsync(string filePath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
-            throw new FileNotFoundException("Datei nicht gefunden.", filePath);
+            throw new FileNotFoundException(Loc.Instance["Error.FileNotFound"], filePath);
 
         return await Task.Run(() => LoadAudio(filePath), cancellationToken);
     }

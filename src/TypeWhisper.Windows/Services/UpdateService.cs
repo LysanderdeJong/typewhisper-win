@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using TypeWhisper.Core;
+using TypeWhisper.Windows.Services.Localization;
 using Velopack;
 using Velopack.Sources;
 
@@ -68,8 +69,8 @@ public sealed class UpdateService
             _pendingUpdate = await _updateManager.CheckForUpdatesAsync();
             if (_pendingUpdate is not null)
             {
-                _trayIcon.ShowBalloon("Update verfügbar",
-                    $"Version {AvailableVersion} ist verfügbar. Klicken Sie hier zum Aktualisieren.",
+                _trayIcon.ShowBalloon(Loc.Instance["Update.BalloonTitle"],
+                    Loc.Instance.GetString("Update.BalloonMessage", AvailableVersion ?? ""),
                     () => _ = DownloadAndApplyAsync());
                 UpdateAvailable?.Invoke(this, EventArgs.Empty);
             }
@@ -91,8 +92,8 @@ public sealed class UpdateService
         }
         catch
         {
-            _trayIcon.ShowBalloon("Update fehlgeschlagen",
-                "Das Update konnte nicht installiert werden. Bitte versuchen Sie es später erneut.");
+            _trayIcon.ShowBalloon(Loc.Instance["Update.BalloonFailedTitle"],
+                Loc.Instance["Update.BalloonFailedMessage"]);
         }
     }
 }

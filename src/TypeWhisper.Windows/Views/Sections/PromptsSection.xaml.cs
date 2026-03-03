@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using TypeWhisper.Core.Models;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.ViewModels;
 
 namespace TypeWhisper.Windows.Views.Sections;
@@ -31,7 +32,7 @@ public partial class PromptsSection : UserControl
     {
         if (e.PropertyName == nameof(PromptsViewModel.IsEditorOpen) && GetViewModel() is { } vm)
         {
-            EditorTitle.Text = vm.IsCreatingNew ? "Neuer Prompt" : "Prompt bearbeiten";
+            EditorTitle.Text = vm.IsCreatingNew ? Loc.Instance["Prompts.NewPromptTitle"] : Loc.Instance["Prompts.EditPromptTitle"];
         }
     }
 

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Views;
 
 namespace TypeWhisper.Windows.ViewModels;
@@ -117,8 +118,8 @@ public partial class SnippetsViewModel : ObservableObject
         if (SelectedSnippet is null) return;
 
         var result = MessageBox.Show(
-            $"Snippet \"{SelectedSnippet.Trigger}\" wirklich löschen?",
-            "Snippet löschen",
+            Loc.Instance.GetString("Snippets.DeleteConfirm", SelectedSnippet.Trigger),
+            Loc.Instance["Snippets.DeleteTitle"],
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -172,7 +173,7 @@ public partial class SnippetsViewModel : ObservableObject
     {
         var dialog = new SaveFileDialog
         {
-            Filter = "JSON Dateien (*.json)|*.json",
+            Filter = Loc.Instance["Snippets.JsonFilter"],
             FileName = "snippets.json",
             DefaultExt = ".json"
         };
@@ -188,7 +189,7 @@ public partial class SnippetsViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Filter = "JSON Dateien (*.json)|*.json",
+            Filter = Loc.Instance["Snippets.JsonFilter"],
             DefaultExt = ".json"
         };
 
@@ -196,7 +197,7 @@ public partial class SnippetsViewModel : ObservableObject
 
         var json = File.ReadAllText(dialog.FileName);
         var count = _snippets.ImportFromJson(json);
-        MessageBox.Show($"{count} Snippet(s) importiert.", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(Loc.Instance.GetString("Snippets.ImportedFormat", count), Loc.Instance["Snippets.ImportTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void RefreshSnippets()

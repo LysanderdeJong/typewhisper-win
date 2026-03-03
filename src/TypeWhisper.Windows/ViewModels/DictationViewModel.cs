@@ -9,6 +9,7 @@ using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
 using TypeWhisper.PluginSDK.Models;
 using TypeWhisper.Windows.Services;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.ViewModels;
@@ -57,7 +58,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     [ObservableProperty] private DictationState _state = DictationState.Idle;
     [ObservableProperty] private float _audioLevel;
     [ObservableProperty] private double _recordingSeconds;
-    [ObservableProperty] private string _statusText = "Bereit";
+    [ObservableProperty] private string _statusText = Loc.Instance["Status.Ready"];
     [ObservableProperty] private string _transcribedText = "";
     [ObservableProperty] private HotkeyMode? _currentHotkeyMode;
     [ObservableProperty] private bool _isOverlayVisible;
@@ -130,7 +131,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 _isRecording = false;
                 _audioDucking.RestoreAudio();
                 _mediaPause.ResumeMedia();
-                StatusText = $"Fehler: {ex.Message}";
+                StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
                 UpdateVisualState();
             }
         });
@@ -202,7 +203,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             }
             catch (Exception ex)
             {
-                StatusText = $"Modell-Fehler: {ex.Message}";
+                StatusText = Loc.Instance.GetString("Status.ModelErrorFormat", ex.Message);
                 _isRecording = false;
                 return;
             }
@@ -210,7 +211,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
         if (!_modelManager.Engine.IsModelLoaded)
         {
-            StatusText = "Kein Modell geladen";
+            StatusText = Loc.Instance["Status.NoModelLoaded"];
             _isRecording = false;
             return;
         }
@@ -244,7 +245,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _eventBus.Publish(new RecordingStartedEvent());
 
         State = DictationState.Recording;
-        StatusText = "Aufnahme...";
+        StatusText = Loc.Instance["Status.Recording"];
         TranscribedText = "";
         CurrentHotkeyMode = _hotkey.CurrentMode;
         IsOverlayVisible = true;
@@ -293,7 +294,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         if (samples is null || samples.Length < 1600) // < 100ms
         {
             UpdateVisualState();
-            StatusText = "Zu kurz";
+            StatusText = Loc.Instance["Status.TooShort"];
             PartialText = "";
             _hotkey.ForceStop();
             return;
@@ -333,7 +334,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 State = DictationState.Processing;
-                StatusText = "Verarbeite...";
+                StatusText = Loc.Instance["Status.Processing"];
             });
 
             string rawText;
@@ -354,7 +355,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 {
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        StatusText = "Keine Sprache erkannt";
+                        StatusText = Loc.Instance["Status.NoSpeech"];
                         UpdateVisualState();
                     });
                     return;
@@ -368,7 +369,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             {
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    StatusText = "Keine Sprache erkannt";
+                    StatusText = Loc.Instance["Status.NoSpeech"];
                     UpdateVisualState();
                 });
                 return;
@@ -417,7 +418,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 var promptAction = _promptActions.Actions.FirstOrDefault(a => a.Id == promptActionId);
                 if (promptAction is not null && _promptProcessing.IsAnyProviderAvailable)
                 {
-                    await Application.Current.Dispatcher.InvokeAsync(() => StatusText = "KI-Prompt...");
+                    await Application.Current.Dispatcher.InvokeAsync(() => StatusText = Loc.Instance["Status.AiPrompt"]);
                     finalText = await _promptProcessing.ProcessAsync(promptAction, finalText, ct);
                 }
             }
@@ -431,7 +432,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 var sourceLang = detectedLanguage ?? language ?? "de";
                 if (sourceLang != translationTarget)
                 {
-                    await Application.Current.Dispatcher.InvokeAsync(() => StatusText = "Übersetze...");
+                    await Application.Current.Dispatcher.InvokeAsync(() => StatusText = Loc.Instance["Status.Translating"]);
                     finalText = await _translation.TranslateAsync(finalText, sourceLang, translationTarget, ct);
                 }
             }
@@ -440,7 +441,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             {
                 TranscribedText = finalText;
                 State = DictationState.Inserting;
-                StatusText = "Einfügen...";
+                StatusText = Loc.Instance["Status.Inserting"];
             });
 
             var insertResult = await _textInsertion.InsertTextAsync(
@@ -483,9 +484,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             {
                 StatusText = insertResult switch
                 {
-                    InsertionResult.Pasted => "Eingefügt",
-                    InsertionResult.CopiedToClipboard => "In Zwischenablage",
-                    _ => "Fertig"
+                    InsertionResult.Pasted => Loc.Instance["Status.Pasted"],
+                    InsertionResult.CopiedToClipboard => Loc.Instance["Status.Clipboard"],
+                    _ => Loc.Instance["Status.Done"]
                 };
             });
 
@@ -499,7 +500,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         {
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                StatusText = "Abgebrochen";
+                StatusText = Loc.Instance["Status.Cancelled"];
                 UpdateVisualState();
             });
         }
@@ -514,7 +515,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 State = DictationState.Error;
-                StatusText = $"Fehler: {ex.Message}";
+                StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
                 FeedbackText = StatusText;
                 FeedbackIsError = true;
                 ShowFeedback = true;
@@ -539,7 +540,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         else
         {
             State = DictationState.Idle;
-            StatusText = "Bereit";
+            StatusText = Loc.Instance["Status.Ready"];
             IsOverlayVisible = false;
             ActiveProcessName = null;
             ActiveProfileName = null;

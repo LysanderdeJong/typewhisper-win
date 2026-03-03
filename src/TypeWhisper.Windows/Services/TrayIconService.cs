@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
+using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.Services;
 
@@ -55,18 +56,18 @@ public sealed class TrayIconService : IDisposable
     {
         var menu = new System.Windows.Controls.ContextMenu();
 
-        var settingsItem = new System.Windows.Controls.MenuItem { Header = "Einstellungen..." };
+        var settingsItem = new System.Windows.Controls.MenuItem { Header = Loc.Instance["Tray.Settings"] };
         settingsItem.Click += (_, _) => ShowSettingsRequested?.Invoke(this, EventArgs.Empty);
 
-        var fileItem = new System.Windows.Controls.MenuItem { Header = "Datei transkribieren..." };
+        var fileItem = new System.Windows.Controls.MenuItem { Header = Loc.Instance["Tray.TranscribeFile"] };
         fileItem.Click += (_, _) => ShowFileTranscriptionRequested?.Invoke(this, EventArgs.Empty);
 
-        var updateItem = new System.Windows.Controls.MenuItem { Header = "Nach Updates suchen..." };
+        var updateItem = new System.Windows.Controls.MenuItem { Header = Loc.Instance["Tray.CheckUpdates"] };
         updateItem.Click += (_, _) => UpdateCheckRequested?.Invoke(this, EventArgs.Empty);
 
         var separatorItem = new System.Windows.Controls.Separator();
 
-        var exitItem = new System.Windows.Controls.MenuItem { Header = "Beenden" };
+        var exitItem = new System.Windows.Controls.MenuItem { Header = Loc.Instance["Tray.Exit"] };
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
         menu.Items.Add(settingsItem);

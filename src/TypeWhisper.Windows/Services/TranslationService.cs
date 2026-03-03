@@ -7,6 +7,7 @@ using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Translation;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
 namespace TypeWhisper.Windows.Services;
@@ -86,7 +87,7 @@ public sealed class TranslationService : ITranslationService, IDisposable
             }
         }
 
-        throw new NotSupportedException($"Keine Übersetzung verfügbar für {sourceLang}->{targetLang}");
+        throw new NotSupportedException(Loc.Instance.GetString("Error.TranslationNotAvailableFormat", sourceLang, targetLang));
     }
 
     private async Task<LoadedTranslationModel> GetOrLoadModelAsync(string sourceLang, string targetLang, CancellationToken ct)

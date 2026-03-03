@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:TypeWhisper.Windows.ViewModels"
-             xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters">
+             xmlns:conv="clr-namespace:TypeWhisper.Windows.Converters"
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -55,7 +56,7 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <TextBlock Grid.Row="0" Text="Profile"
+            <TextBlock Grid.Row="0" Text="{loc:Str Profiles.Title}"
                        Style="{StaticResource SectionHeaderStyle}"
                        FontSize="16" Margin="16,16,16,8"/>
 
@@ -99,7 +100,7 @@
             <Border Grid.Row="2" Margin="8,4,8,4" Padding="10,8" CornerRadius="6"
                     Background="#1A888888">
                 <StackPanel>
-                    <TextBlock Text="Aktives Fenster"
+                    <TextBlock Text="{loc:Str Profiles.ActiveWindow}"
                                FontSize="11" FontWeight="SemiBold"
                                Foreground="{StaticResource HintBrush}" Margin="0,0,0,4"/>
                     <TextBlock FontSize="11" Foreground="{StaticResource LabelBrush}"
@@ -144,7 +145,7 @@
             </Border>
 
             <!-- Add Profile Button -->
-            <ui:Button Grid.Row="3" Content="+ Neues Profil"
+            <ui:Button Grid.Row="3" Content="{loc:Str Profiles.NewProfile}"
                        Appearance="Secondary"
                        Command="{Binding Profiles.AddProfileCommand}"
                        Margin="12,4,12,12" HorizontalAlignment="Stretch"/>
@@ -168,9 +169,9 @@
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="48"
                            Foreground="{StaticResource HintBrush}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                <TextBlock Text="Profil auswählen" FontSize="16" Foreground="{StaticResource HintBrush}"
+                <TextBlock Text="{loc:Str Profiles.SelectProfile}" FontSize="16" Foreground="{StaticResource HintBrush}"
                            HorizontalAlignment="Center"/>
-                <TextBlock Text="Wähle ein Profil aus der Liste oder erstelle ein neues"
+                <TextBlock Text="{loc:Str Profiles.SelectProfileHint}"
                            FontSize="13" Foreground="{StaticResource HintBrush}"
                            HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.6"/>
             </StackPanel>
@@ -190,18 +191,18 @@
                 </Style>
             </ScrollViewer.Style>
             <StackPanel MaxWidth="500" Margin="24">
-                <TextBlock Text="Profil bearbeiten" Style="{StaticResource SectionHeaderStyle}"/>
+                <TextBlock Text="{loc:Str Profiles.EditProfile}" Style="{StaticResource SectionHeaderStyle}"/>
 
                 <!-- Name -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Name" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.Name}" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding Profiles.EditName, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputTextBoxStyle}"/>
                 </StackPanel>
 
                 <!-- Process Names (Chips) -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Apps" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.Apps}" Style="{StaticResource LabelStyle}"/>
 
                     <!-- Chips Container -->
                     <Border Background="{StaticResource InputBackgroundBrush}"
@@ -244,7 +245,7 @@
                                      KeyDown="ProcessNameInputBox_KeyDown"/>
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="Prozessnamen eingeben und Enter drücken, oder laufende App anklicken"
+                    <TextBlock Text="{loc:Str Profiles.ProcessNameHint}"
                                Style="{StaticResource HintStyle}"/>
 
                     <!-- Running Apps Suggestions -->
@@ -288,7 +289,7 @@
 
                 <!-- URL Patterns (Chips) -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="URL-Muster" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.UrlPatterns}" Style="{StaticResource LabelStyle}"/>
 
                     <Border Background="{StaticResource InputBackgroundBrush}"
                             BorderBrush="{StaticResource BorderBrush}"
@@ -328,21 +329,21 @@
                                      KeyDown="UrlPatternInputBox_KeyDown"/>
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="URL-Muster eingeben und Enter drücken (z.B. slack.com, *.github.com)"
+                    <TextBlock Text="{loc:Str Profiles.UrlPatternHint}"
                                Style="{StaticResource HintStyle}"/>
                 </StackPanel>
 
                 <!-- Overrides Header -->
-                <TextBlock Text="Überschreibungen" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,4,0,12"/>
+                <TextBlock Text="{loc:Str Profiles.Overrides}" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,4,0,12"/>
 
                 <!-- Language -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Sprache" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.LanguageLabel}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox SelectedValue="{Binding Profiles.EditLanguage}"
                               SelectedValuePath="Tag"
                               HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="Globale Einstellung" Tag="{x:Null}"/>
-                        <ComboBoxItem Content="Auto" Tag="auto"/>
+                        <ComboBoxItem Content="{loc:Str Profiles.GlobalSetting}" Tag="{x:Null}"/>
+                        <ComboBoxItem Content="{loc:Str Profiles.Auto}" Tag="auto"/>
                         <ComboBoxItem Content="Deutsch" Tag="de"/>
                         <ComboBoxItem Content="English" Tag="en"/>
                         <ComboBoxItem Content="Français" Tag="fr"/>
@@ -356,7 +357,7 @@
 
                 <!-- Translation Target -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Übersetzung" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.TranslationLabel}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox ItemsSource="{Binding Profiles.TranslationTargetOptions}"
                               SelectedValue="{Binding Profiles.EditTranslationTarget}"
                               SelectedValuePath="Code"
@@ -377,48 +378,48 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <TextBlock Text="Überschreibt die globale Übersetzungseinstellung für dieses Profil"
+                    <TextBlock Text="{loc:Str Profiles.TranslationOverrideHint}"
                                Style="{StaticResource HintStyle}"/>
                 </StackPanel>
 
                 <!-- Whisper Mode Override -->
                 <StackPanel Margin="0,0,0,16">
                     <ui:ToggleSwitch IsChecked="{Binding Profiles.EditWhisperModeOverride}"
-                                     OnContent="Whisper-Modus überschreiben"
-                                     OffContent="Whisper-Modus überschreiben"/>
-                    <TextBlock Text="Überschreibt die globale Whisper-Modus Einstellung"
+                                     OnContent="{loc:Str Profiles.WhisperModeOverride}"
+                                     OffContent="{loc:Str Profiles.WhisperModeOverride}"/>
+                    <TextBlock Text="{loc:Str Profiles.WhisperModeOverrideHint}"
                                Style="{StaticResource HintStyle}" Margin="26,4,0,0"/>
                 </StackPanel>
 
                 <!-- Transcription Model Override -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Transkriptions-Modell" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.TranscriptionModel}" Style="{StaticResource LabelStyle}"/>
                     <ComboBox ItemsSource="{Binding Profiles.AvailableModelOptions}"
                               SelectedValue="{Binding Profiles.EditTranscriptionModelOverride}"
                               SelectedValuePath="Id"
                               DisplayMemberPath="DisplayName"
                               HorizontalAlignment="Stretch"/>
-                    <TextBlock Text="Überschreibt das globale Modell für dieses Profil (lokal oder Cloud)"
+                    <TextBlock Text="{loc:Str Profiles.TranscriptionModelHint}"
                                Style="{StaticResource HintStyle}"/>
                 </StackPanel>
 
                 <!-- Priority -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Priorität" Style="{StaticResource LabelStyle}"/>
+                    <TextBlock Text="{loc:Str Profiles.Priority}" Style="{StaticResource LabelStyle}"/>
                     <TextBox Text="{Binding Profiles.EditPriority, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputTextBoxStyle}"
                              Width="100" HorizontalAlignment="Left"/>
-                    <TextBlock Text="Höhere Zahl = höhere Priorität bei Mehrfach-Match"
+                    <TextBlock Text="{loc:Str Profiles.PriorityHint}"
                                Style="{StaticResource HintStyle}"/>
                 </StackPanel>
 
                 <!-- Action Buttons -->
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <ui:Button Content="Speichern"
+                    <ui:Button Content="{loc:Str Profiles.Save}"
                                Appearance="Primary"
                                Command="{Binding Profiles.SaveProfileCommand}"
                                Margin="0,0,12,0"/>
-                    <ui:Button Content="Löschen"
+                    <ui:Button Content="{loc:Str Profiles.Delete}"
                                Appearance="Danger"
                                Command="{Binding Profiles.DeleteProfileCommand}"/>
                 </StackPanel>
