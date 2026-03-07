@@ -50,10 +50,12 @@ public sealed class StreamingHandler : IDisposable
             _streamingTask = RunPollingFallbackAsync(language, task, isStillRecording, ct);
     }
 
-    public void Stop()
+    public string Stop()
     {
         _audio.SamplesAvailable -= OnStreamingSamplesAvailable;
         _cts?.Cancel();
+
+        var finalText = _confirmedText;
 
         var session = _session;
         _session = null;
@@ -67,6 +69,8 @@ public sealed class StreamingHandler : IDisposable
         _cts = null;
         _streamingTask = null;
         _confirmedText = "";
+
+        return finalText;
     }
 
     private static async Task CleanupSessionAsync(IStreamingSession session)

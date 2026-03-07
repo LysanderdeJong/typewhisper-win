@@ -286,7 +286,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _durationTimer?.Dispose();
         _durationTimer = null;
 
-        _streamingHandler.Stop();
+        var streamingText = _streamingHandler.Stop();
         _audio.SamplesAvailable -= OnSamplesAvailable;
 
         var samples = _audio.StopRecording();
@@ -304,7 +304,11 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             _vad.Dispose();
             _vad = null;
         }
-        partialSnapshot = [.. _partialSegments];
+
+        // Use streaming result if available, otherwise fall back to VAD partials
+        partialSnapshot = !string.IsNullOrWhiteSpace(streamingText)
+            ? [streamingText]
+            : [.. _partialSegments];
 
         if (samples is null || samples.Length < 1600) // < 100ms
         {
