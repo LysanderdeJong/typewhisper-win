@@ -40,6 +40,8 @@ jobs:
             'openai-compatible'  = 'TypeWhisper.Plugin.OpenAiCompatible'
             'groq'               = 'TypeWhisper.Plugin.Groq'
             'webhook'            = 'TypeWhisper.Plugin.Webhook'
+            'deepgram'           = 'TypeWhisper.Plugin.Deepgram'
+            'assemblyai'         = 'TypeWhisper.Plugin.AssemblyAi'
           }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
