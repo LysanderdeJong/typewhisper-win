@@ -18,6 +18,7 @@ public sealed class StreamingHandler : IDisposable
     private Task? _streamingTask;
     private IStreamingSession? _session;
     private string _confirmedText = "";
+    private string _lastDisplayedText = "";
 
     public Action<string>? OnPartialTextUpdate { get; set; }
 
@@ -39,6 +40,7 @@ public sealed class StreamingHandler : IDisposable
         Stop();
 
         _confirmedText = "";
+        _lastDisplayedText = "";
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
@@ -55,7 +57,7 @@ public sealed class StreamingHandler : IDisposable
         _audio.SamplesAvailable -= OnStreamingSamplesAvailable;
         _cts?.Cancel();
 
-        var finalText = _confirmedText;
+        var finalText = _lastDisplayedText;
 
         var session = _session;
         _session = null;
@@ -69,6 +71,7 @@ public sealed class StreamingHandler : IDisposable
         _cts = null;
         _streamingTask = null;
         _confirmedText = "";
+        _lastDisplayedText = "";
 
         return finalText;
     }
@@ -132,6 +135,7 @@ public sealed class StreamingHandler : IDisposable
             _confirmedText = string.IsNullOrEmpty(_confirmedText)
                 ? text
                 : _confirmedText + " " + text;
+            _lastDisplayedText = _confirmedText;
             OnPartialTextUpdate?.Invoke(_confirmedText);
         }
         else
@@ -139,6 +143,7 @@ public sealed class StreamingHandler : IDisposable
             var display = string.IsNullOrEmpty(_confirmedText)
                 ? text
                 : _confirmedText + " " + text;
+            _lastDisplayedText = display;
             OnPartialTextUpdate?.Invoke(display);
         }
     }

@@ -12,6 +12,10 @@ internal sealed class AssemblyAiStreamingSession : IStreamingSession
     private readonly CancellationTokenSource _receiveCts = new();
     private Task? _receiveTask;
 
+    // AssemblyAI requires chunks between 50-1000ms (800-16000 samples at 16kHz = 1600-32000 bytes)
+    private readonly MemoryStream _audioBuffer = new();
+    private const int MinChunkBytes = 1600; // 50ms at 16kHz, 16-bit
+
     public event Action<StreamingTranscriptEvent>? TranscriptReceived;
 
     public static async Task<AssemblyAiStreamingSession> ConnectAsync(
@@ -19,9 +23,9 @@ internal sealed class AssemblyAiStreamingSession : IStreamingSession
     {
         var session = new AssemblyAiStreamingSession();
 
-        var url = "wss://streaming.assemblyai.com/v3/ws?sample_rate=16000";
-        if (!string.IsNullOrEmpty(language))
-            url += $"&language={language}";
+        var url = "wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true";
+        if (!string.IsNullOrEmpty(language) && language != "en")
+            url += "&speech_model=universal-streaming-multilingual";
 
         session._ws.Options.SetRequestHeader("Authorization", apiKey);
         await session._ws.ConnectAsync(new Uri(url), ct);
@@ -32,7 +36,15 @@ internal sealed class AssemblyAiStreamingSession : IStreamingSession
     public async Task SendAudioAsync(ReadOnlyMemory<byte> pcm16Audio, CancellationToken ct)
     {
         if (_ws.State != WebSocketState.Open) return;
-        await _ws.SendAsync(pcm16Audio, WebSocketMessageType.Binary, true, ct);
+
+        _audioBuffer.Write(pcm16Audio.Span);
+
+        if (_audioBuffer.Length < MinChunkBytes) return;
+
+        var chunk = _audioBuffer.ToArray();
+        _audioBuffer.SetLength(0);
+
+        await _ws.SendAsync(chunk, WebSocketMessageType.Binary, true, ct);
     }
 
     public async Task FinalizeAsync(CancellationToken ct)
