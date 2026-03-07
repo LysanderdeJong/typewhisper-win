@@ -45,8 +45,15 @@ public interface ITranscriptionEnginePlugin : ITypeWhisperPlugin
     /// <summary>Loads a downloaded model into memory, preparing it for transcription.</summary>
     Task LoadModelAsync(string modelId, CancellationToken ct) => Task.CompletedTask;
 
-    /// <summary>Whether this engine supports real-time streaming transcription.</summary>
+    /// <summary>Whether this engine supports real-time streaming transcription via <see cref="IStreamingSession"/>.</summary>
     bool SupportsStreaming => false;
+
+    /// <summary>
+    /// Opens a real-time streaming session (e.g. WebSocket). The host feeds PCM16 audio via the session.
+    /// Only called when <see cref="SupportsStreaming"/> is true.
+    /// </summary>
+    Task<IStreamingSession> StartStreamingAsync(string? language, CancellationToken ct)
+        => throw new NotSupportedException();
 
     /// <summary>ISO language codes supported by this engine, or empty for all.</summary>
     IReadOnlyList<string> SupportedLanguages => [];

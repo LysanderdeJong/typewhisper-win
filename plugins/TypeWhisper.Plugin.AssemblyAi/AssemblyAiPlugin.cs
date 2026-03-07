@@ -55,6 +55,14 @@ public sealed class AssemblyAiPlugin : ITranscriptionEnginePlugin
     public string? SelectedModelId => _selectedModelId;
 
     public bool SupportsTranslation => false;
+    public bool SupportsStreaming => true;
+
+    public async Task<IStreamingSession> StartStreamingAsync(string? language, CancellationToken ct)
+    {
+        if (!IsConfigured)
+            throw new InvalidOperationException("Plugin not configured. API key required.");
+        return await AssemblyAiStreamingSession.ConnectAsync(_apiKey!, language, ct);
+    }
 
     public void SelectModel(string modelId)
     {

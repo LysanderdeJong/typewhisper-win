@@ -54,6 +54,14 @@ public sealed class DeepgramPlugin : ITranscriptionEnginePlugin
     public string? SelectedModelId => _selectedModelId;
 
     public bool SupportsTranslation => false;
+    public bool SupportsStreaming => true;
+
+    public async Task<IStreamingSession> StartStreamingAsync(string? language, CancellationToken ct)
+    {
+        if (!IsConfigured || _selectedModelId is null)
+            throw new InvalidOperationException("Plugin not configured. API key and model required.");
+        return await DeepgramStreamingSession.ConnectAsync(_apiKey!, _selectedModelId, language, ct);
+    }
 
     public void SelectModel(string modelId)
     {

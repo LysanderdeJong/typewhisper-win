@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using TypeWhisper.Core.Interfaces;
+using TypeWhisper.PluginSDK;
 
 namespace TypeWhisper.Windows.Services;
 
 /// <summary>
-/// Polls the growing audio buffer during recording, transcribes periodically,
-/// and stabilizes partial text to prevent flickering. Ported from Mac StreamingHandler.swift.
+/// Provides live transcription during recording. Uses real-time WebSocket streaming
+/// when the plugin supports it, otherwise falls back to polling-based transcription.
 /// </summary>
 public sealed class StreamingHandler : IDisposable
 {
@@ -15,6 +16,7 @@ public sealed class StreamingHandler : IDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _streamingTask;
+    private IStreamingSession? _session;
     private string _confirmedText = "";
 
     public Action<string>? OnPartialTextUpdate { get; set; }
@@ -40,62 +42,169 @@ public sealed class StreamingHandler : IDisposable
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
-        var engine = _modelManager.Engine;
-        var pollInterval = TimeSpan.FromSeconds(3.0);
+        var plugin = _modelManager.ActiveTranscriptionPlugin;
 
-        _streamingTask = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(pollInterval, ct);
-
-                while (!ct.IsCancellationRequested && isStillRecording())
-                {
-                    var buffer = _audio.GetCurrentBuffer();
-                    var bufferDuration = buffer is not null ? buffer.Length / 16000.0 : 0;
-
-                    if (buffer is not null && bufferDuration > 0.5)
-                    {
-                        try
-                        {
-                            var lang = language == "auto" ? null : language;
-                            var result = await engine.TranscribeAsync(buffer, lang, task, ct);
-                            var text = result.Text?.Trim() ?? "";
-
-                            if (!string.IsNullOrEmpty(text))
-                            {
-                                text = _dictionary.ApplyCorrections(text);
-                                var stable = StabilizeText(_confirmedText, text);
-                                _confirmedText = stable;
-                                OnPartialTextUpdate?.Invoke(stable);
-                            }
-                        }
-                        catch (OperationCanceledException) { throw; }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Streaming transcription error (non-fatal): {ex.Message}");
-                        }
-                    }
-
-                    await Task.Delay(pollInterval, ct);
-                }
-            }
-            catch (OperationCanceledException) { }
-        }, ct);
+        if (plugin is not null && plugin.SupportsStreaming)
+            _streamingTask = RunWebSocketStreamingAsync(plugin, language, ct);
+        else
+            _streamingTask = RunPollingFallbackAsync(language, task, isStillRecording, ct);
     }
 
     public void Stop()
     {
+        _audio.SamplesAvailable -= OnStreamingSamplesAvailable;
         _cts?.Cancel();
+
+        var session = _session;
+        _session = null;
+        if (session is not null)
+        {
+            // Fire-and-forget with timeout to avoid deadlock
+            _ = CleanupSessionAsync(session);
+        }
+
         _cts?.Dispose();
         _cts = null;
         _streamingTask = null;
         _confirmedText = "";
     }
 
+    private static async Task CleanupSessionAsync(IStreamingSession session)
+    {
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try { await session.FinalizeAsync(timeoutCts.Token); }
+        catch { /* best effort */ }
+        try { await session.DisposeAsync(); }
+        catch { /* best effort */ }
+    }
+
+    // ── WebSocket streaming path ──
+
+    private async Task RunWebSocketStreamingAsync(
+        ITranscriptionEnginePlugin plugin, string? language, CancellationToken ct)
+    {
+        try
+        {
+            var lang = language == "auto" ? null : language;
+            _session = await plugin.StartStreamingAsync(lang, ct);
+
+            _session.TranscriptReceived += OnTranscriptReceived;
+            _audio.SamplesAvailable += OnStreamingSamplesAvailable;
+
+            // Keep alive until cancelled
+            await Task.Delay(Timeout.Infinite, ct);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"WebSocket streaming error: {ex.Message}");
+        }
+    }
+
+    private void OnStreamingSamplesAvailable(object? sender, SamplesAvailableEventArgs e)
+    {
+        var session = _session;
+        var cts = _cts;
+        if (session is null || cts is null || cts.IsCancellationRequested) return;
+
+        var pcm16 = FloatToPcm16(e.Samples);
+        _ = Task.Run(async () =>
+        {
+            try { await session.SendAudioAsync(pcm16, cts.Token); }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        });
+    }
+
+    private void OnTranscriptReceived(StreamingTranscriptEvent evt)
+    {
+        var text = evt.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(text)) return;
+
+        text = _dictionary.ApplyCorrections(text);
+
+        if (evt.IsFinal)
+        {
+            _confirmedText = string.IsNullOrEmpty(_confirmedText)
+                ? text
+                : _confirmedText + " " + text;
+            OnPartialTextUpdate?.Invoke(_confirmedText);
+        }
+        else
+        {
+            var display = string.IsNullOrEmpty(_confirmedText)
+                ? text
+                : _confirmedText + " " + text;
+            OnPartialTextUpdate?.Invoke(display);
+        }
+    }
+
+    // ── Polling fallback path ──
+
+    private async Task RunPollingFallbackAsync(
+        string? language, TranscriptionTask task,
+        Func<bool> isStillRecording, CancellationToken ct)
+    {
+        var engine = _modelManager.Engine;
+        var pollInterval = TimeSpan.FromSeconds(3.0);
+
+        try
+        {
+            await Task.Delay(pollInterval, ct);
+
+            while (!ct.IsCancellationRequested && isStillRecording())
+            {
+                var buffer = _audio.GetCurrentBuffer();
+                var bufferDuration = buffer is not null ? buffer.Length / 16000.0 : 0;
+
+                if (buffer is not null && bufferDuration > 0.5)
+                {
+                    try
+                    {
+                        var lang = language == "auto" ? null : language;
+                        var result = await engine.TranscribeAsync(buffer, lang, task, ct);
+                        var text = result.Text?.Trim() ?? "";
+
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            text = _dictionary.ApplyCorrections(text);
+                            var stable = StabilizeText(_confirmedText, text);
+                            _confirmedText = stable;
+                            OnPartialTextUpdate?.Invoke(stable);
+                        }
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Streaming transcription error (non-fatal): {ex.Message}");
+                    }
+                }
+
+                await Task.Delay(pollInterval, ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    // ── Helpers ──
+
+    /// <summary>Converts float[-1..1] PCM samples to 16-bit signed little-endian bytes.</summary>
+    internal static byte[] FloatToPcm16(float[] samples)
+    {
+        var bytes = new byte[samples.Length * 2];
+        for (var i = 0; i < samples.Length; i++)
+        {
+            var clamped = Math.Clamp(samples[i], -1f, 1f);
+            var value = (short)(clamped * 32767f);
+            bytes[i * 2] = (byte)(value & 0xFF);
+            bytes[i * 2 + 1] = (byte)((value >> 8) & 0xFF);
+        }
+        return bytes;
+    }
+
     /// <summary>
     /// Keeps confirmed text stable and only appends new content.
-    /// Ported from Mac StreamingHandler.swift stabilizeText().
+    /// Used only in polling fallback path.
     /// </summary>
     public static string StabilizeText(string confirmed, string newText)
     {
@@ -103,11 +212,9 @@ public sealed class StreamingHandler : IDisposable
         if (string.IsNullOrEmpty(confirmed)) return newText;
         if (string.IsNullOrEmpty(newText)) return confirmed;
 
-        // Best case: new text starts with confirmed text
         if (newText.StartsWith(confirmed, StringComparison.Ordinal))
             return newText;
 
-        // Find how far the texts match from the start
         var matchEnd = 0;
         var minLen = Math.Min(confirmed.Length, newText.Length);
         for (var i = 0; i < minLen; i++)
@@ -118,11 +225,9 @@ public sealed class StreamingHandler : IDisposable
                 break;
         }
 
-        // If more than half matches, keep confirmed and append the new tail
         if (matchEnd > confirmed.Length / 2)
             return confirmed + newText[matchEnd..];
 
-        // Suffix-prefix overlap: new text starts with a suffix of confirmed
         var minOverlap = Math.Min(20, confirmed.Length / 4);
         var maxShift = Math.Min(confirmed.Length - minOverlap, 150);
         if (maxShift > 0)
@@ -138,7 +243,6 @@ public sealed class StreamingHandler : IDisposable
             }
         }
 
-        // Very different result — accept new text to avoid freezing the preview
         return newText;
     }
 

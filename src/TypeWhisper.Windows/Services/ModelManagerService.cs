@@ -79,6 +79,18 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
         }
     }
 
+    /// <summary>Returns the active <see cref="ITranscriptionEnginePlugin"/> if a plugin model is selected.</summary>
+    public ITranscriptionEnginePlugin? ActiveTranscriptionPlugin
+    {
+        get
+        {
+            if (_activeModelId is null || !IsPluginModel(_activeModelId))
+                return null;
+            var (pluginId, _) = ParsePluginModelId(_activeModelId);
+            return _pluginManager.TranscriptionEngines.FirstOrDefault(e => e.PluginId == pluginId);
+        }
+    }
+
     public ModelManagerService(PluginManager pluginManager, ISettingsService settings)
     {
         _pluginManager = pluginManager;
