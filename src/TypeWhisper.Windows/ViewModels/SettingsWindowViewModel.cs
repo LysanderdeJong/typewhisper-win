@@ -116,8 +116,16 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
             _sectionCache[sectionName] = section;
         }
 
+        // Stop preview when leaving Audio section
+        if (CurrentSectionName == "Recording" && sectionName != "Recording")
+            Settings.StopMicrophonePreview();
+
         CurrentSection = section;
         CurrentSectionName = sectionName;
+
+        // Start preview when entering Audio section
+        if (sectionName == "Recording")
+            Settings.StartMicrophonePreview();
 
         // Refresh plugin availability when navigating to Models
         // (API keys may have been changed in Plugins)

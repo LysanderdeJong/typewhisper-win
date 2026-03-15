@@ -31,6 +31,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _historyRetentionDays = 90;
     [ObservableProperty] private string _transcriptionTask = "transcribe";
     [ObservableProperty] private int? _selectedMicrophoneDevice;
+    [ObservableProperty] private float _previewLevel;
     [ObservableProperty] private bool _autostartEnabled;
     [ObservableProperty] private string? _translationTargetLanguage;
     [ObservableProperty] private bool _apiServerEnabled;
@@ -71,6 +72,12 @@ public partial class SettingsViewModel : ObservableObject
         Loc.Instance.CurrentLanguage = value ?? Loc.Instance.DetectSystemLanguage();
     }
 
+    partial void OnSelectedMicrophoneDeviceChanged(int? value)
+    {
+        if (_isLoading) return;
+        StartMicrophonePreview();
+    }
+
     public SettingsViewModel(ISettingsService settings, AudioRecordingService audio)
     {
         _settings = settings;
@@ -97,6 +104,26 @@ public partial class SettingsViewModel : ObservableObject
         {
             Microphones.Add(new MicrophoneItem(number, name));
         }
+    }
+
+    public void StartMicrophonePreview()
+    {
+        _audio.PreviewLevelChanged -= OnPreviewLevelChanged;
+        _audio.StartPreview(SelectedMicrophoneDevice);
+        _audio.PreviewLevelChanged += OnPreviewLevelChanged;
+    }
+
+    public void StopMicrophonePreview()
+    {
+        _audio.PreviewLevelChanged -= OnPreviewLevelChanged;
+        _audio.StopPreview();
+        PreviewLevel = 0;
+    }
+
+    private void OnPreviewLevelChanged(object? sender, AudioLevelEventArgs e)
+    {
+        System.Windows.Application.Current?.Dispatcher.InvokeAsync(() =>
+            PreviewLevel = Math.Min(e.RmsLevel * 5f, 1f)); // Scale for visibility
     }
 
     [RelayCommand]

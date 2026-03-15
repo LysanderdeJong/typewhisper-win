@@ -14,10 +14,12 @@ public sealed class AudioRecordingService : IDisposable
     private const float NormalizationTarget = 0.707f;
 
     private WaveInEvent? _waveIn;
+    private WaveInEvent? _previewWaveIn;
     private List<float>? _sampleBuffer;
     private readonly object _bufferLock = new();
     private bool _isRecording;
     private bool _isWarmedUp;
+    private bool _isPreviewing;
     private bool _disposed;
     private DateTime _recordingStartTime;
     private int? _configuredDeviceNumber;
@@ -28,6 +30,7 @@ public sealed class AudioRecordingService : IDisposable
     private int _lastKnownDeviceCount;
 
     public event EventHandler<AudioLevelEventArgs>? AudioLevelChanged;
+    public event EventHandler<AudioLevelEventArgs>? PreviewLevelChanged;
     public event EventHandler<SamplesAvailableEventArgs>? SamplesAvailable;
     public event EventHandler? DevicesChanged;
     public event EventHandler? DeviceLost;
@@ -257,6 +260,56 @@ public sealed class AudioRecordingService : IDisposable
         catch { }
     }
 
+    public void StartPreview(int? deviceNumber)
+    {
+        StopPreview();
+        if (_disposed) return;
+
+        var deviceIndex = deviceNumber ?? FindBestMicrophoneDevice();
+        _previewWaveIn = new WaveInEvent
+        {
+            DeviceNumber = deviceIndex,
+            WaveFormat = new WaveFormat(SampleRate, BitsPerSample, Channels),
+            BufferMilliseconds = 50
+        };
+        _previewWaveIn.DataAvailable += OnPreviewDataAvailable;
+        _previewWaveIn.StartRecording();
+        _isPreviewing = true;
+    }
+
+    public void StopPreview()
+    {
+        if (_previewWaveIn is not null)
+        {
+            _previewWaveIn.DataAvailable -= OnPreviewDataAvailable;
+            try { _previewWaveIn.StopRecording(); } catch { }
+            _previewWaveIn.Dispose();
+            _previewWaveIn = null;
+        }
+        _isPreviewing = false;
+    }
+
+    public bool IsPreviewing => _isPreviewing;
+
+    private void OnPreviewDataAvailable(object? sender, WaveInEventArgs e)
+    {
+        var sampleCount = e.BytesRecorded / 2;
+        if (sampleCount == 0) return;
+
+        float peak = 0;
+        float sumSquares = 0;
+        for (var i = 0; i < sampleCount; i++)
+        {
+            var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
+            var abs = MathF.Abs(sample);
+            if (abs > peak) peak = abs;
+            sumSquares += sample * sample;
+        }
+
+        var rms = MathF.Sqrt(sumSquares / sampleCount);
+        PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+    }
+
     private void DisposeWaveIn()
     {
         if (_waveIn is not null)
@@ -276,6 +329,7 @@ public sealed class AudioRecordingService : IDisposable
         {
             _devicePollTimer?.Dispose();
             _isRecording = false;
+            StopPreview();
             DisposeWaveIn();
             _disposed = true;
         }

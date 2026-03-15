@@ -24,5 +24,7 @@ public partial class SettingsWindow : FluentWindow
         viewModel.RegisterSection("Info", () => new InfoSection { DataContext = viewModel });
 
         viewModel.NavigateToDefault();
+
+        Closing += (_, _) => viewModel.Settings.StopMicrophonePreview();
     }
 }
