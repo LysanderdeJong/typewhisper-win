@@ -4,21 +4,22 @@
 [![Windows](https://img.shields.io/badge/Windows-10%2B-0078D4.svg)](https://www.microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com)
 
-Speech-to-text and AI text processing for Windows. Transcribe audio using on-device AI models or cloud APIs (Groq, OpenAI, OpenAI-compatible servers), then process the result with custom LLM prompts. Your voice data stays on your PC with local models — or use cloud APIs for faster processing.
+Speech-to-text and AI text processing for Windows. Transcribe audio using on-device AI models or cloud APIs via extensions, then process the result with custom LLM prompts. Your voice data stays on your PC with local models — or use cloud APIs for faster processing.
 
 ## Features
 
 ### Transcription
 
 - **On-device models** — Parakeet TDT 0.6B (25+ languages, fast) and Canary 180M Flash (EN/DE/FR/ES with translation), running on CPU via SherpaOnnx with int8 quantization — no GPU required
-- **Cloud transcription** — Groq Whisper, OpenAI Whisper, and any OpenAI-compatible server (Ollama, LM Studio, vLLM). API keys encrypted at rest via DPAPI
+- **Cloud transcription** — Groq Whisper, OpenAI Whisper, AssemblyAI, Deepgram, and any OpenAI-compatible server (Ollama, LM Studio, vLLM). API keys encrypted at rest via DPAPI
 - **Streaming preview** — Silero VAD detects speech segments during recording and transcribes them in real time, showing partial results in the overlay before recording stops
+- **Live transcription** — Floating window with real-time continuous transcription (via LiveTranscript plugin)
 - **File transcription** — Drag-and-drop audio/video files. Supports WAV, MP3, M4A, AAC, OGG, FLAC, WMA, MP4, MKV, AVI, MOV, WebM
 - **Subtitle export** — Export transcriptions as TXT, SRT, or WebVTT
 
 ### Dictation
 
-- **System-wide** — Three independent hotkeys: Hybrid (short press toggles, long press is push-to-talk), Toggle-only, and Hold-only. Auto-pastes into any app
+- **System-wide** — Three independent hotkeys: Hybrid (short press toggles, long press is push-to-talk), Toggle-only, and Hold-only. Per-profile hotkeys for direct profile activation. Auto-pastes into any app
 - **Non-blocking pipeline** — Multiple recordings can be queued while transcription runs in the background
 - **Sound feedback** — Audio cues for recording start and stop
 - **Silence detection** — Automatically stops recording after configurable silence period
@@ -30,31 +31,34 @@ Speech-to-text and AI text processing for Windows. Transcribe audio using on-dev
 ### AI Processing
 
 - **Custom prompts** — Process transcriptions (or any text) with LLM prompts. Standalone Prompt Palette via global hotkey — a floating panel for AI text processing independent of dictation
-- **LLM providers** — Groq, OpenAI, and any OpenAI-compatible server (Ollama, LM Studio, vLLM)
-- **Translation** — Cloud LLM translation (Groq: Llama 3.3 70B, OpenAI: GPT-4o-mini) with local Marian ONNX model fallback. 20 target languages: EN, DE, FR, ES, IT, NL, PL, SV, DA, FI, CS, RU, UK, HU, JA, ZH, AR, HI, VI, ID
+- **LLM providers** — Groq, OpenAI, Google Gemini, and any OpenAI-compatible server (Ollama, LM Studio, vLLM) — all via plugins
+- **Translation** — Cloud LLM translation with local Marian ONNX model fallback. 20 target languages: EN, DE, FR, ES, IT, NL, PL, SV, DA, FI, CS, RU, UK, HU, JA, ZH, AR, HI, VI, ID
 
 ### Personalization
 
 - **Profiles** — Per-app and per-website overrides for language, task, transcription model, and whisper mode. Match by process name and/or URL pattern with wildcard support. Automatically activates when dictating in a matched application or website
 - **Dictionary** — Custom term corrections applied after transcription (e.g., fix names, jargon, or recurring misrecognitions). Regex support. 13 built-in term packs: Web Dev, .NET/C#, DevOps, Data & AI, Design, Game Dev, Mobile, Security, Databases, Medical, Legal, Finance, Music Production
 - **Snippets** — Text shortcuts with trigger→replacement. Placeholders: `{date}`, `{time}`, `{datetime}`, `{clipboard}`, `{day}`, `{year}`. Date/time support custom formats (e.g. `{date:dd.MM.yyyy}`)
-- **History** — Searchable transcription history with raw/final text tracking, app context, and inline editing
+- **History** — Searchable transcription history with raw/final text tracking, app context, inline editing, and export (TXT, CSV, Markdown, JSON)
 
 ### Integration & Extensibility
 
-- **Plugin system** — Extensible plugin architecture with SDK and marketplace. Create custom plugins for transcription engines, LLM providers, post-processors, or action plugins. Plugins for OpenAI, Groq, OpenAI Compatible, SherpaOnnx, and Webhook available via the built-in marketplace
-- **Plugin marketplace** — Browse, install, update, and uninstall plugins directly from Settings
-- **HTTP API** — Local REST server for integration with external tools (status, models, transcription)
+- **Plugin system** — Extensible plugin architecture with SDK and marketplace. Create custom plugins for transcription engines, LLM providers, post-processors, or action plugins
+- **Plugin marketplace** — Browse, install, update, and uninstall plugins directly from Settings. Auto-installs recommended extensions on first run
+- **Action plugins** — Linear (create issues), Obsidian (create notes), Script (run custom scripts), Webhook (HTTP notifications)
+- **HTTP API** — Local REST server for integration with external tools (status, models, transcription, history, profiles, dictation control)
+- **Model auto-unload** — Automatically unloads models after configurable idle timeout to save memory
 
 ### General
 
 - **Fluent Design** — WPF-UI with Mica backdrop, native title bar, and Fluent controls
-- **Dynamic Island overlay** — Configurable widgets with multi-monitor support
-- **Home dashboard** — Usage statistics (words, duration, records) with activity chart
-- **Welcome wizard** — Guided 5-step onboarding: model selection, cloud providers, microphone test, hotkey setup
+- **Dynamic Island overlay** — Configurable widgets (LED, timer, waveform) with multi-monitor support and real-time microphone level meter
+- **Home dashboard** — Usage statistics (words, WPM, apps, time saved) with activity chart
+- **Welcome wizard** — Guided 4-step onboarding: extension installation & model download, microphone test, hotkey setup. Re-accessible from the dashboard
 - **Auto-update** — Built-in updates via Velopack
 - **Windows autostart** — Optional start with Windows (via registry)
 - **System tray** — Minimizes to tray with quick access
+- **Localization** — English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Czech, Swedish, Danish, Finnish
 
 ## System Requirements
 
@@ -82,9 +86,11 @@ Both models run on CPU with int8 quantization — no GPU required. Local models 
 | OpenAI | gpt-4o-transcribe | Highest accuracy |
 | OpenAI | gpt-4o-mini-transcribe | Lower cost, good quality |
 | OpenAI | whisper-1 | Classic, supports translation |
+| AssemblyAI | various | Real-time and batch transcription |
+| Deepgram | nova-3 | Fast, accurate cloud ASR |
 | OpenAI Compatible | Any model | Local LLM servers (Ollama, LM Studio, vLLM) |
 
-Cloud providers are loaded as plugins and can be configured in Settings > Erweiterungen.
+Cloud providers are available as plugins and can be configured in Settings > Extensions.
 
 ## Build
 
@@ -104,7 +110,7 @@ Cloud providers are loaded as plugins and can be configured in Settings > Erweit
    dotnet run --project src/TypeWhisper.Windows
    ```
 
-4. The app appears in the system tray — the welcome wizard guides you through model download and setup.
+4. The app appears in the system tray — the welcome wizard guides you through extension installation, model download, and setup.
 
 ## HTTP API
 
@@ -115,6 +121,13 @@ TypeWhisper can run a local HTTP server (default port 9876, configurable in Sett
 | `/v1/status` | GET | App status and active model |
 | `/v1/models` | GET | List all available models (local + cloud) |
 | `/v1/transcribe` | POST | Transcribe audio from request body. Query params: `language`, `task` (transcribe/translate) |
+| `/v1/history` | GET | Search history with pagination. Query params: `q`, `limit`, `offset` |
+| `/v1/history` | DELETE | Delete history entries by ID |
+| `/v1/profiles` | GET | List all profiles |
+| `/v1/profiles/toggle` | PUT | Toggle a profile on/off by ID |
+| `/v1/dictation/start` | POST | Start recording |
+| `/v1/dictation/stop` | POST | Stop recording |
+| `/v1/dictation/status` | GET | Check current dictation state |
 
 ## Profiles
 
@@ -139,7 +152,22 @@ The active profile is shown in the recording overlay.
 
 TypeWhisper supports plugins for adding custom transcription engines, LLM providers, post-processors, and action plugins. Plugins are .NET class libraries with a `manifest.json`, installed to `%LocalAppData%/TypeWhisper/Plugins/`.
 
-The built-in marketplace provides SherpaOnnx (local models), OpenAI, Groq, OpenAI Compatible (local LLM servers), and Webhook plugins.
+The built-in marketplace provides the following plugins:
+
+| Plugin | Type | Description |
+|--------|------|-------------|
+| SherpaOnnx | Transcription | Local ASR with Parakeet and Canary models |
+| OpenAI | Transcription + LLM | OpenAI Whisper and GPT models |
+| Groq | Transcription + LLM | Groq Whisper and Llama models |
+| Google Gemini | LLM | Gemini 2.5 Flash, Pro, and Flash Lite |
+| AssemblyAI | Transcription | AssemblyAI speech-to-text |
+| Deepgram | Transcription | Deepgram Nova ASR |
+| OpenAI Compatible | Transcription + LLM | Any OpenAI-compatible server (Ollama, LM Studio, vLLM) |
+| Linear | Action | Create Linear issues from transcriptions |
+| Obsidian | Action | Create Obsidian notes from transcriptions |
+| Script | Action | Run custom scripts with transcription data |
+| LiveTranscript | Action | Floating live transcription window |
+| Webhook | Event | HTTP notifications for transcription events |
 
 ### Plugin Types
 
@@ -172,7 +200,7 @@ typewhisper-win/
 │   │   ├── Helpers/                # OpenAiChatHelper, OpenAiTranscriptionHelper
 │   │   └── Models/                 # PluginManifest, PluginEvents, etc.
 │   └── TypeWhisper.Windows/        # WPF UI layer (net10.0-windows, WPF-UI Fluent Design)
-│       ├── Controls/               # HotkeyRecorderControl
+│       ├── Controls/               # HotkeyRecorderControl, MicLevelMeter
 │       ├── Native/                 # P/Invoke, KeyboardHook
 │       ├── Services/
 │       │   ├── Plugins/            # PluginLoader, PluginManager, PluginEventBus, PluginRegistryService
@@ -184,15 +212,22 @@ typewhisper-win/
 ├── plugins/                        # Plugin source (distributed via marketplace)
 │   ├── TypeWhisper.Plugin.OpenAi/           # OpenAI transcription + LLM
 │   ├── TypeWhisper.Plugin.Groq/             # Groq transcription + LLM
-│   ├── TypeWhisper.Plugin.OpenAiCompatible/ # OpenAI-compatible servers (Ollama, LM Studio, vLLM)
+│   ├── TypeWhisper.Plugin.Gemini/           # Google Gemini LLM
+│   ├── TypeWhisper.Plugin.OpenAiCompatible/ # OpenAI-compatible servers
 │   ├── TypeWhisper.Plugin.SherpaOnnx/       # Local ASR (Parakeet, Canary)
+│   ├── TypeWhisper.Plugin.AssemblyAi/       # AssemblyAI transcription
+│   ├── TypeWhisper.Plugin.Deepgram/         # Deepgram transcription
+│   ├── TypeWhisper.Plugin.Linear/           # Linear issue creation
+│   ├── TypeWhisper.Plugin.Obsidian/         # Obsidian note creation
+│   ├── TypeWhisper.Plugin.Script/           # Custom script execution
+│   ├── TypeWhisper.Plugin.LiveTranscript/   # Live transcription window
 │   └── TypeWhisper.Plugin.Webhook/          # Webhook event notifications
 └── tests/
     ├── TypeWhisper.Core.Tests/           # xUnit + Moq, in-memory SQLite
     └── TypeWhisper.PluginSystem.Tests/   # Plugin infrastructure tests
 ```
 
-**Patterns:** MVVM with CommunityToolkit.Mvvm. `App.xaml.cs` is the composition root. SQLite for persistence with a custom migration pattern. Plugin system with AssemblyLoadContext isolation and manifest-based discovery.
+**Patterns:** MVVM with CommunityToolkit.Mvvm. `App.xaml.cs` is the composition root. SQLite for persistence with a custom migration pattern. Plugin system with AssemblyLoadContext isolation and manifest-based discovery. Post-processing pipeline with priority-based ordering.
 
 **Key dependencies:** NAudio (audio), NHotkey.Wpf (hotkeys), WPF-UI (Fluent Design), Microsoft.ML.OnnxRuntime (local translation), Velopack (updates), H.NotifyIcon.Wpf (system tray).
 
