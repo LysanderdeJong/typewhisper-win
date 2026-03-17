@@ -17,3 +17,7 @@ releases/
 publish/
 .agents/
 .claude/
+.venv
+granite-speech-onnx/
+granite-speech-onnx-int8/
+granite-speech-genai/

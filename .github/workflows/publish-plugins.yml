@@ -47,6 +47,7 @@ jobs:
             'obsidian'           = 'TypeWhisper.Plugin.Obsidian'
             'script'             = 'TypeWhisper.Plugin.Script'
             'live-transcript'    = 'TypeWhisper.Plugin.LiveTranscript'
+            'granite-speech'     = 'TypeWhisper.Plugin.GraniteSpeech'
           }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
