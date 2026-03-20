@@ -34,7 +34,7 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
     // ITypeWhisperPlugin
     public string PluginId => "com.typewhisper.granite-speech";
     public string PluginName => "IBM Granite Speech (Local)";
-    public string PluginVersion => "1.0.0";
+    public string PluginVersion => "1.0.1";
 
     // ITranscriptionEnginePlugin
     public string ProviderId => "granite-speech";
