@@ -21,6 +21,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NonEmptyToVisibilityConverter x:Key="NonEmptyToVis"/>
+        <conv:HotkeyModeToOverlayBorderConverter x:Key="HotkeyModeBorder"/>
     </Window.Resources>
 
     <Grid Margin="8"
@@ -29,6 +30,8 @@
         <Border x:Name="IslandBorder"
                 CornerRadius="22"
                 Background="#F0181818"
+                BorderBrush="{Binding CurrentHotkeyMode, Converter={StaticResource HotkeyModeBorder}}"
+                BorderThickness="1.5"
                 HorizontalAlignment="Center"
                 Padding="0">
             <Border.Effect>
