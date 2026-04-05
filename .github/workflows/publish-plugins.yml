@@ -104,6 +104,22 @@ jobs:
             Copy-Item -Path $locDir -Destination "$stagingDir/Localization" -Recurse
           }
 
+          # Copy NuGet dependency DLLs (excluding SDK/framework assemblies)
+          $excludeAssemblies = @('TypeWhisper.PluginSDK.dll')
+          Get-ChildItem -Path $outputDir -Filter '*.dll' | Where-Object {
+            $_.Name -ne "$assemblyName.dll" -and $_.Name -notin $excludeAssemblies
+          } | ForEach-Object {
+            Copy-Item $_.FullName $stagingDir
+            Write-Host "  Included dependency: $($_.Name)"
+          }
+
+          # Copy native runtime directories (e.g. runtimes/win-x64/native/)
+          $runtimesDir = Join-Path $outputDir 'runtimes'
+          if (Test-Path $runtimesDir) {
+            Copy-Item -Path $runtimesDir -Destination "$stagingDir/runtimes" -Recurse
+            Write-Host "  Included native runtimes"
+          }
+
           # Create ZIP
           $zipName = "$pluginId-$env:PLUGIN_VERSION.zip"
           Compress-Archive -Path "$stagingDir/*" -DestinationPath $zipName -Force

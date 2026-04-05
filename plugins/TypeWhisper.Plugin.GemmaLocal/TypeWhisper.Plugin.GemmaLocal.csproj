@@ -6,6 +6,8 @@
     <LangVersion>latest</LangVersion>
     <UseWPF>true</UseWPF>
     <RootNamespace>TypeWhisper.Plugin.GemmaLocal</RootNamespace>
+    <!-- Copy NuGet dependencies to output so they get packaged with the plugin -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\TypeWhisper.PluginSDK\TypeWhisper.PluginSDK.csproj" />
