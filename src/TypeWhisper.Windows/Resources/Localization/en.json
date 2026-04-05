@@ -240,6 +240,8 @@
 
   "Status.Ready": "Ready",
   "Status.Recording": "Recording...",
+  "Status.RecordingToggle": "Recording (Toggle) - press hotkey to stop",
+  "Status.RecordingHold": "Recording (Hold)...",
   "Status.Processing": "Processing...",
   "Status.NoSpeech": "No speech detected",
   "Status.TooShort": "Too short",

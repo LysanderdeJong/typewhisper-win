@@ -188,6 +188,22 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         IsExpanded = !string.IsNullOrEmpty(value);
     }
 
+    partial void OnCurrentHotkeyModeChanged(HotkeyMode? value)
+    {
+        if (_isRecording)
+            StatusText = GetRecordingStatusText();
+    }
+
+    private string GetRecordingStatusText()
+    {
+        return CurrentHotkeyMode switch
+        {
+            HotkeyMode.Toggle => Loc.Instance["Status.RecordingToggle"],
+            HotkeyMode.PushToTalk => Loc.Instance["Status.RecordingHold"],
+            _ => Loc.Instance["Status.Recording"]
+        };
+    }
+
     private System.Timers.Timer? _feedbackTimer;
 
     partial void OnShowFeedbackChanged(bool value)
@@ -320,9 +336,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _eventBus.Publish(new RecordingStartedEvent());
 
         State = DictationState.Recording;
-        StatusText = Loc.Instance["Status.Recording"];
-        TranscribedText = "";
         CurrentHotkeyMode = _hotkey.CurrentMode;
+        StatusText = GetRecordingStatusText();
+        TranscribedText = "";
         IsOverlayVisible = true;
         RecordingSeconds = 0;
 

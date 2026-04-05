@@ -96,6 +96,29 @@ public sealed class SecondsToTimerConverter : IValueConverter
 }
 
 /// <summary>
+/// Converts HotkeyMode? to an overlay border brush.
+/// Toggle mode = amber border (attention needed), otherwise transparent.
+/// </summary>
+public sealed class HotkeyModeToOverlayBorderConverter : IValueConverter
+{
+    private static readonly SolidColorBrush ToggleBrush = CreateFrozen(Color.FromArgb(0xCC, 0xFF, 0xA5, 0x00));
+    private static readonly SolidColorBrush TransparentBrush = CreateFrozen(Colors.Transparent);
+
+    private static SolidColorBrush CreateFrozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is HotkeyMode.Toggle ? ToggleBrush : TransparentBrush;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>
 /// Converts HotkeyMode? to a short label: TOG or PTT.
 /// </summary>
 public sealed class HotkeyModeLabelConverter : IValueConverter
