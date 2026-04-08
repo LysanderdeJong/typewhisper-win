@@ -20,6 +20,12 @@ public interface IPostProcessingPipeline
 /// </summary>
 public sealed record PipelineOptions
 {
+    /// <summary>Applies app-aware formatting to text. Params: text, processName.</summary>
+    public Func<string, string?, string>? AppFormatter { get; init; }
+
+    /// <summary>Process name of the target app for formatting.</summary>
+    public string? TargetProcessName { get; init; }
+
     /// <summary>Applies dictionary corrections to text.</summary>
     public Func<string, string>? DictionaryCorrector { get; init; }
 

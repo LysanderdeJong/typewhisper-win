@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using SherpaOnnx;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
+using TypeWhisper.Core.Services;
 using TypeWhisper.PluginSDK;
 using TypeWhisper.PluginSDK.Models;
 using TypeWhisper.Windows.Services;
@@ -551,6 +552,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
             var pipelineOptions = new PipelineOptions
             {
+                AppFormatter = AppFormatterService.Format,
+                TargetProcessName = job.CapturedProcessName,
                 DictionaryCorrector = _dictionary.ApplyCorrections,
                 SnippetExpander = text => _snippets.ApplySnippets(text, () =>
                 {

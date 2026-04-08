@@ -13,6 +13,7 @@ namespace TypeWhisper.Core.Services;
 /// </summary>
 public sealed class PostProcessingPipeline : IPostProcessingPipeline
 {
+    private const int FormattingPriority = 150;
     private const int LlmPriority = 300;
     private const int SnippetPriority = 500;
     private const int DictionaryPriority = 600;
@@ -52,6 +53,14 @@ public sealed class PostProcessingPipeline : IPostProcessingPipeline
         BuildSteps(PipelineOptions options)
     {
         var steps = new List<(int, string, Func<string, CancellationToken, Task<string>>)>();
+
+        // App-aware formatting at priority 150 (before everything else)
+        if (options.AppFormatter is not null)
+        {
+            var processName = options.TargetProcessName;
+            steps.Add((FormattingPriority, "Formatting",
+                (text, _) => Task.FromResult(options.AppFormatter(text, processName))));
+        }
 
         // Plugin post-processors at their own priority (context captured in closure)
         if (options.PluginPostProcessors is { Count: > 0 } processors)
