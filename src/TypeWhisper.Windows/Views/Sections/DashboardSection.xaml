@@ -12,6 +12,7 @@
             <conv:BarHeightConverter x:Key="BarHeightConverter"/>
             <conv:DayLabelConverter x:Key="DayLabelConverter"/>
             <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibility"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -28,11 +29,14 @@
                                  IsChecked="True" Checked="WeekChecked"/>
                     <RadioButton Content="{loc:Str Dashboard.Month}" Style="{StaticResource TabRadioStyle}"
                                  Checked="MonthChecked"/>
+                    <RadioButton Content="{loc:Str Dashboard.AllTime}" Style="{StaticResource TabRadioStyle}"
+                                 Checked="AllTimeChecked"/>
                 </StackPanel>
             </DockPanel>
 
             <!-- 4 Stat Cards -->
             <UniformGrid Rows="1" Columns="4" Margin="0,0,0,24">
+                <!-- Words -->
                 <Border Background="{StaticResource InputBackgroundBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="8" Padding="16,20" Margin="0,0,8,0">
@@ -43,8 +47,22 @@
                                    Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
                         <TextBlock Text="{loc:Str Dashboard.Words}" Foreground="{StaticResource HintBrush}"
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding Dashboard.WordsTrend}" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FF66BB6A"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dashboard.WordsTrend[0]}" Value="-">
+                                            <Setter Property="Foreground" Value="#FFEF5350"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
+                <!-- WPM -->
                 <Border Background="{StaticResource InputBackgroundBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="8" Padding="16,20" Margin="0,0,8,0">
@@ -55,8 +73,22 @@
                                    Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
                         <TextBlock Text="&#x00D8; WPM" Foreground="{StaticResource HintBrush}"
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding Dashboard.WpmTrend}" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FF66BB6A"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dashboard.WpmTrend[0]}" Value="-">
+                                            <Setter Property="Foreground" Value="#FFEF5350"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
+                <!-- Apps -->
                 <Border Background="{StaticResource InputBackgroundBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="8" Padding="16,20" Margin="0,0,8,0">
@@ -67,8 +99,22 @@
                                    Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
                         <TextBlock Text="{loc:Str Dashboard.Apps}" Foreground="{StaticResource HintBrush}"
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding Dashboard.AppsTrend}" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FF66BB6A"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dashboard.AppsTrend[0]}" Value="-">
+                                            <Setter Property="Foreground" Value="#FFEF5350"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
+                <!-- Time Saved -->
                 <Border Background="{StaticResource InputBackgroundBrush}"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                         CornerRadius="8" Padding="16,20">
@@ -79,6 +125,19 @@
                                    Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
                         <TextBlock Text="{loc:Str Dashboard.TimeSaved}" Foreground="{StaticResource HintBrush}"
                                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding Dashboard.TimeTrend}" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FF66BB6A"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Dashboard.TimeTrend[0]}" Value="-">
+                                            <Setter Property="Foreground" Value="#FFEF5350"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
             </UniformGrid>
@@ -129,6 +188,46 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Border>
+
+            <!-- Recent Transcriptions -->
+            <TextBlock Text="{loc:Str Dashboard.Recent}" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextBrush}" Margin="0,24,0,12"
+                       Visibility="{Binding Dashboard.HasRecentTranscriptions, Converter={StaticResource BoolToVis}}"/>
+
+            <ItemsControl ItemsSource="{Binding Dashboard.RecentTranscriptions}"
+                          Visibility="{Binding Dashboard.HasRecentTranscriptions, Converter={StaticResource BoolToVis}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource InputBackgroundBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="14,10" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding Preview}" FontSize="12"
+                                               Foreground="{StaticResource TextBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxHeight="36"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock Text="{Binding TimeAgo}" FontSize="11"
+                                                   Foreground="{StaticResource HintBrush}"/>
+                                        <TextBlock Text=" · " FontSize="11"
+                                                   Foreground="{StaticResource HintBrush}"
+                                                   Visibility="{Binding AppName, Converter={StaticResource ZeroToVisibility}, ConverterParameter=invert}"/>
+                                        <TextBlock Text="{Binding AppName}" FontSize="11"
+                                                   Foreground="{StaticResource HintBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="&#x203A;" FontSize="18"
+                                           Foreground="{StaticResource HintBrush}"
+                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!-- Setup Wizard shortcut -->
             <Border Background="{StaticResource InputBackgroundBrush}"

@@ -11,12 +11,18 @@ public partial class DashboardSection : UserControl
     private void WeekChecked(object sender, RoutedEventArgs e)
     {
         if (DataContext is SettingsWindowViewModel vm)
-            vm.Dashboard.IsMonthView = false;
+            vm.Dashboard.SelectedPeriod = 0;
     }
 
     private void MonthChecked(object sender, RoutedEventArgs e)
     {
         if (DataContext is SettingsWindowViewModel vm)
-            vm.Dashboard.IsMonthView = true;
+            vm.Dashboard.SelectedPeriod = 1;
+    }
+
+    private void AllTimeChecked(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsWindowViewModel vm)
+            vm.Dashboard.SelectedPeriod = 2;
     }
 }

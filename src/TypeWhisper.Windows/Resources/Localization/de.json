@@ -226,6 +226,8 @@
   "Dashboard.Apps": "Apps",
   "Dashboard.TimeSaved": "Erspart",
   "Dashboard.Activity": "Aktivit\u00e4t",
+  "Dashboard.AllTime": "Gesamt",
+  "Dashboard.Recent": "Zuletzt",
   "Dashboard.NoActivity": "Keine Aktivit\u00e4t in diesem Zeitraum.",
   "Dashboard.WizardTitle": "Einrichtungsassistent",
   "Dashboard.WizardDesc": "Ersteinrichtung erneut starten, um Modell, Mikrofon und Hotkeys zu konfigurieren.",

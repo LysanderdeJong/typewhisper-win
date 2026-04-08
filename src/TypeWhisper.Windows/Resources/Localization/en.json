@@ -226,6 +226,8 @@
   "Dashboard.Apps": "Apps",
   "Dashboard.TimeSaved": "Saved",
   "Dashboard.Activity": "Activity",
+  "Dashboard.AllTime": "All Time",
+  "Dashboard.Recent": "Recent",
   "Dashboard.NoActivity": "No activity in this period.",
   "Dashboard.WizardTitle": "Setup Wizard",
   "Dashboard.WizardDesc": "Re-run the initial setup to configure model, microphone and hotkeys.",
