@@ -13,6 +13,7 @@ public static class TypeWhisperEnvironment
     public static string DataPath => Path.Combine(_basePath, "Data");
     public static string LogsPath => Path.Combine(_basePath, "Logs");
     public static string PluginsPath => Path.Combine(_basePath, "Plugins");
+    public static string AudioPath => Path.Combine(_basePath, "Audio");
     public static string PluginDataPath => Path.Combine(_basePath, "PluginData");
     public static string SettingsFilePath => Path.Combine(_basePath, "settings.json");
     public static string DatabasePath => Path.Combine(DataPath, "typewhisper.db");
@@ -23,6 +24,7 @@ public static class TypeWhisperEnvironment
         Directory.CreateDirectory(ModelsPath);
         Directory.CreateDirectory(DataPath);
         Directory.CreateDirectory(LogsPath);
+        Directory.CreateDirectory(AudioPath);
         Directory.CreateDirectory(PluginsPath);
         Directory.CreateDirectory(PluginDataPath);
     }

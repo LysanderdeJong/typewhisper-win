@@ -222,7 +222,7 @@ public partial class App : Application
         services.AddSingleton<IErrorLogService>(
             new ErrorLogService(dataPath));
         services.AddSingleton<IHistoryService>(
-            new HistoryService(Path.Combine(dataPath, "history.json")));
+            new HistoryService(Path.Combine(dataPath, "history.json"), TypeWhisperEnvironment.AudioPath));
         services.AddSingleton<IDictionaryService>(
             new DictionaryService(Path.Combine(dataPath, "dictionary.json")));
         services.AddSingleton<ISnippetService>(

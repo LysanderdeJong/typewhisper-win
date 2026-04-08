@@ -8,6 +8,7 @@ namespace TypeWhisper.Core.Services;
 public sealed class HistoryService : IHistoryService
 {
     private readonly string _filePath;
+    private readonly string? _audioDirectory;
     private List<TranscriptionRecord> _cache = [];
     private bool _cacheLoaded;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
@@ -32,9 +33,10 @@ public sealed class HistoryService : IHistoryService
     public int TotalWords => _cacheLoaded ? _totalWords : Records.Sum(r => r.WordCount);
     public double TotalDuration => _cacheLoaded ? _totalDuration : Records.Sum(r => r.DurationSeconds);
 
-    public HistoryService(string filePath)
+    public HistoryService(string filePath, string? audioDirectory = null)
     {
         _filePath = filePath;
+        _audioDirectory = audioDirectory;
     }
 
     public async Task EnsureLoadedAsync()
@@ -108,6 +110,7 @@ public sealed class HistoryService : IHistoryService
             _totalRecords--;
             _totalWords -= removed.WordCount;
             _totalDuration -= removed.DurationSeconds;
+            DeleteAudioFile(removed.AudioFileName);
         }
 
         RebuildDistinctApps();
@@ -299,5 +302,16 @@ public sealed class HistoryService : IHistoryService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order()
             .ToList()!;
+    }
+
+    private void DeleteAudioFile(string? audioFileName)
+    {
+        if (string.IsNullOrEmpty(audioFileName) || string.IsNullOrEmpty(_audioDirectory)) return;
+        try
+        {
+            var path = Path.Combine(_audioDirectory, audioFileName);
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch { }
     }
 }

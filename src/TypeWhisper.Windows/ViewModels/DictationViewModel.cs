@@ -4,6 +4,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SherpaOnnx;
+using TypeWhisper.Core;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Services;
@@ -659,6 +660,20 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 await _modelManager.LoadModelAsync(_settings.Current.SelectedModelId);
             }
 
+            // Save audio file
+            string? audioFileName = null;
+            try
+            {
+                audioFileName = $"{Guid.NewGuid():N}.wav";
+                var audioPath = Path.Combine(TypeWhisperEnvironment.AudioPath, audioFileName);
+                var wav = TypeWhisper.Core.Audio.WavEncoder.Encode(job.Samples);
+                await File.WriteAllBytesAsync(audioPath, wav, ct);
+            }
+            catch
+            {
+                audioFileName = null;
+            }
+
             // Save to history
             var engineUsed = job.ActiveModelIdAtCapture is not null && ModelManagerService.IsPluginModel(job.ActiveModelIdAtCapture)
                 ? job.ActiveModelIdAtCapture
@@ -675,7 +690,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 Language = detectedLanguage,
                 ProfileName = job.ActiveProfile?.Name,
                 EngineUsed = engineUsed,
-                ModelUsed = job.ActiveModelIdAtCapture
+                ModelUsed = job.ActiveModelIdAtCapture,
+                AudioFileName = audioFileName
             });
 
             _sound.PlaySuccessSound();
