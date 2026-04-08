@@ -30,7 +30,7 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     private readonly IErrorLogService _errorLog;
 
     [ObservableProperty] private UserControl? _currentSection;
-    [ObservableProperty] private string _currentSectionName = "Dashboard";
+    [ObservableProperty] private string _currentSectionName = "Home";
     [ObservableProperty] private string _updateStatusText = "";
     [ObservableProperty] private bool _isCheckingForUpdates;
     [ObservableProperty] private bool _isUpdateAvailable;
@@ -148,7 +148,7 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
     public void NavigateToDefault()
     {
-        NavigateSync("Dashboard");
+        NavigateSync("Home");
     }
 
     [RelayCommand]

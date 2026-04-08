@@ -42,181 +42,186 @@
 
             <!-- Sidebar -->
             <Border Grid.Column="0" Background="#18FFFFFF">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="0,8,0,0">
-                        <Button Content="{loc:Str Nav.Dashboard}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Dashboard">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Dashboard">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
 
-                        <Button Content="{loc:Str Nav.General}"
-                                Command="{Binding NavigateCommand}" CommandParameter="General">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="General">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <!-- Core -->
+                    <Button Content="{loc:Str Nav.Home}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Home">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Home">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Recording}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Recording">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Recording">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.General}"
+                            Command="{Binding NavigateCommand}" CommandParameter="General">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="General">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <!-- Separator -->
-                        <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
+                    <Button Content="{loc:Str Nav.Recording}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Recording">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Recording">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Models}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Models">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Models">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.Models}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Models">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Models">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Profiles}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Profiles">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Profiles">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <!-- Separator -->
+                    <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
 
-                        <Button Content="{loc:Str Nav.Dictionary}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Dictionary">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Dictionary">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.History}"
+                            Command="{Binding NavigateCommand}" CommandParameter="History">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="History">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Snippets}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Snippets">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Snippets">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.Dictionary}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Dictionary">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Dictionary">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Prompts}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Prompts">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Prompts">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.Snippets}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Snippets">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Snippets">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Plugins}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Plugins">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Plugins">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <Button Content="{loc:Str Nav.Profiles}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Profiles">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Profiles">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <!-- Separator -->
-                        <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
+                    <Button Content="{loc:Str Nav.Prompts}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Prompts">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Prompts">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.History}"
-                                Command="{Binding NavigateCommand}" CommandParameter="History">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="History">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
+                    <!-- Separator -->
+                    <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
 
-                        <!-- Separator -->
-                        <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
+                    <Button Content="{loc:Str Nav.Plugins}"
+                            Command="{Binding NavigateCommand}" CommandParameter="Plugins">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="Plugins">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button Content="{loc:Str Nav.Info}"
-                                Command="{Binding NavigateCommand}" CommandParameter="Info">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentSectionName}" Value="Info">
-                                            <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-                </Border>
+                    <!-- Separator -->
+                    <Border Height="1" Background="#15FFFFFF" Margin="16,12"/>
 
-                <!-- Sidebar/Content separator -->
-                <Border Grid.Column="0"
-                        HorizontalAlignment="Right"
-                        Width="1"
-                        Background="#15FFFFFF"/>
+                    <Button Content="{loc:Str Nav.About}"
+                            Command="{Binding NavigateCommand}" CommandParameter="About">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CurrentSectionName}" Value="About">
+                                        <Setter Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                <!-- Content Area -->
-                <ContentControl Grid.Column="1"
-                                Content="{Binding CurrentSection}"/>
-            </Grid>
+                </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Sidebar/Content separator -->
+            <Border Grid.Column="0"
+                    HorizontalAlignment="Right"
+                    Width="1"
+                    Background="#15FFFFFF"/>
+
+            <!-- Content Area -->
+            <ContentControl Grid.Column="1"
+                            Content="{Binding CurrentSection}"/>
         </Grid>
+    </Grid>
 </ui:FluentWindow>

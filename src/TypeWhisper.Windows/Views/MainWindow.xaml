@@ -30,49 +30,57 @@
         <Border x:Name="IslandBorder"
                 CornerRadius="22"
                 Background="#F0181818"
-                BorderBrush="{Binding CurrentHotkeyMode, Converter={StaticResource HotkeyModeBorder}}"
-                BorderThickness="1.5"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
                 HorizontalAlignment="Center"
-                Padding="0">
+                MinWidth="280"
+                Padding="14,10">
             <Border.Effect>
-                <DropShadowEffect Color="Black" BlurRadius="10" Opacity="0.4" ShadowDepth="0"/>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="0"/>
             </Border.Effect>
 
             <StackPanel>
                 <!-- Main compact row: LeftWidget | StatusText | RightWidget -->
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Margin="18,7">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
                     <!-- Left widget -->
                     <overlay:OverlayWidgetHost
+                        Grid.Column="0"
                         WidgetType="{Binding LeftWidget}"
                         VerticalAlignment="Center"
-                        Margin="0,0,12,0"/>
+                        Margin="0,0,10,0"/>
 
                     <!-- Status text -->
-                    <TextBlock Text="{Binding StatusText}"
-                               Foreground="White" FontSize="11"
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding StatusText}"
+                               Foreground="#CCFFFFFF" FontSize="13"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
 
                     <!-- Right widget -->
                     <overlay:OverlayWidgetHost
+                        Grid.Column="2"
                         WidgetType="{Binding RightWidget}"
                         VerticalAlignment="Center"
-                        Margin="12,0,0,0"/>
-                </StackPanel>
+                        Margin="10,0,0,0"/>
+                </Grid>
 
                 <!-- Partial text area (expands pill) -->
                 <Border MaxHeight="120"
-                        Margin="16,0,16,8"
+                        Margin="0,8,0,0"
                         Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <TextBlock Text="{Binding PartialText}"
                                    TextWrapping="Wrap"
-                                   Foreground="#AAAAAA" FontSize="11"/>
+                                   Foreground="#99FFFFFF" FontSize="12"/>
                     </ScrollViewer>
                 </Border>
 
