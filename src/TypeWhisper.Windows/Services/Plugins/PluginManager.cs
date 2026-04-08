@@ -72,6 +72,16 @@ public sealed class PluginManager : IDisposable
         get { lock (_lock) return [.. _actionPlugins]; }
     }
 
+    /// <summary>Returns all active plugin instances of the given type.</summary>
+    public IReadOnlyList<T> GetPlugins<T>() where T : class
+    {
+        lock (_lock)
+            return _allPlugins
+                .Where(p => _activatedPlugins.Contains(p.Manifest.Id) && p.Instance is T)
+                .Select(p => (T)p.Instance!)
+                .ToList();
+    }
+
     /// <summary>Raised when plugin capabilities change (plugins enabled/disabled, capabilities updated).</summary>
     public event EventHandler? PluginStateChanged;
 
