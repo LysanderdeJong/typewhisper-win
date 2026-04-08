@@ -37,6 +37,8 @@ public sealed class UpdateService
         }
     }
 
+    public ReleaseChannel Channel { get; private set; } = ReleaseChannel.Stable;
+
     public event EventHandler? UpdateAvailable;
 
     public UpdateService(TrayIconService trayIcon)
@@ -44,20 +46,32 @@ public sealed class UpdateService
         _trayIcon = trayIcon;
     }
 
-    public void Initialize()
+    public void Initialize(ReleaseChannel channel = ReleaseChannel.Stable)
     {
+        Channel = channel;
         try
         {
-            var channel = RuntimeInformation.OSArchitecture == Architecture.Arm64
+            var arch = RuntimeInformation.OSArchitecture == Architecture.Arm64
                 ? "win-arm64" : "win-x64";
+            var channelSuffix = channel switch
+            {
+                ReleaseChannel.ReleaseCandidate => "-rc",
+                ReleaseChannel.Daily => "-daily",
+                _ => ""
+            };
             _updateManager = new UpdateManager(
-                new GithubSource(TypeWhisperEnvironment.GithubRepoUrl, null, false),
-                new UpdateOptions { ExplicitChannel = channel });
+                new GithubSource(TypeWhisperEnvironment.GithubRepoUrl, null, channel != ReleaseChannel.Stable),
+                new UpdateOptions { ExplicitChannel = $"{arch}{channelSuffix}" });
         }
         catch
         {
             // Update check is best-effort
         }
+    }
+
+    public void SwitchChannel(ReleaseChannel channel)
+    {
+        Initialize(channel);
     }
 
     public async Task CheckForUpdatesAsync()
@@ -96,4 +110,11 @@ public sealed class UpdateService
                 Loc.Instance["Update.BalloonFailedMessage"]);
         }
     }
+}
+
+public enum ReleaseChannel
+{
+    Stable,
+    ReleaseCandidate,
+    Daily
 }
