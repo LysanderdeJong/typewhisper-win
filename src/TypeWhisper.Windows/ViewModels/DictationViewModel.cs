@@ -336,7 +336,11 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             _mediaPause.PauseMedia();
 
         _audio.StartRecording();
-        _eventBus.Publish(new RecordingStartedEvent());
+        _eventBus.Publish(new RecordingStartedEvent
+        {
+            AppName = _activeWindow.GetActiveWindowTitle(),
+            AppProcessName = _activeWindow.GetActiveWindowProcessName()
+        });
 
         State = DictationState.Recording;
         CurrentHotkeyMode = _hotkey.CurrentMode;
@@ -496,11 +500,14 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
             _eventBus.Publish(new TranscriptionCompletedEvent
             {
+                RawText = rawText,
                 Text = rawText,
                 DetectedLanguage = detectedLanguage,
                 DurationSeconds = audioDuration,
                 ModelId = job.ActiveModelIdAtCapture,
-                ProfileName = job.ActiveProfile?.Name
+                ProfileName = job.ActiveProfile?.Name,
+                AppName = job.CapturedWindowTitle,
+                AppProcessName = job.CapturedProcessName
             });
 
             // Build pipeline options
@@ -700,7 +707,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             _eventBus.Publish(new TranscriptionFailedEvent
             {
                 ErrorMessage = ex.Message,
-                ModelId = job.ActiveModelIdAtCapture
+                ModelId = job.ActiveModelIdAtCapture,
+                AppName = job.CapturedWindowTitle
             });
             _sound.PlayErrorSound();
             await Application.Current.Dispatcher.InvokeAsync(() =>

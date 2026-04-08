@@ -10,7 +10,14 @@ public abstract record PluginEvent
 }
 
 /// <summary>Raised when audio recording starts.</summary>
-public sealed record RecordingStartedEvent : PluginEvent;
+public sealed record RecordingStartedEvent : PluginEvent
+{
+    /// <summary>Name of the foreground application.</summary>
+    public string? AppName { get; init; }
+
+    /// <summary>Process name of the foreground application.</summary>
+    public string? AppProcessName { get; init; }
+}
 
 /// <summary>Raised when audio recording stops.</summary>
 public sealed record RecordingStoppedEvent : PluginEvent
@@ -22,7 +29,10 @@ public sealed record RecordingStoppedEvent : PluginEvent
 /// <summary>Raised after a successful transcription.</summary>
 public sealed record TranscriptionCompletedEvent : PluginEvent
 {
-    /// <summary>The transcribed text.</summary>
+    /// <summary>The raw transcribed text (before post-processing).</summary>
+    public string? RawText { get; init; }
+
+    /// <summary>The final text (after post-processing).</summary>
     public required string Text { get; init; }
 
     /// <summary>Detected language (ISO code), or null.</summary>
@@ -31,11 +41,23 @@ public sealed record TranscriptionCompletedEvent : PluginEvent
     /// <summary>Audio duration in seconds.</summary>
     public double DurationSeconds { get; init; }
 
+    /// <summary>Engine used for transcription.</summary>
+    public string? EngineUsed { get; init; }
+
     /// <summary>Model ID used for transcription, or null.</summary>
     public string? ModelId { get; init; }
 
     /// <summary>Name of the dictation profile used, or null.</summary>
     public string? ProfileName { get; init; }
+
+    /// <summary>Name of the foreground application.</summary>
+    public string? AppName { get; init; }
+
+    /// <summary>Process name of the foreground application.</summary>
+    public string? AppProcessName { get; init; }
+
+    /// <summary>URL of the active browser tab, or null.</summary>
+    public string? Url { get; init; }
 }
 
 /// <summary>Raised when transcription fails.</summary>
@@ -46,6 +68,9 @@ public sealed record TranscriptionFailedEvent : PluginEvent
 
     /// <summary>Model ID that was being used, or null.</summary>
     public string? ModelId { get; init; }
+
+    /// <summary>Name of the foreground application.</summary>
+    public string? AppName { get; init; }
 }
 
 /// <summary>Raised after text is inserted into the target application.</summary>
@@ -66,4 +91,23 @@ public sealed record PartialTranscriptionUpdateEvent : PluginEvent
 
     /// <summary>Whether recording is still in progress.</summary>
     public bool IsRecording { get; init; } = true;
+
+    /// <summary>Elapsed seconds since recording started.</summary>
+    public double ElapsedSeconds { get; init; }
+}
+
+/// <summary>Raised when an action plugin completes execution.</summary>
+public sealed record ActionCompletedEvent : PluginEvent
+{
+    /// <summary>ID of the action that completed.</summary>
+    public required string ActionId { get; init; }
+
+    /// <summary>Whether the action succeeded.</summary>
+    public bool Success { get; init; }
+
+    /// <summary>Result message from the action.</summary>
+    public string? Message { get; init; }
+
+    /// <summary>Name of the foreground application.</summary>
+    public string? AppName { get; init; }
 }
