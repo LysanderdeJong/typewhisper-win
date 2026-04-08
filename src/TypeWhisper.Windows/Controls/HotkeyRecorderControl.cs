@@ -83,14 +83,8 @@ public sealed class HotkeyRecorderControl : Control
 
         e.Handled = true;
 
-        if (e.Key == Key.Escape)
-        {
-            CancelRecording();
-            return;
-        }
-
-        // Delete/Backspace clears the hotkey
-        if (e.Key is Key.Delete or Key.Back)
+        // Escape, Delete, Backspace all clear the hotkey
+        if (e.Key is Key.Escape or Key.Delete or Key.Back)
         {
             Hotkey = "";
             IsRecording = false;

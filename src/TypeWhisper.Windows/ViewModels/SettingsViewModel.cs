@@ -32,6 +32,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _transcriptionTask = "transcribe";
     [ObservableProperty] private int? _selectedMicrophoneDevice;
     [ObservableProperty] private float _previewLevel;
+    [ObservableProperty] private bool _spokenFeedbackEnabled;
+    [ObservableProperty] private bool _memoryEnabled;
+    [ObservableProperty] private int _autoUnloadMinutes;
     [ObservableProperty] private bool _autostartEnabled;
     [ObservableProperty] private string? _translationTargetLanguage;
     [ObservableProperty] private bool _apiServerEnabled;
@@ -156,6 +159,9 @@ public partial class SettingsViewModel : ObservableObject
             OverlayLeftWidget = OverlayLeftWidget,
             OverlayRightWidget = OverlayRightWidget,
             PromptPaletteHotkey = PromptPaletteHotkey,
+            SpokenFeedbackEnabled = SpokenFeedbackEnabled,
+            MemoryEnabled = MemoryEnabled,
+            ModelAutoUnloadSeconds = AutoUnloadMinutes * 60,
             UiLanguage = UiLanguage
         };
         _settings.Save(updated);
@@ -188,6 +194,9 @@ public partial class SettingsViewModel : ObservableObject
         OverlayLeftWidget = s.OverlayLeftWidget;
         OverlayRightWidget = s.OverlayRightWidget;
         PromptPaletteHotkey = s.PromptPaletteHotkey;
+        SpokenFeedbackEnabled = s.SpokenFeedbackEnabled;
+        MemoryEnabled = s.MemoryEnabled;
+        AutoUnloadMinutes = s.ModelAutoUnloadSeconds / 60;
         UiLanguage = s.UiLanguage;
     }
 }

@@ -17,7 +17,7 @@
                 </Style.Triggers>
             </Style>
         </Border.Style>
-        <TextBlock Text="{Binding CurrentHotkeyMode, Converter={StaticResource HotkeyModeLabel}}"
+        <TextBlock Text="{Binding CurrentHotkeyMode, Converter={StaticResource HotkeyModeLabel}, FallbackValue='Hybrid', TargetNullValue='Hybrid'}"
                    FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
