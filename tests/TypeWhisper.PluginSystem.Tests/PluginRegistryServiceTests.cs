@@ -142,8 +142,11 @@ public class PluginRegistryServiceTests : IDisposable
         var manager = CreateManager();
         var service = new PluginRegistryService(manager, _loader, _settings.Object);
 
-        var registryPlugin = new RegistryPlugin(
-            "com.unknown", "Unknown", "1.0.0", null, "A", "D", null, 100, "u", null, false, null);
+        var registryPlugin = new RegistryPlugin
+        {
+            Id = "com.unknown", Name = "Unknown", Version = "1.0.0",
+            Author = "A", Description = "D", Size = 100, DownloadUrl = "u"
+        };
 
         Assert.Equal(PluginInstallState.NotInstalled, service.GetInstallState(registryPlugin));
     }
