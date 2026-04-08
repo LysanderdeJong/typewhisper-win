@@ -1,0 +1,9 @@
+{
+  "id": "com.typewhisper.openrouter",
+  "name": "OpenRouter",
+  "version": "1.0.0",
+  "author": "TypeWhisper",
+  "description": "OpenRouter multi-model LLM gateway",
+  "assemblyName": "TypeWhisper.Plugin.OpenRouter.dll",
+  "pluginClass": "TypeWhisper.Plugin.OpenRouter.OpenRouterPlugin"
+}

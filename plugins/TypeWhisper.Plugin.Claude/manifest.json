@@ -1,0 +1,9 @@
+{
+  "id": "com.typewhisper.claude",
+  "name": "Claude",
+  "version": "1.0.0",
+  "author": "TypeWhisper",
+  "description": "Anthropic Claude LLM for prompt processing",
+  "assemblyName": "TypeWhisper.Plugin.Claude.dll",
+  "pluginClass": "TypeWhisper.Plugin.Claude.ClaudePlugin"
+}
