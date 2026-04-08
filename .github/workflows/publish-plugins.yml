@@ -49,6 +49,20 @@ jobs:
             'live-transcript'    = 'TypeWhisper.Plugin.LiveTranscript'
             'granite-speech'     = 'TypeWhisper.Plugin.GraniteSpeech'
             'gemma-local'        = 'TypeWhisper.Plugin.GemmaLocal'
+            'claude'             = 'TypeWhisper.Plugin.Claude'
+            'openrouter'         = 'TypeWhisper.Plugin.OpenRouter'
+            'cerebras'           = 'TypeWhisper.Plugin.Cerebras'
+            'cohere'             = 'TypeWhisper.Plugin.Cohere'
+            'fireworks'          = 'TypeWhisper.Plugin.Fireworks'
+            'gladia'             = 'TypeWhisper.Plugin.Gladia'
+            'speechmatics'       = 'TypeWhisper.Plugin.Speechmatics'
+            'soniox'             = 'TypeWhisper.Plugin.Soniox'
+            'cloudflare-asr'     = 'TypeWhisper.Plugin.CloudflareAsr'
+            'google-cloud-stt'   = 'TypeWhisper.Plugin.GoogleCloudStt'
+            'qwen3-stt'          = 'TypeWhisper.Plugin.Qwen3Stt'
+            'voxtral'            = 'TypeWhisper.Plugin.Voxtral'
+            'file-memory'        = 'TypeWhisper.Plugin.FileMemory'
+            'openai-vector-memory' = 'TypeWhisper.Plugin.OpenAiVectorMemory'
           }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
