@@ -79,7 +79,8 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnSelectedMicrophoneDeviceChanged(int? value)
     {
         if (_isLoading) return;
-        StartMicrophonePreview();
+        _audio.SetMicrophoneDevice(value);
+        StopMicrophonePreview();
     }
 
     public SettingsViewModel(ISettingsService settings, AudioRecordingService audio)
@@ -91,6 +92,7 @@ public partial class SettingsViewModel : ObservableObject
         LoadFromSettings(_settings.Current);
         AutostartEnabled = StartupService.IsEnabled;
         RefreshMicrophones();
+        _audio.SetMicrophoneDevice(SelectedMicrophoneDevice);
         _isLoading = false;
 
         PropertyChanged += (_, _) =>
@@ -114,6 +116,7 @@ public partial class SettingsViewModel : ObservableObject
     {
         _audio.PreviewLevelChanged -= OnPreviewLevelChanged;
         if (!_audio.HasDevice) return;
+        _audio.SetMicrophoneDevice(SelectedMicrophoneDevice);
         _audio.StartPreview(SelectedMicrophoneDevice);
         _audio.PreviewLevelChanged += OnPreviewLevelChanged;
     }

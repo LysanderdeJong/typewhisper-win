@@ -17,22 +17,46 @@
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="700" Margin="24">
+        <StackPanel MaxWidth="860" Margin="28">
 
-            <!-- Header: Title + Period Toggle -->
-            <DockPanel Margin="0,0,0,20">
-                <TextBlock Text="{loc:Str Dashboard.Title}" Style="{StaticResource SectionHeaderStyle}"
-                           DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0"/>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right"
-                            HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <RadioButton Content="{loc:Str Dashboard.Week}" Style="{StaticResource TabRadioStyle}"
-                                 IsChecked="True" Checked="WeekChecked"/>
-                    <RadioButton Content="{loc:Str Dashboard.Month}" Style="{StaticResource TabRadioStyle}"
-                                 Checked="MonthChecked"/>
-                    <RadioButton Content="{loc:Str Dashboard.AllTime}" Style="{StaticResource TabRadioStyle}"
-                                 Checked="AllTimeChecked"/>
-                </StackPanel>
-            </DockPanel>
+            <Border Style="{StaticResource SettingsHeroCardStyle}" Margin="0,0,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Overview" Style="{StaticResource PageEyebrowStyle}"/>
+                        <TextBlock Text="{loc:Str Dashboard.Title}" Style="{StaticResource PageTitleStyle}" Margin="0,8,0,0"/>
+                        <TextBlock Text="A health snapshot of your setup, recent activity, and the shortest path into the most common actions."
+                                   Style="{StaticResource PageSubtitleStyle}" Margin="0,8,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <ui:Button Content="History"
+                                       Command="{Binding OpenHistoryCommand}"
+                                       Appearance="Secondary"
+                                       Margin="0,0,8,0"/>
+                            <ui:Button Content="Integrations"
+                                       Command="{Binding OpenIntegrationsCommand}"
+                                       Appearance="Secondary"
+                                       Margin="0,0,8,0"/>
+                            <ui:Button Content="Transcribe file"
+                                       Command="{Binding OpenFileImporterCommand}"
+                                       Appearance="Primary"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top">
+                        <RadioButton Content="{loc:Str Dashboard.Week}" Style="{StaticResource TabRadioStyle}"
+                                     IsChecked="True" Checked="WeekChecked"/>
+                        <RadioButton Content="{loc:Str Dashboard.Month}" Style="{StaticResource TabRadioStyle}"
+                                     Checked="MonthChecked"/>
+                        <RadioButton Content="{loc:Str Dashboard.AllTime}" Style="{StaticResource TabRadioStyle}"
+                                     Checked="AllTimeChecked"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
             <!-- 4 Stat Cards -->
             <UniformGrid Rows="1" Columns="4" Margin="0,0,0,24">
@@ -230,14 +254,21 @@
             </ItemsControl>
 
             <!-- Setup Wizard shortcut -->
-            <Border Background="{StaticResource InputBackgroundBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="16" Margin="0,24,0,0">
+            <Border Style="{StaticResource SettingsCardStyle}" Margin="0,24,0,0">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="{loc:Str Dashboard.RunWizard}"
-                            Command="{Binding OpenSetupWizardCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Padding="12,6" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Button Content="{loc:Str Dashboard.RunWizard}"
+                                Command="{Binding OpenSetupWizardCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Padding="12,6"
+                                Margin="0,0,8,0"/>
+                        <Button Content="Open setup route"
+                                Command="{Binding OpenSetupCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Padding="12,6"/>
+                    </StackPanel>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{loc:Str Dashboard.WizardTitle}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextBrush}"/>

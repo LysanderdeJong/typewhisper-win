@@ -9,18 +9,31 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <ResourceDictionary Source="/Styles/UnifiedSettingsStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Global font -->
             <Style TargetType="Window">
                 <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="FontSize" Value="12.5"/>
                 <Setter Property="Icon" Value="/Resources/Icons/app.ico"/>
             </Style>
 
+            <Style TargetType="TextBox" BasedOn="{StaticResource SettingsCompactTextBoxStyle}"/>
+            <Style TargetType="ComboBox" BasedOn="{StaticResource SettingsCompactComboBoxStyle}"/>
+            <Style TargetType="PasswordBox" BasedOn="{StaticResource InputPasswordBoxStyle}">
+                <Setter Property="Padding" Value="8,3"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="MinHeight" Value="32"/>
+            </Style>
+            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource InputComboBoxItemStyle}">
+                <Setter Property="Padding" Value="9,6"/>
+                <Setter Property="FontSize" Value="12"/>
+            </Style>
+
             <!-- Accent color -->
-            <SolidColorBrush x:Key="AccentBrush" Color="#5865F2"/>
-            <SolidColorBrush x:Key="AccentHoverBrush" Color="#4752C4"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#198EE8"/>
 
             <!-- Primary button style -->
             <Style x:Key="PrimaryButton" TargetType="Button">

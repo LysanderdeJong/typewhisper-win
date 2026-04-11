@@ -106,7 +106,7 @@ public partial class App : Application
         _trayIcon = _serviceProvider.GetRequiredService<TrayIconService>();
         _trayIcon.Initialize();
         _trayIcon.ShowSettingsRequested += (_, _) => ShowSettingsWindow();
-        _trayIcon.ShowFileTranscriptionRequested += (_, _) => ShowFileTranscriptionWindow();
+        _trayIcon.ShowFileTranscriptionRequested += (_, _) => ShowSettingsWindow(SettingsRoute.FileTranscription, presentFileImporter: true);
         _trayIcon.ExitRequested += (_, _) => Shutdown();
 
         // Manual update check from tray menu
@@ -181,10 +181,17 @@ public partial class App : Application
         _ = updateService.CheckForUpdatesAsync();
     }
 
-    private void ShowSettingsWindow()
+    private void ShowSettingsWindow(SettingsRoute? route = null, bool presentFileImporter = false)
     {
         if (_settingsWindow is { IsLoaded: true })
         {
+            if (_settingsWindow.DataContext is SettingsWindowViewModel existingViewModel)
+            {
+                if (presentFileImporter)
+                    existingViewModel.OpenFileImporterCommand.Execute(null);
+                else if (route.HasValue)
+                    existingViewModel.Open(route.Value);
+            }
             _settingsWindow.Activate();
             return;
         }
@@ -192,6 +199,14 @@ public partial class App : Application
         _settingsWindow = _serviceProvider!.GetRequiredService<SettingsWindow>();
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
+
+        if (_settingsWindow.DataContext is SettingsWindowViewModel viewModel)
+        {
+            if (presentFileImporter)
+                viewModel.OpenFileImporterCommand.Execute(null);
+            else if (route.HasValue)
+                viewModel.Open(route.Value);
+        }
     }
 
     private void ShowFileTranscriptionWindow()

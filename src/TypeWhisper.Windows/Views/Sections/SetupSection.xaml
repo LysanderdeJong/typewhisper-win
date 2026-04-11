@@ -1,0 +1,83 @@
+<UserControl x:Class="TypeWhisper.Windows.Views.Sections.SetupSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/UnifiedSettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28" MaxWidth="860">
+            <Border Style="{StaticResource SettingsHeroCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Setup flow"
+                               Style="{StaticResource PageEyebrowStyle}"/>
+                    <TextBlock Text="A clearer handoff for first run and recovery"
+                               Style="{StaticResource PageTitleStyle}"
+                               Margin="0,8,0,0"/>
+                    <TextBlock Text="The mac-style setup route lives in the Windows shell as a guided launch surface. It keeps the dedicated onboarding window intact, but gives users one place to resume permissions, engines, hotkeys, prompts, and licensing."
+                               Style="{StaticResource PageSubtitleStyle}"
+                               Margin="0,10,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                        <ui:Button Content="Open guided setup"
+                                   Command="{Binding OpenSetupWizardCommand}"
+                                   Appearance="Primary"
+                                   Margin="0,0,8,0"/>
+                        <ui:Button Content="Go to shortcuts"
+                                   Command="{Binding OpenShortcutsCommand}"
+                                   Appearance="Secondary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <UniformGrid Columns="2">
+                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,12,12">
+                    <StackPanel>
+                        <TextBlock Text="1. Welcome" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Get the app shell, plugin recommendations, and first-run orientation aligned."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="2. Permissions" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Confirm microphone access, accessibility hooks, and any external helper requirements."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,12,12">
+                    <StackPanel>
+                        <TextBlock Text="3. Engine" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Pick a transcription engine, verify model readiness, and land on sensible defaults."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="4. Shortcut" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Record the main hotkeys before users ever need to hunt through multiple sections."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="5. Prompts" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Route directly into prompt actions and integrations after the core capture path is ready."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="6. Trial / license" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,0,0,8"/>
+                        <TextBlock Text="Keep licensing and supporter status visible without pushing users into a separate mental model."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
