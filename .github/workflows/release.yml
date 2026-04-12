@@ -25,11 +25,11 @@ jobs:
           $v = "${{ github.ref_name }}" -replace '^v',''
           echo "VERSION=$v" >> $env:GITHUB_OUTPUT
 
-      - run: dotnet restore
+      - run: dotnet restore TypeWhisper.slnx
 
-      - run: dotnet build -c Release -p:Version=${{ steps.ver.outputs.VERSION }} --no-restore
+      - run: dotnet build TypeWhisper.slnx -c Release -p:Version=${{ steps.ver.outputs.VERSION }} --no-restore
 
-      - run: dotnet test -c Release --no-build
+      - run: dotnet test TypeWhisper.slnx -c Release --no-build
         if: matrix.rid == 'win-x64'
 
       - run: dotnet publish src/TypeWhisper.Windows -c Release -r ${{ matrix.rid }} -p:Version=${{ steps.ver.outputs.VERSION }} -o publish
@@ -63,6 +63,7 @@ jobs:
 
   trigger-website:
     needs: release
+    if: github.repository == 'TypeWhisper/typewhisper-win'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger website rebuild

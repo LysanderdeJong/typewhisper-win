@@ -150,9 +150,14 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          gh release create $tag $env:ZIP_NAME `
-            --title "$env:PROJECT_NAME v$env:PLUGIN_VERSION" `
-            --notes ""
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $env:ZIP_NAME --clobber
+          } else {
+            gh release create $tag $env:ZIP_NAME `
+              --title "$env:PROJECT_NAME v$env:PLUGIN_VERSION" `
+              --notes ""
+          }
 
       - name: Update plugins.json on registry release
         env:

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using TypeWhisper.Core.Interfaces;
@@ -167,7 +168,7 @@ public sealed class HistoryService : IHistoryService
 
         foreach (var r in records)
         {
-            sb.AppendLine($"[{r.Timestamp:dd.MM.yyyy HH:mm}] {r.AppProcessName ?? "–"} ({r.DurationSeconds:F1}s)");
+            sb.AppendLine($"[{r.Timestamp:dd.MM.yyyy HH:mm}] {r.AppProcessName ?? "–"} ({r.DurationSeconds.ToString("F1", CultureInfo.InvariantCulture)}s)");
             sb.AppendLine(r.FinalText);
             sb.AppendLine();
         }
@@ -184,7 +185,7 @@ public sealed class HistoryService : IHistoryService
         foreach (var r in records)
         {
             var text = "\"" + r.FinalText.Replace("\"", "\"\"") + "\"";
-            sb.AppendLine($"{r.Timestamp:yyyy-MM-dd HH:mm:ss},{r.AppProcessName ?? ""},{text},{r.DurationSeconds:F1},{r.WordCount},{r.Language ?? ""}");
+            sb.AppendLine($"{r.Timestamp:yyyy-MM-dd HH:mm:ss},{r.AppProcessName ?? ""},{text},{r.DurationSeconds.ToString("F1", CultureInfo.InvariantCulture)},{r.WordCount},{r.Language ?? ""}");
         }
 
         return sb.ToString();
@@ -208,7 +209,7 @@ public sealed class HistoryService : IHistoryService
             sb.AppendLine();
             if (!string.IsNullOrEmpty(r.AppProcessName))
                 sb.AppendLine($"- **{l.App}:** {r.AppProcessName}");
-            sb.AppendLine($"- **{l.Duration}:** {r.DurationSeconds:F1}s");
+            sb.AppendLine($"- **{l.Duration}:** {r.DurationSeconds.ToString("F1", CultureInfo.InvariantCulture)}s");
             if (!string.IsNullOrEmpty(r.Language))
                 sb.AppendLine($"- **{l.Language}:** {r.Language}");
             sb.AppendLine();
