@@ -19,6 +19,7 @@ public partial class PluginsSection : UserControl
         var vm = (DataContext as SettingsWindowViewModel)?.Plugins;
         if (vm is not null)
         {
+            vm.IsMarketplaceSelected = false;
             EmptyState.Visibility = vm.Plugins.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
             // Setup grouping by Category
@@ -35,6 +36,9 @@ public partial class PluginsSection : UserControl
 
     private void OnInstalledTabClick(object sender, RoutedEventArgs e)
     {
+        if (DataContext is SettingsWindowViewModel vm)
+            vm.Plugins.IsMarketplaceSelected = false;
+
         TabInstalled.Style = (Style)Resources["ActiveTabButtonStyle"];
         TabMarketplace.Style = (Style)Resources["TabButtonStyle"];
         InstalledPanel.Visibility = Visibility.Visible;
@@ -43,6 +47,9 @@ public partial class PluginsSection : UserControl
 
     private void OnMarketplaceTabClick(object sender, RoutedEventArgs e)
     {
+        if (DataContext is SettingsWindowViewModel vm)
+            vm.Plugins.IsMarketplaceSelected = true;
+
         TabInstalled.Style = (Style)Resources["TabButtonStyle"];
         TabMarketplace.Style = (Style)Resources["ActiveTabButtonStyle"];
         InstalledPanel.Visibility = Visibility.Collapsed;

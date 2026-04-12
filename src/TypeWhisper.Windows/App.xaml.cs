@@ -82,6 +82,15 @@ public partial class App : Application
         var pluginManager = _serviceProvider.GetRequiredService<PluginManager>();
         pluginManager.InitializeAsync().GetAwaiter().GetResult();
 
+        // Validate commercial/supporter licensing state in the background.
+        var licenseService = _serviceProvider.GetRequiredService<LicenseService>();
+        var supporterDiscord = _serviceProvider.GetRequiredService<SupporterDiscordService>();
+        _ = Task.Run(async () =>
+        {
+            await licenseService.ValidateAllIfNeededAsync();
+            await supporterDiscord.RefreshStatusIfNeededAsync(licenseService);
+        });
+
         // Plugin registry: first-run auto-install + update check (non-blocking)
         var pluginRegistry = _serviceProvider.GetRequiredService<PluginRegistryService>();
         _ = pluginRegistry.FirstRunAutoInstallAsync()
@@ -279,6 +288,7 @@ public partial class App : Application
 
         // License
         services.AddSingleton<LicenseService>();
+        services.AddSingleton<SupporterDiscordService>();
 
         // ViewModels
         services.AddSingleton<AudioRecorderViewModel>();

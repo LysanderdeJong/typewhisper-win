@@ -44,6 +44,87 @@
             <Style x:Key="DangerLinkButtonStyle" TargetType="Button" BasedOn="{StaticResource LinkButtonStyle}">
                 <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
             </Style>
+
+            <Style x:Key="ProfilePanelTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource SettingsGroupTitleStyle}">
+                <Setter Property="FontSize" Value="14.5"/>
+                <Setter Property="Margin" Value="0,0,0,4"/>
+            </Style>
+
+            <Style x:Key="ProfileFieldLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource SettingsRowLabelStyle}">
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{StaticResource HintBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+            </Style>
+
+            <Style x:Key="ProfileRowLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource SettingsRowLabelStyle}">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="#D6DEE9"/>
+            </Style>
+
+            <Style x:Key="ProfileAlignedComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource SettingsAlignedComboBoxStyle}">
+                <Setter Property="Width" Value="320"/>
+                <Setter Property="Height" Value="40"/>
+                <Setter Property="MinHeight" Value="40"/>
+                <Setter Property="MaxHeight" Value="40"/>
+                <Setter Property="Padding" Value="6,0,6,0"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+
+            <Style x:Key="ProfileListBoxItemStyle" TargetType="ListBoxItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource LabelBrush}"/>
+                <Setter Property="Padding" Value="14,10"/>
+                <Setter Property="Margin" Value="0,0,12,6"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="RowHost"
+                                    Background="Transparent"
+                                    CornerRadius="10"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border x:Name="SelectionBar"
+                                            Grid.Column="0"
+                                            Background="{StaticResource AccentBrush}"
+                                            CornerRadius="2"
+                                            Margin="0,3,0,3"
+                                            Opacity="0"/>
+
+                                    <ContentPresenter Grid.Column="2"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="RowHost" Property="Background" Value="#162231"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="RowHost" Property="Background" Value="#203347"/>
+                                    <Setter TargetName="SelectionBar" Property="Opacity" Value="1"/>
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ProfileListBoxStyle" TargetType="ListBox" BasedOn="{StaticResource MasterListBoxStyle}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="ItemContainerStyle" Value="{StaticResource ProfileListBoxItemStyle}"/>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -54,59 +135,55 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Style="{StaticResource SettingsGroupPanelStyle}" Margin="0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Border Style="{StaticResource SettingsRowBorderStyle}">
-                    <StackPanel>
-                        <TextBlock Text="{loc:Str Profiles.Title}" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding Profiles.ProfileSummary}" Style="{StaticResource PageSubtitleStyle}" Margin="0"/>
-                    </StackPanel>
-                </Border>
+            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock Text="{loc:Str Profiles.Title}" Style="{StaticResource ProfilePanelTitleStyle}"/>
+                <TextBlock Text="{Binding Profiles.ProfileSummary}" Style="{StaticResource PageSubtitleStyle}" Margin="0"/>
+            </StackPanel>
 
-                <ListBox Grid.Row="1"
-                         Margin="10,8,10,8"
-                         ItemsSource="{Binding Profiles.Profiles}"
-                         SelectedItem="{Binding Profiles.SelectedProfile}"
-                         Style="{StaticResource MasterListBoxStyle}"
-                         Background="Transparent"
-                         BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding Converter={StaticResource ProfileSubtitleConverter}}" FontSize="11" Foreground="{StaticResource HintBrush}" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                                <ui:ToggleSwitch Grid.Column="1"
-                                                 IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                                 VerticalAlignment="Center"
-                                                 Checked="ProfileToggle_Changed"
-                                                 Unchecked="ProfileToggle_Changed"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+            <ListBox Grid.Row="1"
+                     Margin="0,6,0,0"
+                     ItemsSource="{Binding Profiles.Profiles}"
+                     SelectedItem="{Binding Profiles.SelectedProfile}"
+                     Style="{StaticResource ProfileListBoxStyle}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Converter={StaticResource ProfileSubtitleConverter}}" FontSize="11" Foreground="{StaticResource HintBrush}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                             VerticalAlignment="Center"
+                                             Checked="ProfileToggle_Changed"
+                                             Unchecked="ProfileToggle_Changed"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
-                <Border Grid.Row="2" Style="{StaticResource SettingsStickyFooterStyle}">
-                    <Button Content="{loc:Str Profiles.NewProfile}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Command="{Binding Profiles.AddProfileCommand}"
-                            Padding="12,8"
-                            HorizontalAlignment="Stretch"/>
-                </Border>
-            </Grid>
-        </Border>
+            <Button Grid.Row="2"
+                    Content="{loc:Str Profiles.NewProfile}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Command="{Binding Profiles.AddProfileCommand}"
+                    Padding="12,8"
+                    HorizontalAlignment="Stretch"
+                    Margin="0,12,0,0"/>
+        </Grid>
 
         <Border Grid.Column="2"
                 VerticalAlignment="Center"
@@ -141,38 +218,18 @@
             </Grid.Style>
 
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Style="{StaticResource SettingsSummaryBarStyle}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,16,0">
-                        <TextBlock Text="{Binding Profiles.EditName}" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding Profiles.SelectedProfileSummary}" Style="{StaticResource PageSubtitleStyle}" Margin="0"/>
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1"
-                                     IsChecked="{Binding Profiles.EditIsEnabled}"
-                                     OnContent="{loc:Str Profiles.EnabledLabel}"
-                                     OffContent="{loc:Str Profiles.EnabledLabel}"
-                                     VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
-
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel MaxWidth="860">
-                    <TextBlock Text="{loc:Str Profiles.MatchSection}" Style="{StaticResource SettingsGroupTitleStyle}"/>
+            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel MaxWidth="920" Margin="0,0,24,0">
                     <Border Style="{StaticResource SettingsSectionFormStyle}">
                         <StackPanel Margin="18,16">
-                            <TextBlock Text="{loc:Str Profiles.Name}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{loc:Str Profiles.Name}" Style="{StaticResource ProfileFieldLabelStyle}"/>
                             <TextBox Text="{Binding Profiles.EditName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsCompactTextBoxStyle}" Margin="0,0,0,14"/>
 
-                            <TextBlock Text="{loc:Str Profiles.Apps}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{loc:Str Profiles.Apps}" Style="{StaticResource ProfileFieldLabelStyle}"/>
                             <ItemsControl ItemsSource="{Binding Profiles.ProcessNameChips}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -197,28 +254,9 @@
                                      Text="{Binding Profiles.ProcessNameInput, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource SettingsCompactTextBoxStyle}"
                                      KeyDown="ProcessNameInputBox_KeyDown"/>
-                            <TextBlock Text="{loc:Str Profiles.ProcessNameHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0"/>
+                            <TextBlock Text="{loc:Str Profiles.ProcessNameHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,14"/>
 
-                            <ItemsControl ItemsSource="{Binding Profiles.RunningApps}" Margin="0,8,0,14">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{Binding}"
-                                                Style="{StaticResource SecondaryButtonStyle}"
-                                                Command="{Binding DataContext.Profiles.AddRunningAppCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                Padding="10,4"
-                                                FontSize="11.5"
-                                                Margin="0,0,6,6"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <TextBlock Text="{loc:Str Profiles.UrlPatterns}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="{loc:Str Profiles.UrlPatterns}" Style="{StaticResource ProfileFieldLabelStyle}"/>
                             <ItemsControl ItemsSource="{Binding Profiles.UrlPatternChips}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -243,75 +281,23 @@
                                      Text="{Binding Profiles.UrlPatternInput, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource SettingsCompactTextBoxStyle}"
                                      KeyDown="UrlPatternInputBox_KeyDown"/>
-                            <TextBlock Text="{loc:Str Profiles.UrlPatternHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,14"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Margin="0,0,16,0">
-                                    <TextBlock Text="{loc:Str Profiles.ActiveWindow}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,8"/>
-                                    <TextBlock Foreground="{StaticResource LabelBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis">
-                                        <Run Text="&#xE8B7; " FontFamily="Segoe MDL2 Assets" FontSize="10"/>
-                                        <Run Text="{Binding Profiles.CurrentProcessName}"/>
-                                    </TextBlock>
-                                    <TextBlock Foreground="{StaticResource HintBrush}" FontSize="11.5" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
-                                        <Run Text="&#xE8A7; " FontFamily="Segoe MDL2 Assets" FontSize="10"/>
-                                        <Run Text="{Binding Profiles.CurrentWindowTitle}"/>
-                                    </TextBlock>
-                                    <TextBlock Foreground="#88FFCC"
-                                               FontSize="11.5"
-                                               Margin="0,4,0,0"
-                                               TextTrimming="CharacterEllipsis"
-                                               Visibility="{Binding Profiles.CurrentUrl, Converter={StaticResource NonEmptyToVisibility}}">
-                                        <Run Text="&#xE774; " FontFamily="Segoe MDL2 Assets" FontSize="10"/>
-                                        <Run Text="{Binding Profiles.CurrentUrl}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                                <Border Grid.Column="1" Padding="10,6" CornerRadius="999" VerticalAlignment="Top">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#1AD95D66"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Profiles.HasMatchedProfile}" Value="True">
-                                                    <Setter Property="Background" Value="#1739B980"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding Profiles.MatchStatusText}" FontSize="11" FontWeight="SemiBold">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Profiles.HasMatchedProfile}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource ActiveIndicatorBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Border>
-                            </Grid>
+                            <TextBlock Text="{loc:Str Profiles.UrlPatternHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="{loc:Str Profiles.Overrides}" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,4,0,8"/>
+                    <TextBlock Text="{loc:Str Profiles.Overrides}" Style="{StaticResource ProfilePanelTitleStyle}" Margin="0,4,0,8"/>
                     <Border Style="{StaticResource SettingsSectionFormStyle}">
                         <StackPanel>
                             <Border Style="{StaticResource SettingsRowBorderStyle}">
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{loc:Str Profiles.LanguageLabel}" Style="{StaticResource SettingsRowLabelStyle}" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Column="1" SelectedValue="{Binding Profiles.EditLanguage}" SelectedValuePath="Tag" Style="{StaticResource SettingsAlignedComboBoxStyle}">
-                                        <ComboBoxItem Content="{loc:Str Profiles.GlobalSetting}" Tag="{x:Null}"/>
-                                        <ComboBoxItem Content="{loc:Str Profiles.Auto}" Tag="auto"/>
-                                        <ComboBoxItem Content="Deutsch" Tag="de"/>
-                                        <ComboBoxItem Content="English" Tag="en"/>
-                                        <ComboBoxItem Content="Français" Tag="fr"/>
-                                        <ComboBoxItem Content="Español" Tag="es"/>
-                                    </ComboBox>
+                                    <TextBlock Text="{loc:Str Profiles.LanguageLabel}" Style="{StaticResource ProfileRowLabelStyle}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding Profiles.LanguageOptions}"
+                                              SelectedValue="{Binding Profiles.EditLanguage}"
+                                              SelectedValuePath="Value"
+                                              DisplayMemberPath="DisplayName"
+                                              Style="{StaticResource ProfileAlignedComboBoxStyle}"/>
                                 </Grid>
                             </Border>
                             <Border Height="1" Background="#16FFFFFF"/>
@@ -319,14 +305,15 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.TaskLabel}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.TaskLabel}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.TaskHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" SelectedValue="{Binding Profiles.EditTask}" SelectedValuePath="Tag" Style="{StaticResource SettingsAlignedComboBoxStyle}">
-                                        <ComboBoxItem Content="{loc:Str Profiles.TaskGlobal}" Tag="{x:Null}"/>
-                                        <ComboBoxItem Content="{loc:Str Profiles.TaskTranscribe}" Tag="transcribe"/>
-                                        <ComboBoxItem Content="{loc:Str Profiles.TaskTranslate}" Tag="translate"/>
-                                    </ComboBox>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding Profiles.TaskOptions}"
+                                              SelectedValue="{Binding Profiles.EditTask}"
+                                              SelectedValuePath="Value"
+                                              DisplayMemberPath="DisplayName"
+                                              Style="{StaticResource ProfileAlignedComboBoxStyle}"/>
                                 </Grid>
                             </Border>
                             <Border Height="1" Background="#16FFFFFF"/>
@@ -334,7 +321,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.TranslationLabel}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.TranslationLabel}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.TranslationOverrideHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
                                     <ComboBox Grid.Column="1"
@@ -343,7 +330,7 @@
                                               SelectedValuePath="Code"
                                               TextSearch.TextPath="DisplayName"
                                               DisplayMemberPath="DisplayName"
-                                              Style="{StaticResource SettingsAlignedComboBoxStyle}"/>
+                                              Style="{StaticResource ProfileAlignedComboBoxStyle}"/>
                                 </Grid>
                             </Border>
                             <Border Height="1" Background="#16FFFFFF"/>
@@ -351,7 +338,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.WhisperModeOverride}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.WhisperModeOverride}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.WhisperModeOverrideHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Profiles.EditWhisperModeOverride}" VerticalAlignment="Center"/>
@@ -362,7 +349,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.TranscriptionModel}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.TranscriptionModel}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.TranscriptionModelHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
                                     <ComboBox Grid.Column="1"
@@ -370,19 +357,19 @@
                                               SelectedValue="{Binding Profiles.EditTranscriptionModelOverride}"
                                               SelectedValuePath="Id"
                                               DisplayMemberPath="DisplayName"
-                                              Style="{StaticResource SettingsAlignedComboBoxStyle}"/>
+                                              Style="{StaticResource ProfileAlignedComboBoxStyle}"/>
                                 </Grid>
                             </Border>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="{loc:Str Profiles.ActivationSection}" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,4,0,8"/>
+                    <TextBlock Text="{loc:Str Profiles.ActivationSection}" Style="{StaticResource ProfilePanelTitleStyle}" Margin="0,4,0,8"/>
                     <Border Style="{StaticResource SettingsSectionFormStyle}">
                         <StackPanel>
                             <Border Style="{StaticResource SettingsRowBorderStyle}">
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{loc:Str Profiles.EnabledLabel}" Style="{StaticResource SettingsRowLabelStyle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Str Profiles.EnabledLabel}" Style="{StaticResource ProfileRowLabelStyle}" VerticalAlignment="Center"/>
                                     <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding Profiles.EditIsEnabled}" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
@@ -391,7 +378,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.HotkeyLabel}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.HotkeyLabel}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.HotkeyHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
                                     <controls:HotkeyRecorderControl Grid.Column="1" Hotkey="{Binding Profiles.EditHotkey, Mode=TwoWay}" HorizontalAlignment="Right" Width="250"/>
@@ -402,7 +389,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,14,0">
-                                        <TextBlock Text="{loc:Str Profiles.Priority}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{loc:Str Profiles.Priority}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                         <TextBlock Text="{loc:Str Profiles.PriorityHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                                     </StackPanel>
                                     <TextBox Grid.Column="1" Text="{Binding Profiles.EditPriority, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SettingsNumericTextBoxStyle}"/>
@@ -411,7 +398,7 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="{loc:Str Profiles.ActionsSection}" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,4,0,8"/>
+                    <TextBlock Text="{loc:Str Profiles.ActionsSection}" Style="{StaticResource ProfilePanelTitleStyle}" Margin="0,4,0,8"/>
                     <Border Style="{StaticResource SettingsSectionFormStyle}">
                         <Grid Margin="18,16">
                             <Grid.ColumnDefinitions>
@@ -420,7 +407,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,14,0">
-                                <TextBlock Text="{loc:Str Profiles.ActionsSection}" Style="{StaticResource SettingsRowLabelStyle}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{loc:Str Profiles.ActionsSection}" Style="{StaticResource ProfileRowLabelStyle}" Margin="0,0,0,6"/>
                                 <TextBlock Text="{loc:Str Profiles.ActionsHint}" Style="{StaticResource HintStyle}" Margin="0"/>
                             </StackPanel>
                             <Button Grid.Column="1"
@@ -439,14 +426,22 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <Border Grid.Row="2" Style="{StaticResource SettingsStickyFooterStyle}">
+            <Border Grid.Row="1" Style="{StaticResource SettingsStickyFooterStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{loc:Str Profiles.SaveHint}" Style="{StaticResource HintStyle}" Margin="0" VerticalAlignment="Center"/>
                     <Button Grid.Column="1"
+                            Content="{loc:Str Profiles.OpenLiveContext}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding Profiles.OpenLiveContextWindowCommand}"
+                            Padding="12,8"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"/>
+                    <Button Grid.Column="2"
                             Content="{loc:Str Profiles.Save}"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Command="{Binding Profiles.SaveProfileCommand}"

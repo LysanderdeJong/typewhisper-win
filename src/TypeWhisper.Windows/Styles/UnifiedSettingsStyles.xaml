@@ -212,7 +212,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="7"/>
+        <Setter Property="Padding" Value="6,4,6,4"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="CaretBrush" Value="{StaticResource TextBrush}"/>
         <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
@@ -300,7 +300,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="Padding" Value="6,4,6,4"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="MinHeight" Value="36"/>
         <Setter Property="Template">
@@ -310,6 +310,7 @@
                         <ToggleButton x:Name="ToggleButton"
                                       HorizontalAlignment="Stretch"
                                       VerticalAlignment="Stretch"
+                                      Padding="{TemplateBinding Padding}"
                                       Focusable="False"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                       ClickMode="Press">
@@ -328,7 +329,7 @@
 
                                             <ContentPresenter x:Name="ContentSite"
                                                               Grid.Column="0"
-                                                              Margin="12,0,8,0"
+                                                              Margin="{TemplateBinding Padding}"
                                                               VerticalAlignment="Center"
                                                               HorizontalAlignment="Stretch"
                                                               RecognizesAccessKey="True"
@@ -399,9 +400,9 @@
     </Style>
 
     <Style x:Key="SettingsCompactComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource InputComboBoxStyle}">
-        <Setter Property="Padding" Value="9,4"/>
+        <Setter Property="Padding" Value="6,0,6,0"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="MinHeight" Value="36"/>
     </Style>
 
     <Style x:Key="SettingsAlignedComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource SettingsCompactComboBoxStyle}">
@@ -410,9 +411,9 @@
     </Style>
 
     <Style x:Key="SettingsCompactTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource InputTextBoxStyle}">
-        <Setter Property="Padding" Value="8,3"/>
+        <Setter Property="Padding" Value="6,4,6,4"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="MinHeight" Value="36"/>
     </Style>
 
     <Style x:Key="SettingsNumericTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource SettingsCompactTextBoxStyle}">

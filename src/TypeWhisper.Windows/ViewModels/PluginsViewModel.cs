@@ -16,13 +16,22 @@ public partial class PluginsViewModel : ObservableObject
     public ObservableCollection<PluginItemViewModel> Plugins { get; } = [];
     public ObservableCollection<RegistryPluginItemViewModel> RegistryPlugins { get; } = [];
     public ObservableCollection<RegistryPluginCategoryGroupViewModel> MarketplaceGroups { get; } = [];
+    public ObservableCollection<MarketplaceCategoryTabViewModel> MarketplaceCategories { get; } = [];
+    public ObservableCollection<RegistryPluginItemViewModel> FilteredMarketplacePlugins { get; } = [];
     public int InstalledPluginCount => Plugins.Count;
     public int EnabledPluginCount => Plugins.Count(static plugin => plugin.IsEnabled);
     public int MarketplacePluginCount => RegistryPlugins.Count;
     public string InstalledSummaryText => Loc.Instance.GetString("Plugins.InstalledSummaryFormat", InstalledPluginCount, EnabledPluginCount);
     public string MarketplaceSummaryText => Loc.Instance.GetString("Plugins.MarketplaceSummaryFormat", MarketplacePluginCount);
+    public string SelectedMarketplaceCategoryName => MarketplaceCategories.FirstOrDefault(category => category.IsSelected)?.DisplayName ?? string.Empty;
+    public string MarketplaceCategorySummaryText => string.IsNullOrWhiteSpace(SelectedMarketplaceCategoryName)
+        ? MarketplaceSummaryText
+        : Loc.Instance.GetString("Plugins.MarketplaceCategorySummaryFormat", FilteredMarketplacePlugins.Count, SelectedMarketplaceCategoryName);
+    public bool HasMarketplaceCategories => MarketplaceCategories.Count > 0;
 
     [ObservableProperty] private bool _isLoadingRegistry;
+    [ObservableProperty] private bool _isMarketplaceSelected;
+    [ObservableProperty] private string? _selectedMarketplaceCategoryKey;
 
     public PluginsViewModel(PluginManager pluginManager, PluginRegistryService registryService)
     {
@@ -68,6 +77,7 @@ public partial class PluginsViewModel : ObservableObject
 
             RegistryPlugins.Clear();
             MarketplaceGroups.Clear();
+            MarketplaceCategories.Clear();
 
             foreach (var plugin in registryItems)
             {
@@ -80,7 +90,14 @@ public partial class PluginsViewModel : ObservableObject
             {
                 var first = group.First();
                 MarketplaceGroups.Add(new RegistryPluginCategoryGroupViewModel(first.CategoryLabel, group));
+                MarketplaceCategories.Add(new MarketplaceCategoryTabViewModel(first.CategoryKey, first.CategoryLabel, group.Count()));
             }
+
+            var selectedCategory = MarketplaceCategories.Any(category => category.Key == SelectedMarketplaceCategoryKey)
+                ? SelectedMarketplaceCategoryKey
+                : MarketplaceCategories.FirstOrDefault()?.Key;
+
+            SelectedMarketplaceCategoryKey = selectedCategory;
 
             NotifyStateChanged();
         }
@@ -90,6 +107,28 @@ public partial class PluginsViewModel : ObservableObject
         }
     }
 
+    partial void OnSelectedMarketplaceCategoryKeyChanged(string? value)
+    {
+        foreach (var category in MarketplaceCategories)
+            category.IsSelected = string.Equals(category.Key, value, StringComparison.OrdinalIgnoreCase);
+
+        FilteredMarketplacePlugins.Clear();
+        foreach (var plugin in RegistryPlugins.Where(plugin => string.Equals(plugin.CategoryKey, value, StringComparison.OrdinalIgnoreCase)))
+            FilteredMarketplacePlugins.Add(plugin);
+
+        OnPropertyChanged(nameof(SelectedMarketplaceCategoryName));
+        OnPropertyChanged(nameof(MarketplaceCategorySummaryText));
+    }
+
+    [RelayCommand]
+    private void SelectMarketplaceCategory(string? categoryKey)
+    {
+        if (string.IsNullOrWhiteSpace(categoryKey))
+            return;
+
+        SelectedMarketplaceCategoryKey = categoryKey;
+    }
+
     private void NotifyStateChanged()
     {
         OnPropertyChanged(nameof(InstalledPluginCount));
@@ -97,6 +136,8 @@ public partial class PluginsViewModel : ObservableObject
         OnPropertyChanged(nameof(MarketplacePluginCount));
         OnPropertyChanged(nameof(InstalledSummaryText));
         OnPropertyChanged(nameof(MarketplaceSummaryText));
+        OnPropertyChanged(nameof(MarketplaceCategorySummaryText));
+        OnPropertyChanged(nameof(HasMarketplaceCategories));
     }
 }
 
@@ -110,6 +151,22 @@ public partial class RegistryPluginCategoryGroupViewModel : ObservableObject
     {
         DisplayName = displayName;
         Plugins = [.. plugins];
+    }
+}
+
+public partial class MarketplaceCategoryTabViewModel : ObservableObject
+{
+    public string Key { get; }
+    public string DisplayName { get; }
+    public int Count { get; }
+
+    [ObservableProperty] private bool _isSelected;
+
+    public MarketplaceCategoryTabViewModel(string key, string displayName, int count)
+    {
+        Key = key;
+        DisplayName = displayName;
+        Count = count;
     }
 }
 

@@ -33,7 +33,7 @@
             </Grid.RowDefinitions>
 
              <ui:TitleBar Grid.Row="0"
-                         Title="{loc:Str Settings.WindowTitle}"
+                         Title=""
                          ShowMaximize="False"
                          Margin="18,8,18,0"/>
 

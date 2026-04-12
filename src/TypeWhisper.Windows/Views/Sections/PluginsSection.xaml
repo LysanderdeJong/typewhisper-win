@@ -44,6 +44,19 @@
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
             </Style>
+
+            <Style x:Key="MarketplaceCategoryTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
+                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Foreground" Value="{StaticResource HintBrush}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -62,14 +75,51 @@
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource SettingsActionBarStyle}">
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="TabInstalled" Style="{StaticResource ActiveTabButtonStyle}" Click="OnInstalledTabClick">
-                    <TextBlock><Run Text="&#x1F9E9;  "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.Installed], Mode=OneWay}"/></TextBlock>
-                </Button>
-                <Button x:Name="TabMarketplace" Style="{StaticResource TabButtonStyle}" Click="OnMarketplaceTabClick">
-                    <TextBlock><Run Text="&#x1F6D2;  "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.Marketplace], Mode=OneWay}"/></TextBlock>
-                </Button>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="TabInstalled" Style="{StaticResource ActiveTabButtonStyle}" Click="OnInstalledTabClick">
+                        <TextBlock><Run Text="&#x1F9E9;  "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.Installed], Mode=OneWay}"/></TextBlock>
+                    </Button>
+                    <Button x:Name="TabMarketplace" Style="{StaticResource TabButtonStyle}" Click="OnMarketplaceTabClick">
+                        <TextBlock><Run Text="&#x1F6D2;  "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.Marketplace], Mode=OneWay}"/></TextBlock>
+                    </Button>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Width="1"
+                        Height="26"
+                        Margin="18,0"
+                        Background="#16FFFFFF"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding Plugins.IsMarketplaceSelected, Converter={StaticResource BoolToVis}}"/>
+
+                <ScrollViewer Grid.Column="2"
+                              HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled"
+                              Visibility="{Binding Plugins.IsMarketplaceSelected, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl ItemsSource="{Binding Plugins.MarketplaceCategories}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:MarketplaceCategoryTabViewModel}">
+                                <Button Content="{Binding DisplayName}"
+                                        Style="{StaticResource MarketplaceCategoryTabButtonStyle}"
+                                        Command="{Binding DataContext.Plugins.SelectMarketplaceCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Key}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="2">
@@ -188,7 +238,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,16,0">
-                                <TextBlock Text="{Binding Plugins.MarketplaceSummaryText}" Style="{StaticResource PageSubtitleStyle}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding Plugins.MarketplaceCategorySummaryText}" Style="{StaticResource PageSubtitleStyle}" Margin="0,0,0,4"/>
                                 <TextBlock Text="{loc:Str Plugins.MarketplaceDescription}" Style="{StaticResource HintStyle}" Margin="0"/>
                             </StackPanel>
                             <ui:Button Grid.Column="1"
@@ -210,80 +260,56 @@
 
                     <Border Style="{StaticResource SettingsGroupPanelStyle}"
                             Visibility="{Binding Plugins.IsLoadingRegistry, Converter={StaticResource InverseBoolToVis}}">
-                        <ItemsControl ItemsSource="{Binding Plugins.MarketplaceGroups}">
+                        <ItemsControl ItemsSource="{Binding Plugins.FilteredMarketplacePlugins}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:RegistryPluginCategoryGroupViewModel}">
-                                    <StackPanel Margin="0,0,0,12">
-                                        <Border BorderBrush="#14FFFFFF" BorderThickness="0,0,0,1" Padding="18,14,18,10">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding DisplayName}"
-                                                           Style="{StaticResource SettingsGroupTitleStyle}"
-                                                           FontSize="14"
-                                                           Margin="0"/>
-                                                <Border Grid.Column="1" Style="{StaticResource BadgeStyle}" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Count}" Foreground="#D6DEE9" FontSize="10.5"/>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
+                                <DataTemplate DataType="{x:Type vm:RegistryPluginItemViewModel}">
+                                    <Border Style="{StaticResource SettingsCollectionRowStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <ItemsControl ItemsSource="{Binding Plugins}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type vm:RegistryPluginItemViewModel}">
-                                                    <Border Style="{StaticResource SettingsCollectionRowStyle}">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="10" Margin="0,0,12,0" Background="{Binding IconGradientStart, Converter={StaticResource StringToBrush}}">
+                                                <TextBlock Text="{Binding IconEmoji}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
 
-                                                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="10" Margin="0,0,12,0" Background="{Binding IconGradientStart, Converter={StaticResource StringToBrush}}">
-                                                                <TextBlock Text="{Binding IconEmoji}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-
-                                                            <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                                                                <StackPanel Orientation="Horizontal">
-                                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" FontSize="14" FontWeight="SemiBold"/>
-                                                                    <TextBlock Text="{Binding Version, StringFormat='  v{0}'}" Foreground="{StaticResource HintBrush}" FontSize="12" Margin="4,0,0,0"/>
-                                                                </StackPanel>
-                                                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource HintBrush}" FontSize="12" TextTrimming="CharacterEllipsis" MaxHeight="18" Margin="0,4,0,0"/>
-                                                                <WrapPanel Margin="0,7,0,0">
-                                                                    <Border Style="{StaticResource BadgeStyle}" Margin="0,0,6,0">
-                                                                        <TextBlock Text="{Binding LocationBadge}" Foreground="#D6DEE9" FontSize="10"/>
-                                                                    </Border>
-                                                                    <Border Style="{StaticResource BadgeStyle}" Margin="0,0,6,0">
-                                                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#D6DEE9" FontSize="10"/>
-                                                                    </Border>
-                                                                </WrapPanel>
-                                                                <ProgressBar Value="{Binding Progress}" Maximum="1" Height="3" Margin="0,8,0,0" Visibility="{Binding IsWorking, Converter={StaticResource BoolToVis}}"/>
-                                                            </StackPanel>
-
-                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                                <ui:Button Appearance="Primary"
-                                                                           Content="{loc:Str Plugins.Install}"
-                                                                           Command="{Binding InstallCommand}"
-                                                                           IsEnabled="{Binding IsWorking, Converter={StaticResource InvertBool}}"
-                                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=NotInstalled}"/>
-                                                                <ui:Button Appearance="Secondary"
-                                                                           Content="{loc:Str Plugins.Update}"
-                                                                           Command="{Binding UpdateCommand}"
-                                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=UpdateAvailable}"/>
-                                                                <TextBlock Foreground="{StaticResource ActiveIndicatorBrush}"
-                                                                           FontSize="12"
-                                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=Installed}">
-                                                                    <Run Text="&#x2705; "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.InstalledBadge], Mode=OneWay}"/>
-                                                                </TextBlock>
-                                                            </StackPanel>
-                                                        </Grid>
+                                            <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextBrush}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Version, StringFormat='  v{0}'}" Foreground="{StaticResource HintBrush}" FontSize="12" Margin="4,0,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource HintBrush}" FontSize="12" TextTrimming="CharacterEllipsis" MaxHeight="18" Margin="0,4,0,0"/>
+                                                <WrapPanel Margin="0,7,0,0">
+                                                    <Border Style="{StaticResource BadgeStyle}" Margin="0,0,6,0">
+                                                        <TextBlock Text="{Binding LocationBadge}" Foreground="#D6DEE9" FontSize="10"/>
                                                     </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
+                                                    <Border Style="{StaticResource BadgeStyle}" Margin="0,0,6,0">
+                                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#D6DEE9" FontSize="10"/>
+                                                    </Border>
+                                                </WrapPanel>
+                                                <ProgressBar Value="{Binding Progress}" Maximum="1" Height="3" Margin="0,8,0,0" Visibility="{Binding IsWorking, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <ui:Button Appearance="Primary"
+                                                           Content="{loc:Str Plugins.Install}"
+                                                           Command="{Binding InstallCommand}"
+                                                           IsEnabled="{Binding IsWorking, Converter={StaticResource InvertBool}}"
+                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=NotInstalled}"/>
+                                                <ui:Button Appearance="Secondary"
+                                                           Content="{loc:Str Plugins.Update}"
+                                                           Command="{Binding UpdateCommand}"
+                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=UpdateAvailable}"/>
+                                                <TextBlock Foreground="{StaticResource ActiveIndicatorBrush}"
+                                                           FontSize="12"
+                                                           Visibility="{Binding InstallState, Converter={StaticResource InstallStateToVis}, ConverterParameter=Installed}">
+                                                    <Run Text="&#x2705; "/><Run Text="{Binding Source={x:Static loc:Loc.Instance}, Path=[Plugins.InstalledBadge], Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
