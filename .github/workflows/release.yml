@@ -22,8 +22,12 @@ jobs:
         id: ver
         shell: pwsh
         run: |
-          $v = "${{ github.ref_name }}" -replace '^v',''
-          echo "VERSION=$v" >> $env:GITHUB_OUTPUT
+          $raw = "${{ github.ref_name }}" -replace '^v',''
+          $parts = $raw.Split('.')
+          $packageVersion = if ($parts.Length -eq 2) { "$raw.0" } else { $raw }
+
+          echo "VERSION=$packageVersion" >> $env:GITHUB_OUTPUT
+          echo "DISPLAY_VERSION=$raw" >> $env:GITHUB_OUTPUT
 
       - run: dotnet restore TypeWhisper.slnx
 
