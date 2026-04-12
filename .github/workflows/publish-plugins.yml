@@ -212,6 +212,12 @@ jobs:
             $registry += [pscustomobject]$entry
           }
 
-          $registry | ConvertTo-Json -Depth 4 | Set-Content $registryPath
+          $registryJson = if ($registry.Count -eq 1) {
+            "[" + ($registry | ConvertTo-Json -Depth 4) + "]"
+          } else {
+            $registry | ConvertTo-Json -Depth 4
+          }
+
+          Set-Content $registryPath $registryJson
           gh release upload registry $registryPath --clobber
           Write-Host "Uploaded plugins.json to registry release"
