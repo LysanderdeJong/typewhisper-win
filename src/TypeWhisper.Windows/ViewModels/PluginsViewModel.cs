@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TypeWhisper.Windows;
 using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
 
@@ -34,7 +35,7 @@ public partial class PluginsViewModel : ObservableObject
         var expandedIds = Plugins.Where(p => p.IsExpanded).Select(p => p.Id).ToHashSet();
 
         Plugins.Clear();
-        foreach (var plugin in _pluginManager.AllPlugins)
+        foreach (var plugin in _pluginManager.AllPlugins.Where(p => FeatureFlags.IsPluginVisible(p.Manifest.Category, p.Instance)))
         {
             var isEnabled = _pluginManager.IsEnabled(plugin.Manifest.Id);
             var vm = new PluginItemViewModel(plugin, isEnabled, _pluginManager, _registryService);
@@ -51,7 +52,9 @@ public partial class PluginsViewModel : ObservableObject
 
         try
         {
-            var registry = await _registryService.FetchRegistryAsync();
+            var registry = (await _registryService.FetchRegistryAsync())
+                .Where(plugin => FeatureFlags.IsPluginVisible(plugin.Category))
+                .ToList();
 
             RegistryPlugins.Clear();
             foreach (var plugin in registry)

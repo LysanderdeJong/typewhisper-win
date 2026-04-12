@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
+using TypeWhisper.Windows;
 using TypeWhisper.Windows.Services;
 using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Views;
@@ -26,6 +27,8 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     public PluginsViewModel Plugins { get; }
     public PromptsViewModel Prompts { get; }
     public AudioRecorderViewModel Recorder { get; }
+    public bool IsMemoryFeatureEnabled => FeatureFlags.Memory;
+    public bool IsHttpApiFeatureEnabled => FeatureFlags.HttpApi;
 
     private readonly UpdateService _updateService;
     private readonly IErrorLogService _errorLog;

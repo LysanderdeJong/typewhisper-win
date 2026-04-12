@@ -54,7 +54,7 @@
                        HorizontalAlignment="Center" TextAlignment="Center">
                 <Run Text="License: GPL-3.0-or-later"/>
                 <LineBreak/>
-                <Run Text="Source: github.com/TypeWhisper/typewhisper-win"/>
+                <Run Text="Source: github.com/LysanderdeJong/typewhisper-win"/>
             </TextBlock>
         </StackPanel>
     </ScrollViewer>

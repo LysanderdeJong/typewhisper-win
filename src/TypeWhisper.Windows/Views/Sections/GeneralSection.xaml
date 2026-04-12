@@ -13,6 +13,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/UnifiedSettingsStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <conv:NonEmptyToVisibilityConverter x:Key="NonEmptyToVisibility"/>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -222,17 +223,19 @@
             </StackPanel>
 
             <!-- API Server -->
-            <TextBlock Text="{loc:Str General.ApiServer}" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
-            <StackPanel Margin="0,0,0,8">
-                <ui:ToggleSwitch IsChecked="{Binding Settings.ApiServerEnabled}"
-                                 OnContent="{loc:Str General.RestApiEnable}"
-                                 OffContent="{loc:Str General.RestApiEnable}"/>
-            </StackPanel>
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="{loc:Str General.Port}" Style="{StaticResource LabelStyle}"/>
-                <TextBox Text="{Binding Settings.ApiServerPort}"
-                         Style="{StaticResource InputTextBoxStyle}"
-                         Width="100" HorizontalAlignment="Left"/>
+            <StackPanel Visibility="{Binding IsHttpApiFeatureEnabled, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{loc:Str General.ApiServer}" Style="{StaticResource SectionHeaderStyle}" Margin="0,16,0,16"/>
+                <StackPanel Margin="0,0,0,8">
+                    <ui:ToggleSwitch IsChecked="{Binding Settings.ApiServerEnabled}"
+                                     OnContent="{loc:Str General.RestApiEnable}"
+                                     OffContent="{loc:Str General.RestApiEnable}"/>
+                </StackPanel>
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="{loc:Str General.Port}" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Text="{Binding Settings.ApiServerPort}"
+                             Style="{StaticResource InputTextBoxStyle}"
+                             Width="100" HorizontalAlignment="Left"/>
+                </StackPanel>
             </StackPanel>
 
             <TextBlock Text="{loc:Str Settings.AutoSaveHint}"

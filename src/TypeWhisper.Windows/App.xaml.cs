@@ -134,7 +134,7 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine("No audio input device available at startup. Polling for device...");
 
         // Start API server if enabled
-        if (settings.Current.ApiServerEnabled)
+        if (FeatureFlags.HttpApi && settings.Current.ApiServerEnabled)
         {
             var api = _serviceProvider.GetRequiredService<HttpApiService>();
             api.Start(settings.Current.ApiServerPort);

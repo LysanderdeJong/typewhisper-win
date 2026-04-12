@@ -1,0 +1,31 @@
+name: Publish Registries
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - termpacks.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure registry release exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view registry >/dev/null 2>&1 || \
+          gh release create registry --title "Registry" --notes "Machine-managed registry assets."
+
+      - name: Upload term pack registry asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload registry termpacks.json --clobber

@@ -96,7 +96,7 @@ Cloud providers are available as plugins and can be configured in Settings > Ext
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/TypeWhisper/typewhisper-win.git
+   git clone https://github.com/LysanderdeJong/typewhisper-win.git
    cd typewhisper-win
    ```
 

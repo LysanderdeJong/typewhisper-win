@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.Windows;
 using TypeWhisper.Windows.Services;
 using TypeWhisper.Windows.Services.Localization;
 using TypeWhisper.Windows.Services.Plugins;
@@ -63,7 +64,9 @@ public partial class WelcomeViewModel : ObservableObject
 
         try
         {
-            var registryPlugins = await _registry.FetchRegistryAsync();
+            var registryPlugins = (await _registry.FetchRegistryAsync())
+                .Where(plugin => FeatureFlags.IsPluginVisible(plugin.Category))
+                .ToList();
 
             Application.Current?.Dispatcher.Invoke(() =>
             {

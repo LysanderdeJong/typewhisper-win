@@ -58,12 +58,13 @@ jobs:
             'speechmatics'       = 'TypeWhisper.Plugin.Speechmatics'
             'soniox'             = 'TypeWhisper.Plugin.Soniox'
             'cloudflare-asr'     = 'TypeWhisper.Plugin.CloudflareAsr'
-            'google-cloud-stt'   = 'TypeWhisper.Plugin.GoogleCloudStt'
-            'qwen3-stt'          = 'TypeWhisper.Plugin.Qwen3Stt'
-            'voxtral'            = 'TypeWhisper.Plugin.Voxtral'
-            'file-memory'        = 'TypeWhisper.Plugin.FileMemory'
-            'openai-vector-memory' = 'TypeWhisper.Plugin.OpenAiVectorMemory'
-          }
+             'google-cloud-stt'   = 'TypeWhisper.Plugin.GoogleCloudStt'
+             'qwen3-stt'          = 'TypeWhisper.Plugin.Qwen3Stt'
+             'voxtral'            = 'TypeWhisper.Plugin.Voxtral'
+             'whisper-cpp'        = 'TypeWhisper.Plugin.WhisperCpp'
+             'file-memory'        = 'TypeWhisper.Plugin.FileMemory'
+             'openai-vector-memory' = 'TypeWhisper.Plugin.OpenAiVectorMemory'
+           }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
             throw "Unknown plugin: $env:PLUGIN_NAME"
@@ -153,67 +154,59 @@ jobs:
             --title "$env:PROJECT_NAME v$env:PLUGIN_VERSION" `
             --notes ""
 
-      - name: Update plugins.json on gh-pages
+      - name: Update plugins.json on registry release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          $downloadUrl = "https://github.com/TypeWhisper/typewhisper-win/releases/download/$tag/$env:ZIP_NAME"
+          $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$env:ZIP_NAME"
 
-          git fetch origin gh-pages
-          git worktree add -B gh-pages gh-pages-work origin/gh-pages
+          gh release view registry *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create registry --title "Registry" --notes "Machine-managed registry assets."
+          }
 
-          $maxRetries = 5
-          for ($i = 1; $i -le $maxRetries; $i++) {
-            try {
-              Push-Location gh-pages-work
-              git fetch origin gh-pages
-              git reset --hard origin/gh-pages
+          $registryDir = "registry-assets"
+          New-Item -ItemType Directory -Path $registryDir -Force | Out-Null
+          $registryPath = Join-Path $registryDir "plugins.json"
 
-              $registry = Get-Content plugins.json | ConvertFrom-Json
-              $updated = $false
+          gh release download registry -p "plugins.json" -D $registryDir 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $registry = @(Get-Content $registryPath | ConvertFrom-Json)
+          } else {
+            $registry = @()
+          }
 
-              for ($j = 0; $j -lt $registry.Count; $j++) {
-                if ($registry[$j].id -eq $env:PLUGIN_ID) {
-                  $registry[$j].version = $env:PLUGIN_VERSION
-                  $registry[$j].size = [long]$env:ZIP_SIZE
-                  $registry[$j].downloadUrl = $downloadUrl
-                  $updated = $true
-                  Write-Host "Updated $($registry[$j].id) to v$env:PLUGIN_VERSION"
-                  break
-                }
-              }
+          $manifestPath = "plugins/$env:PROJECT_NAME/manifest.json"
+          $manifest = Get-Content $manifestPath | ConvertFrom-Json
 
-              if (-not $updated) {
-                Write-Host "Warning: Plugin $env:PLUGIN_ID not found in registry, skipping update"
-              }
+          $entry = [ordered]@{
+            id = $manifest.id
+            name = $manifest.name
+            version = $env:PLUGIN_VERSION
+            minHostVersion = $manifest.minHostVersion
+            author = $manifest.author
+            description = $manifest.description
+            category = $manifest.category
+            size = [long]$env:ZIP_SIZE
+            downloadUrl = $downloadUrl
+            requiresApiKey = $false
+          }
 
-              $registry | ConvertTo-Json -Depth 4 | Set-Content plugins.json
-
-              # Also copy the ZIP to plugins/ directory on gh-pages
-              New-Item -ItemType Directory -Path "plugins" -Force | Out-Null
-              Copy-Item (Join-Path .. $env:ZIP_NAME) "plugins/$env:ZIP_NAME" -Force
-
-              git add -A
-              git config user.name "github-actions[bot]"
-              git config user.email "github-actions[bot]@users.noreply.github.com"
-
-              $diff = git diff --cached --quiet 2>&1; $hasChanges = $LASTEXITCODE -ne 0
-              if ($hasChanges) {
-                git commit -m "Update $env:PROJECT_NAME to v$env:PLUGIN_VERSION"
-                git push origin gh-pages
-                Write-Host "Successfully updated plugins.json (attempt $i)"
-              } else {
-                Write-Host "No changes to deploy"
-              }
-
-              Pop-Location
+          $updated = $false
+          for ($i = 0; $i -lt $registry.Count; $i++) {
+            if ($registry[$i].id -eq $env:PLUGIN_ID) {
+              $registry[$i] = $entry
+              $updated = $true
               break
-            } catch {
-              Pop-Location
-              if ($i -eq $maxRetries) { throw }
-              Write-Host "Push failed (attempt $i), retrying in ${i}s..."
-              Start-Sleep -Seconds $i
             }
           }
+
+          if (-not $updated) {
+            $registry += [pscustomobject]$entry
+          }
+
+          $registry | ConvertTo-Json -Depth 4 | Set-Content $registryPath
+          gh release upload registry $registryPath --clobber
+          Write-Host "Uploaded plugins.json to registry release"

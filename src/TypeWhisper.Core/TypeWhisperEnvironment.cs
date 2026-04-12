@@ -2,7 +2,13 @@ namespace TypeWhisper.Core;
 
 public static class TypeWhisperEnvironment
 {
-    public const string GithubRepoUrl = "https://github.com/TypeWhisper/typewhisper-win";
+    public const string GithubRepoOwner = "LysanderdeJong";
+    public const string GithubRepoName = "typewhisper-win";
+    public const string GithubRepoUrl = "https://github.com/LysanderdeJong/typewhisper-win";
+    public const string GithubRegistryReleaseTag = "registry";
+    public const string GithubReleaseDownloadBaseUrl = GithubRepoUrl + "/releases/download";
+    public const string PluginRegistryUrl = GithubReleaseDownloadBaseUrl + "/" + GithubRegistryReleaseTag + "/plugins.json";
+    public const string TermPackRegistryUrl = GithubReleaseDownloadBaseUrl + "/" + GithubRegistryReleaseTag + "/termpacks.json";
 
     private static readonly string _basePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

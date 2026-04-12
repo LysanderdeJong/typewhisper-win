@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.IO;
 using TypeWhisper.Core;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.Windows;
 
 namespace TypeWhisper.Windows.Services.Plugins;
 
@@ -89,12 +91,13 @@ public sealed class PluginManager : IDisposable
     public PluginEventBus EventBus => _eventBus;
 
     /// <summary>
-    /// Discovers plugins from the user plugins directory, restores enabled state
-    /// from settings, and activates all enabled plugins.
+    /// Discovers plugins from the bundled app directory and the user plugins
+    /// directory, preferring user-installed plugins when IDs collide. Restores
+    /// enabled state from settings and activates all enabled plugins.
     /// </summary>
     public async Task InitializeAsync()
     {
-        var discovered = _loader.DiscoverAndLoad([TypeWhisperEnvironment.PluginsPath]);
+        var discovered = DiscoverPlugins();
 
         lock (_lock)
         {
@@ -111,7 +114,7 @@ public sealed class PluginManager : IDisposable
             // Default to enabled for marketplace-installed plugins
             var isEnabled = !enabledState.TryGetValue(plugin.Manifest.Id, out var state) || state;
 
-            if (isEnabled)
+            if (isEnabled && IsFeatureEnabled(plugin))
             {
                 await ActivatePluginAsync(plugin);
             }
@@ -119,6 +122,55 @@ public sealed class PluginManager : IDisposable
 
         RebuildCapabilityIndices();
         MigrateApiKeys();
+    }
+
+    private List<LoadedPlugin> DiscoverPlugins()
+    {
+        var bundledPluginsPath = Path.Combine(AppContext.BaseDirectory, "Plugins");
+        var searchDirectories = new[]
+        {
+            bundledPluginsPath,
+            TypeWhisperEnvironment.PluginsPath,
+        };
+
+        var discoveredById = new Dictionary<string, LoadedPlugin>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var searchDir in searchDirectories)
+        {
+            foreach (var plugin in _loader.DiscoverAndLoad([searchDir]))
+            {
+                if (discoveredById.TryGetValue(plugin.Manifest.Id, out var previous))
+                {
+                    Debug.WriteLine($"[PluginManager] Plugin '{plugin.Manifest.Id}' from '{plugin.PluginDirectory}' overrides '{previous.PluginDirectory}'");
+                    DisposeLoadedPlugin(previous);
+                }
+
+                discoveredById[plugin.Manifest.Id] = plugin;
+            }
+        }
+
+        return discoveredById.Values.ToList();
+    }
+
+    private static void DisposeLoadedPlugin(LoadedPlugin plugin)
+    {
+        try
+        {
+            plugin.Instance.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PluginManager] Failed to dispose duplicate plugin '{plugin.Manifest.Id}': {ex.Message}");
+        }
+
+        try
+        {
+            plugin.LoadContext.Unload();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[PluginManager] Failed to unload duplicate plugin '{plugin.Manifest.Id}': {ex.Message}");
+        }
     }
 
     /// <summary>Enables and activates a plugin by ID, persisting the state.</summary>
@@ -133,6 +185,12 @@ public sealed class PluginManager : IDisposable
 
         if (_activatedPlugins.Contains(pluginId))
             return;
+
+        if (!IsFeatureEnabled(plugin))
+        {
+            Debug.WriteLine($"[PluginManager] Plugin feature disabled: {pluginId}");
+            return;
+        }
 
         await ActivatePluginAsync(plugin);
         RebuildCapabilityIndices();
@@ -299,7 +357,7 @@ public sealed class PluginManager : IDisposable
             _allPlugins.Add(plugin);
         }
 
-        if (activate)
+        if (activate && IsFeatureEnabled(plugin))
         {
             await ActivatePluginAsync(plugin);
             PersistEnabledState(plugin.Manifest.Id, true);
@@ -307,6 +365,9 @@ public sealed class PluginManager : IDisposable
 
         RebuildCapabilityIndices();
     }
+
+    private static bool IsFeatureEnabled(LoadedPlugin plugin) =>
+        FeatureFlags.IsPluginVisible(plugin.Manifest.Category, plugin.Instance);
 
     private void PersistEnabledState(string pluginId, bool enabled)
     {

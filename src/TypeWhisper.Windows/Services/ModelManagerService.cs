@@ -17,6 +17,7 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
     private readonly Dictionary<string, ModelStatus> _modelStatuses = new();
     private string? _activeModelId;
     private System.Timers.Timer? _autoUnloadTimer;
+    private readonly SemaphoreSlim _modelOperationGate = new(1, 1);
     private bool _disposed;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -142,26 +143,47 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
 
     public async Task DownloadAndLoadModelAsync(string modelId, CancellationToken cancellationToken = default)
     {
-        if (!IsPluginModel(modelId))
-            throw new ArgumentException($"Unknown model: {modelId}");
-
-        var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
-        var plugin = _pluginManager.TranscriptionEngines
-            .FirstOrDefault(e => e.PluginId == pluginId)
-            ?? throw new ArgumentException($"Unknown plugin: {pluginId}");
-
-        if (plugin.SupportsModelDownload && !plugin.IsModelDownloaded(pluginModelId))
+        await _modelOperationGate.WaitAsync(cancellationToken);
+        try
         {
-            SetStatus(modelId, ModelStatus.DownloadingModel(0));
+            if (!IsPluginModel(modelId))
+                throw new ArgumentException($"Unknown model: {modelId}");
 
-            var progress = new Progress<double>(p => SetStatus(modelId, ModelStatus.DownloadingModel(p)));
-            await plugin.DownloadModelAsync(pluginModelId, progress, cancellationToken);
+            var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
+            var plugin = _pluginManager.TranscriptionEngines
+                .FirstOrDefault(e => e.PluginId == pluginId)
+                ?? throw new ArgumentException($"Unknown plugin: {pluginId}");
+
+            if (plugin.SupportsModelDownload && !plugin.IsModelDownloaded(pluginModelId))
+            {
+                SetStatus(modelId, ModelStatus.DownloadingModel(0));
+
+                var progress = new Progress<double>(p => SetStatus(modelId, ModelStatus.DownloadingModel(p)));
+                await plugin.DownloadModelAsync(pluginModelId, progress, cancellationToken);
+            }
+
+            await LoadModelAsyncCoreAsync(modelId, cancellationToken);
         }
-
-        await LoadModelAsync(modelId, cancellationToken);
+        finally
+        {
+            _modelOperationGate.Release();
+        }
     }
 
     public async Task LoadModelAsync(string modelId, CancellationToken cancellationToken = default)
+    {
+        await _modelOperationGate.WaitAsync(cancellationToken);
+        try
+        {
+            await LoadModelAsyncCoreAsync(modelId, cancellationToken);
+        }
+        finally
+        {
+            _modelOperationGate.Release();
+        }
+    }
+
+    private async Task LoadModelAsyncCoreAsync(string modelId, CancellationToken cancellationToken)
     {
         if (!IsPluginModel(modelId))
             throw new ArgumentException($"Unknown model: {modelId}");
@@ -291,6 +313,7 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
         {
             CancelAutoUnload();
             _disposed = true;
+            _modelOperationGate.Dispose();
         }
     }
 }

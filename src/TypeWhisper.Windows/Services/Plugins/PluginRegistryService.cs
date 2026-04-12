@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.Json;
 using TypeWhisper.Core;
 using TypeWhisper.Core.Interfaces;
+using TypeWhisper.Windows;
 
 namespace TypeWhisper.Windows.Services.Plugins;
 
@@ -15,7 +16,6 @@ namespace TypeWhisper.Windows.Services.Plugins;
 /// </summary>
 public sealed class PluginRegistryService
 {
-    private const string RegistryUrl = "https://typewhisper.github.io/typewhisper-win/plugins.json";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(24);
 
@@ -56,12 +56,13 @@ public sealed class PluginRegistryService
 
         try
         {
-            var json = await _httpClient.GetStringAsync(RegistryUrl, ct);
+            var json = await _httpClient.GetStringAsync(TypeWhisperEnvironment.PluginRegistryUrl, ct);
             var allPlugins = JsonSerializer.Deserialize<List<RegistryPlugin>>(json, JsonOptions) ?? [];
 
             var hostVersion = GetHostVersion();
             _cachedRegistry = allPlugins
                 .Where(p => IsCompatible(p.MinHostVersion, hostVersion))
+                .Where(p => FeatureFlags.IsPluginVisible(p.Category))
                 .ToList();
             _cacheTimestamp = DateTime.UtcNow;
 
@@ -103,6 +104,9 @@ public sealed class PluginRegistryService
         IProgress<double>? progress = null,
         CancellationToken ct = default)
     {
+        if (!FeatureFlags.IsPluginVisible(registryPlugin.Category))
+            throw new InvalidOperationException($"Plugin '{registryPlugin.Id}' is disabled by feature flag.");
+
         var pluginDir = Path.Combine(TypeWhisperEnvironment.PluginsPath, registryPlugin.Id);
 
         // Unload existing version if present

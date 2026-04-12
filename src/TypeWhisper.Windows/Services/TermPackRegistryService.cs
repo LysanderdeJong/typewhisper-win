@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using TypeWhisper.Core;
 using TypeWhisper.Core.Models;
 
 namespace TypeWhisper.Windows.Services;
@@ -11,7 +12,6 @@ namespace TypeWhisper.Windows.Services;
 /// </summary>
 public sealed class TermPackRegistryService
 {
-    private const string RegistryUrl = "https://typewhisper.github.io/typewhisper-win/termpacks.json";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
@@ -29,7 +29,7 @@ public sealed class TermPackRegistryService
 
         try
         {
-            var response = await _http.GetFromJsonAsync<RegistryResponse>(RegistryUrl, ct);
+            var response = await _http.GetFromJsonAsync<RegistryResponse>(TypeWhisperEnvironment.TermPackRegistryUrl, ct);
             if (response?.Packs is not { Count: > 0 })
                 return _cachedPacks ?? [];
 

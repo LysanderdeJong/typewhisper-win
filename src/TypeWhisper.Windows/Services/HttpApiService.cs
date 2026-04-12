@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using TypeWhisper.Core.Interfaces;
+using TypeWhisper.Windows;
 using TypeWhisper.Windows.ViewModels;
 
 namespace TypeWhisper.Windows.Services;
@@ -57,6 +58,9 @@ public sealed class HttpApiService : IDisposable
 
     public void Start(int port)
     {
+        if (!FeatureFlags.HttpApi)
+            return;
+
         if (_listener is { IsListening: true }) return;
 
         _cts = new CancellationTokenSource();

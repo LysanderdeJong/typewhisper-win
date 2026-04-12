@@ -8,6 +8,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/UnifiedSettingsStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -16,12 +17,14 @@
             <TextBlock Text="{loc:Str Nav.Advanced}" Style="{StaticResource SectionHeaderStyle}"/>
 
             <!-- Memory -->
-            <TextBlock Text="Memory" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,24,0,8"/>
-            <TextBlock Text="Automatically extracts facts from your transcriptions using an LLM. Memories are injected into prompt context."
-                       Style="{StaticResource HintStyle}" Margin="0,0,0,12"/>
+            <StackPanel Visibility="{Binding IsMemoryFeatureEnabled, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Memory" Style="{StaticResource SectionHeaderStyle}" FontSize="16" Margin="0,24,0,8"/>
+                <TextBlock Text="Automatically extracts facts from your transcriptions using an LLM. Memories are injected into prompt context."
+                           Style="{StaticResource HintStyle}" Margin="0,0,0,12"/>
 
-            <StackPanel Margin="0,0,0,24">
-                <CheckBox Content="Enable Memory" IsChecked="{Binding Settings.MemoryEnabled, Mode=TwoWay, FallbackValue=False}"/>
+                <StackPanel Margin="0,0,0,24">
+                    <CheckBox Content="Enable Memory" IsChecked="{Binding Settings.MemoryEnabled, Mode=TwoWay, FallbackValue=False}"/>
+                </StackPanel>
             </StackPanel>
 
             <!-- Recording -->
