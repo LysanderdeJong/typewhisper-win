@@ -1,7 +1,8 @@
 <UserControl x:Class="TypeWhisper.Windows.Views.Sections.ShortcutsSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:TypeWhisper.Windows.Controls">
+             xmlns:controls="clr-namespace:TypeWhisper.Windows.Controls"
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -13,15 +14,15 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="28" MaxWidth="860">
             <StackPanel Margin="0,0,0,18">
-                <TextBlock Text="Shortcuts"
+                <TextBlock Text="{loc:Str Nav.Shortcuts}"
                            Style="{StaticResource SettingsGroupTitleStyle}"
                            Margin="0,0,0,6"/>
-                <TextBlock Text="Keep capture keyboard-first. Start with one main hotkey, then add dedicated variants only when you really need them."
+                <TextBlock Text="{loc:Str Shortcuts.Subtitle}"
                            Style="{StaticResource PageSubtitleStyle}"
                            Margin="0"/>
             </StackPanel>
 
-            <TextBlock Text="Main capture"
+            <TextBlock Text="{loc:Str Shortcuts.MainSection}"
                        Style="{StaticResource NavGroupLabelStyle}"
                        Margin="0,0,0,8"/>
 
@@ -35,9 +36,9 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Margin="0,0,16,0">
-                                <TextBlock Text="Main dictation hotkey"
+                                <TextBlock Text="{loc:Str Shortcuts.MainHotkey}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
-                                <TextBlock Text="Short press toggles recording. Hold the same shortcut for push-to-talk."
+                                <TextBlock Text="{loc:Str Shortcuts.MainHotkeyHint}"
                                            Style="{StaticResource PageSubtitleStyle}"
                                            FontSize="12"
                                            Margin="0,4,0,0"/>
@@ -53,7 +54,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="More shortcuts"
+            <TextBlock Text="{loc:Str Shortcuts.MoreSection}"
                        Style="{StaticResource NavGroupLabelStyle}"
                        Margin="0,0,0,8"/>
 
@@ -67,9 +68,9 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Margin="0,0,16,0">
-                                <TextBlock Text="Toggle-only"
+                                <TextBlock Text="{loc:Str Shortcuts.ToggleOnly}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
-                                <TextBlock Text="Start and stop dictation with a dedicated shortcut."
+                                <TextBlock Text="{loc:Str Shortcuts.ToggleOnlyHint}"
                                            Style="{StaticResource PageSubtitleStyle}"
                                            FontSize="12"
                                            Margin="0,4,0,0"/>
@@ -95,9 +96,9 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Margin="0,0,16,0">
-                                <TextBlock Text="Hold-only"
+                                <TextBlock Text="{loc:Str Shortcuts.HoldOnly}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
-                                <TextBlock Text="Pure push-to-talk without toggle mode."
+                                <TextBlock Text="{loc:Str Shortcuts.HoldOnlyHint}"
                                            Style="{StaticResource PageSubtitleStyle}"
                                            FontSize="12"
                                            Margin="0,4,0,0"/>
@@ -123,9 +124,9 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Margin="0,0,16,0">
-                                <TextBlock Text="Prompt palette"
+                                <TextBlock Text="{loc:Str General.PromptPalette}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
-                                <TextBlock Text="Open the AI prompt palette without starting dictation."
+                                <TextBlock Text="{loc:Str Shortcuts.PromptPaletteHint}"
                                            Style="{StaticResource PageSubtitleStyle}"
                                            FontSize="12"
                                            Margin="0,4,0,0"/>

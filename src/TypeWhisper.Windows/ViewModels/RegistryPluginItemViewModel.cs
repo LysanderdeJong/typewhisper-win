@@ -24,7 +24,7 @@ public partial class RegistryPluginItemViewModel : ObservableObject
     public string CategoryKey => PluginMarketplaceCategories.Resolve(Category).Key;
     public string CategoryLabel => PluginMarketplaceCategories.Resolve(Category).DisplayName;
     public int CategorySortOrder => PluginMarketplaceCategories.Resolve(Category).SortOrder;
-    public string LocationBadge => RequiresApiKey ? "Cloud" : "Local";
+    public string LocationBadge => RequiresApiKey ? Loc.Instance["Plugins.Cloud"] : Loc.Instance["Plugins.Local"];
 
     [ObservableProperty] private PluginInstallState _installState;
     [ObservableProperty] private double _progress;
@@ -109,6 +109,12 @@ public partial class RegistryPluginItemViewModel : ObservableObject
         < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
         _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
     };
+
+    internal void NotifyLocalizationChanged()
+    {
+        OnPropertyChanged(nameof(CategoryLabel));
+        OnPropertyChanged(nameof(LocationBadge));
+    }
 }
 
 internal sealed record PluginMarketplaceCategoryDescriptor(string Key, string DisplayName, int SortOrder);

@@ -39,6 +39,7 @@ public partial class PluginsViewModel : ObservableObject
         _registryService = registryService;
         _pluginManager.PluginStateChanged += (_, _) =>
             Application.Current.Dispatcher.Invoke(RefreshPlugins);
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         RefreshPlugins();
         _ = RefreshRegistryAsync();
     }
@@ -139,6 +140,42 @@ public partial class PluginsViewModel : ObservableObject
         OnPropertyChanged(nameof(MarketplaceCategorySummaryText));
         OnPropertyChanged(nameof(HasMarketplaceCategories));
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            foreach (var plugin in Plugins)
+                plugin.NotifyLocalizationChanged();
+
+            foreach (var plugin in RegistryPlugins)
+                plugin.NotifyLocalizationChanged();
+
+            RebuildMarketplaceGroups();
+            NotifyStateChanged();
+        });
+    }
+
+    private void RebuildMarketplaceGroups()
+    {
+        var selectedCategory = SelectedMarketplaceCategoryKey;
+
+        MarketplaceGroups.Clear();
+        MarketplaceCategories.Clear();
+
+        foreach (var group in RegistryPlugins
+                     .GroupBy(plugin => plugin.CategoryKey)
+                     .OrderBy(group => group.First().CategorySortOrder))
+        {
+            var first = group.First();
+            MarketplaceGroups.Add(new RegistryPluginCategoryGroupViewModel(first.CategoryLabel, group));
+            MarketplaceCategories.Add(new MarketplaceCategoryTabViewModel(first.CategoryKey, first.CategoryLabel, group.Count()));
+        }
+
+        SelectedMarketplaceCategoryKey = MarketplaceCategories.Any(category => category.Key == selectedCategory)
+            ? selectedCategory
+            : MarketplaceCategories.FirstOrDefault()?.Key;
+    }
 }
 
 public partial class RegistryPluginCategoryGroupViewModel : ObservableObject
@@ -200,7 +237,7 @@ public partial class PluginItemViewModel : ObservableObject
     public string Category => PluginMarketplaceCategories.Resolve(_plugin.Manifest.Category ?? DetectCategory()).DisplayName;
 
     public bool IsLocal => _plugin.Manifest.IsLocal;
-    public string LocationBadge => IsLocal ? "Local" : "Cloud";
+    public string LocationBadge => IsLocal ? Loc.Instance["Plugins.Local"] : Loc.Instance["Plugins.Cloud"];
 
     public PluginItemViewModel(LoadedPlugin plugin, bool isEnabled, PluginManager pluginManager, PluginRegistryService registryService)
     {
@@ -260,4 +297,11 @@ public partial class PluginItemViewModel : ObservableObject
         TypeWhisper.PluginSDK.IActionPlugin => "action",
         _ => "utility"
     };
+
+    internal void NotifyLocalizationChanged()
+    {
+        OnPropertyChanged(nameof(StatusLabel));
+        OnPropertyChanged(nameof(Category));
+        OnPropertyChanged(nameof(LocationBadge));
+    }
 }

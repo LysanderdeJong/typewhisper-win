@@ -5,7 +5,6 @@ namespace TypeWhisper.Windows.ViewModels;
 public enum SettingsRoute
 {
     Dashboard,
-    Setup,
     Dictation,
     Shortcuts,
     FileTranscription,

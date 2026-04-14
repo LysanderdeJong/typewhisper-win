@@ -14,7 +14,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="28,22,28,28" MaxWidth="980">
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
-                <TextBlock Text="Language" Style="{StaticResource SettingsGroupTitleStyle}"/>
+                <TextBlock Text="{loc:Str General.Language}" Style="{StaticResource SettingsGroupTitleStyle}"/>
                 <Border Style="{StaticResource SettingsGroupPanelStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -29,7 +29,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="App language"
+                                <TextBlock Text="{loc:Str General.UiLanguage}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
                                 <ComboBox Grid.Column="1"
                                           Style="{StaticResource SettingsAlignedComboBoxStyle}"
@@ -53,7 +53,7 @@
             </StackPanel>
 
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
-                <TextBlock Text="Startup" Style="{StaticResource SettingsGroupTitleStyle}"/>
+                <TextBlock Text="{loc:Str General.Startup}" Style="{StaticResource SettingsGroupTitleStyle}"/>
                 <Border Style="{StaticResource SettingsGroupPanelStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -80,7 +80,7 @@
                         <Border Grid.Row="1" Background="#18FFFFFF"/>
 
                         <Border Grid.Row="2" Style="{StaticResource SettingsRowBorderStyle}">
-                            <TextBlock Text="TypeWhisper starts automatically when you log in to Windows."
+                            <TextBlock Text="{loc:Str General.AutostartHint}"
                                        Style="{StaticResource HintStyle}"
                                        FontSize="12"
                                        Margin="0"/>
@@ -90,7 +90,7 @@
             </StackPanel>
 
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
-                <TextBlock Text="Services" Style="{StaticResource SettingsGroupTitleStyle}"/>
+                <TextBlock Text="{loc:Str General.Services}" Style="{StaticResource SettingsGroupTitleStyle}"/>
                 <Border Style="{StaticResource SettingsGroupPanelStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -107,7 +107,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Enable local API"
+                                <TextBlock Text="{loc:Str General.LocalApi}"
                                            Style="{StaticResource SettingsRowLabelStyle}"/>
                                 <ui:ToggleSwitch Grid.Column="1"
                                                  IsChecked="{Binding Settings.ApiServerEnabled}"
@@ -135,7 +135,7 @@
                         <Border Grid.Row="3" Background="#18FFFFFF"/>
 
                         <Border Grid.Row="4" Style="{StaticResource SettingsRowBorderStyle}">
-                            <TextBlock Text="Expose the local REST endpoint for integrations and automation."
+                            <TextBlock Text="{loc:Str General.LocalApiHint}"
                                        Style="{StaticResource HintStyle}"
                                        FontSize="12"
                                        Margin="0"/>

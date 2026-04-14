@@ -51,22 +51,9 @@ public partial class ProfilesViewModel : ObservableObject
     [ObservableProperty] private string _matchedProfileName = Loc.Instance["Profiles.NoProfile"];
     [ObservableProperty] private bool _hasMatchedProfile;
 
-    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = LocalizeTranslationOptions(TranslationModelInfo.ProfileTargetOptions);
-    public IReadOnlyList<SettingOption> LanguageOptions { get; } =
-    [
-        new(null, Loc.Instance["Profiles.GlobalSetting"]),
-        new("auto", Loc.Instance["Profiles.Auto"]),
-        new("de", "Deutsch"),
-        new("en", "English"),
-        new("fr", "Français"),
-        new("es", "Español")
-    ];
-    public IReadOnlyList<SettingOption> TaskOptions { get; } =
-    [
-        new(null, Loc.Instance["Profiles.TaskGlobal"]),
-        new("transcribe", Loc.Instance["Profiles.TaskTranscribe"]),
-        new("translate", Loc.Instance["Profiles.TaskTranslate"])
-    ];
+    public ObservableCollection<TranslationTargetOption> TranslationTargetOptions { get; } = [];
+    public ObservableCollection<SettingOption> LanguageOptions { get; } = [];
+    public ObservableCollection<SettingOption> TaskOptions { get; } = [];
 
     private static IReadOnlyList<TranslationTargetOption> LocalizeTranslationOptions(IReadOnlyList<TranslationTargetOption> options) =>
         options.Select(o => o.DisplayName switch
@@ -104,7 +91,9 @@ public partial class ProfilesViewModel : ObservableObject
         _activeWindow = activeWindow;
         _settings = settings;
         _modelManager = modelManager;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
 
+        RefreshLocalizedCollections();
         RebuildModelOptions();
         modelManager.PluginManager.PluginStateChanged += (_, _) =>
             System.Windows.Application.Current?.Dispatcher.Invoke(RebuildModelOptions);
@@ -126,6 +115,38 @@ public partial class ProfilesViewModel : ObservableObject
                 AvailableModelOptions.Add(new(ModelManagerService.GetPluginModelId(engine.PluginId, model.Id),
                     $"{engine.ProviderDisplayName}: {model.DisplayName}"));
         EditTranscriptionModelOverride = selected;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            RefreshLocalizedCollections();
+            RebuildModelOptions();
+            if (!HasMatchedProfile)
+                MatchedProfileName = Loc.Instance["Profiles.NoProfile"];
+            NotifyStateChanged();
+        });
+    }
+
+    private void RefreshLocalizedCollections()
+    {
+        ReplaceCollection(TranslationTargetOptions, LocalizeTranslationOptions(TranslationModelInfo.ProfileTargetOptions));
+        ReplaceCollection(LanguageOptions,
+        [
+            new SettingOption(null, Loc.Instance["Profiles.GlobalSetting"]),
+            new SettingOption("auto", Loc.Instance["Profiles.Auto"]),
+            new SettingOption("de", "Deutsch"),
+            new SettingOption("en", "English"),
+            new SettingOption("fr", "Français"),
+            new SettingOption("es", "Español")
+        ]);
+        ReplaceCollection(TaskOptions,
+        [
+            new SettingOption(null, Loc.Instance["Profiles.TaskGlobal"]),
+            new SettingOption("transcribe", Loc.Instance["Profiles.TaskTranscribe"]),
+            new SettingOption("translate", Loc.Instance["Profiles.TaskTranslate"])
+        ]);
     }
 
     private void UpdateCurrentWindow()
@@ -442,6 +463,13 @@ public partial class ProfilesViewModel : ObservableObject
             return uri.Host;
 
         return rawUrl;
+    }
+
+    private static void ReplaceCollection<T>(ObservableCollection<T> target, IEnumerable<T> values)
+    {
+        target.Clear();
+        foreach (var value in values)
+            target.Add(value);
     }
 }
 

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:models="clr-namespace:TypeWhisper.Core.Models;assembly=TypeWhisper.Core"
              xmlns:overlay="clr-namespace:TypeWhisper.Windows.Controls.Overlay"
-             xmlns:vms="clr-namespace:TypeWhisper.Windows.ViewModels">
+             xmlns:loc="clr-namespace:TypeWhisper.Windows.Services.Localization">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,7 +15,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="28,22,28,28" MaxWidth="980">
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
-                <TextBlock Text="Overlay layout" Style="{StaticResource SettingsGroupTitleStyle}"/>
+                <TextBlock Text="{loc:Str Appearance.LayoutSection}" Style="{StaticResource SettingsGroupTitleStyle}"/>
                 <Border Style="{StaticResource SettingsGroupPanelStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -32,13 +32,13 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Position" Style="{StaticResource SettingsRowLabelStyle}"/>
+                                <TextBlock Text="{loc:Str General.Position}" Style="{StaticResource SettingsRowLabelStyle}"/>
                                 <ComboBox Grid.Column="1"
                                           Style="{StaticResource SettingsAlignedComboBoxStyle}"
                                           SelectedValue="{Binding Settings.OverlayPosition}"
                                           SelectedValuePath="Tag">
-                                    <ComboBoxItem Content="Top" Tag="{x:Static models:OverlayPosition.Top}"/>
-                                    <ComboBoxItem Content="Bottom" Tag="{x:Static models:OverlayPosition.Bottom}"/>
+                                    <ComboBoxItem Content="{loc:Str General.PositionTop}" Tag="{x:Static models:OverlayPosition.Top}"/>
+                                    <ComboBoxItem Content="{loc:Str General.PositionBottom}" Tag="{x:Static models:OverlayPosition.Bottom}"/>
                                 </ComboBox>
                             </Grid>
                         </Border>
@@ -51,10 +51,10 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Left content" Style="{StaticResource SettingsRowLabelStyle}"/>
+                                <TextBlock Text="{loc:Str Appearance.LeftContent}" Style="{StaticResource SettingsRowLabelStyle}"/>
                                 <ComboBox Grid.Column="1"
                                           Style="{StaticResource SettingsAlignedComboBoxStyle}"
-                                          ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
+                                          ItemsSource="{Binding Settings.WidgetOptions}"
                                           SelectedValue="{Binding Settings.OverlayLeftWidget}"
                                           SelectedValuePath="Value"
                                           DisplayMemberPath="DisplayName"/>
@@ -69,10 +69,10 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Right content" Style="{StaticResource SettingsRowLabelStyle}"/>
+                                <TextBlock Text="{loc:Str Appearance.RightContent}" Style="{StaticResource SettingsRowLabelStyle}"/>
                                 <ComboBox Grid.Column="1"
                                           Style="{StaticResource SettingsAlignedComboBoxStyle}"
-                                          ItemsSource="{x:Static vms:SettingsViewModel.WidgetOptions}"
+                                          ItemsSource="{Binding Settings.WidgetOptions}"
                                           SelectedValue="{Binding Settings.OverlayRightWidget}"
                                           SelectedValuePath="Value"
                                           DisplayMemberPath="DisplayName"/>
@@ -83,11 +83,11 @@
             </StackPanel>
 
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
-                <TextBlock Text="Preview" Style="{StaticResource SettingsGroupTitleStyle}"/>
+                <TextBlock Text="{loc:Str General.Preview}" Style="{StaticResource SettingsGroupTitleStyle}"/>
                 <Border Style="{StaticResource SettingsGroupPanelStyle}">
                     <Border Background="#120C1118" CornerRadius="14" Padding="28" MinHeight="180" Margin="16">
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Overlay indicator"
+                            <TextBlock Text="{loc:Str Appearance.PreviewTitle}"
                                        Foreground="{StaticResource HintBrush}"
                                        HorizontalAlignment="Center"
                                        Margin="0,0,0,14"/>
@@ -109,11 +109,11 @@
                                                                VerticalAlignment="Center"
                                                                Margin="0,0,12,0"/>
                                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                        <TextBlock Text="Recording"
+                                        <TextBlock Text="{loc:Str Appearance.PreviewStatus}"
                                                    Foreground="{StaticResource TextBrush}"
                                                    FontSize="14"
                                                    HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Graphite body, brighter azure focus, and denser runtime metadata."
+                                        <TextBlock Text="{loc:Str Appearance.PreviewHint}"
                                                    Foreground="{StaticResource HintBrush}"
                                                    FontSize="11"
                                                    TextAlignment="Center"

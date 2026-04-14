@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TypeWhisper.Core.Interfaces;
@@ -45,7 +46,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _promptPaletteHotkey = "";
     [ObservableProperty] private string? _uiLanguage;
 
-    public IReadOnlyList<TranslationTargetOption> TranslationTargetOptions { get; } = LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions);
+    public ObservableCollection<TranslationTargetOption> TranslationTargetOptions { get; } = [];
 
     private static IReadOnlyList<TranslationTargetOption> LocalizeTranslationOptions(IReadOnlyList<TranslationTargetOption> options) =>
         options.Select(o => o.DisplayName switch
@@ -54,9 +55,8 @@ public partial class SettingsViewModel : ObservableObject
             "Globale Einstellung" => o with { DisplayName = Loc.Instance["Translation.GlobalSetting"] },
             _ => o
         }).ToList();
-    public ObservableCollection<MicrophoneItem> Microphones { get; } = [];
 
-    public static IReadOnlyList<OverlayWidgetOption> WidgetOptions { get; } =
+    private static IReadOnlyList<OverlayWidgetOption> BuildWidgetOptions() =>
     [
         new(OverlayWidget.None, Loc.Instance["Widget.None"]),
         new(OverlayWidget.Indicator, Loc.Instance["Widget.Indicator"]),
@@ -67,6 +67,9 @@ public partial class SettingsViewModel : ObservableObject
         new(OverlayWidget.HotkeyMode, Loc.Instance["Widget.HotkeyMode"]),
         new(OverlayWidget.AppName, Loc.Instance["Widget.AppName"]),
     ];
+
+    public ObservableCollection<MicrophoneItem> Microphones { get; } = [];
+    public ObservableCollection<OverlayWidgetOption> WidgetOptions { get; } = [];
 
     private bool _isLoading;
 
@@ -87,8 +90,10 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settings = settings;
         _audio = audio;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
 
         _isLoading = true;
+        RefreshLocalizedCollections();
         LoadFromSettings(_settings.Current);
         AutostartEnabled = StartupService.IsEnabled;
         RefreshMicrophones();
@@ -225,6 +230,25 @@ public partial class SettingsViewModel : ObservableObject
             AutostartEnabled = StartupService.IsEnabled;
             _isLoading = false;
         });
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.Invoke(RefreshLocalizedCollections);
+    }
+
+    private void RefreshLocalizedCollections()
+    {
+        ReplaceCollection(TranslationTargetOptions, LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions));
+        ReplaceCollection(WidgetOptions, BuildWidgetOptions());
+        RefreshMicrophones();
+    }
+
+    private static void ReplaceCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> values)
+    {
+        target.Clear();
+        foreach (var value in values)
+            target.Add(value);
     }
 }
 

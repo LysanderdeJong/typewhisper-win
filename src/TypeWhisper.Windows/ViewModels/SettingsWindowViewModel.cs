@@ -83,6 +83,15 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
         FileTranscription = fileTranscription;
         _updateService = updateService;
         _errorLog = errorLog;
+        Loc.Instance.LanguageChanged += (_, _) =>
+        {
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                BuildNavigation();
+                SyncRouteMetadata(CurrentRoute);
+                SyncNavigationSelection();
+            });
+        };
 
         BuildNavigation();
         RefreshErrorLog();
@@ -118,9 +127,6 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
     [RelayCommand]
     private Task OpenShortcuts() => NavigateToRoute(SettingsRoute.Shortcuts);
-
-    [RelayCommand]
-    private Task OpenSetup() => NavigateToRoute(SettingsRoute.Setup);
 
     [RelayCommand]
     private void OpenFileImporter()
@@ -249,41 +255,40 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
         NavigationGroups.Clear();
         _navigationLookup.Clear();
 
-        NavigationGroups.Add(CreateGroup(SettingsGroup.Overview, "Overview",
+        NavigationGroups.Add(CreateGroup(SettingsGroup.Overview, Loc.Instance["SettingsGroup.Overview"],
         [
-            new SettingsNavigationItem(SettingsRoute.Dashboard, "Dashboard", "\uE80F"),
-            new SettingsNavigationItem(SettingsRoute.Setup, "Setup", "\uE82D")
+            new SettingsNavigationItem(SettingsRoute.Dashboard, Loc.Instance["Nav.Dashboard"], "\uE80F")
         ]));
 
-        NavigationGroups.Add(CreateGroup(SettingsGroup.Capture, "Capture",
+        NavigationGroups.Add(CreateGroup(SettingsGroup.Capture, Loc.Instance["SettingsGroup.Capture"],
         [
-            new SettingsNavigationItem(SettingsRoute.Dictation, "Dictation", "\uE720"),
-            new SettingsNavigationItem(SettingsRoute.Shortcuts, "Shortcuts", "\uE765"),
-            new SettingsNavigationItem(SettingsRoute.FileTranscription, "File transcription", "\uE8A5"),
-            new SettingsNavigationItem(SettingsRoute.Recorder, "Recorder", "\uE189")
+            new SettingsNavigationItem(SettingsRoute.Dictation, Loc.Instance["Nav.Dictation"], "\uE720"),
+            new SettingsNavigationItem(SettingsRoute.Shortcuts, Loc.Instance["Nav.Shortcuts"], "\uE765"),
+            new SettingsNavigationItem(SettingsRoute.FileTranscription, Loc.Instance["Nav.FileTranscription"], "\uE8A5"),
+            new SettingsNavigationItem(SettingsRoute.Recorder, Loc.Instance["Nav.Recorder"], "\uE189")
         ]));
 
-        NavigationGroups.Add(CreateGroup(SettingsGroup.Library, "Library",
+        NavigationGroups.Add(CreateGroup(SettingsGroup.Library, Loc.Instance["SettingsGroup.Library"],
         [
-            new SettingsNavigationItem(SettingsRoute.History, "History", "\uE81C"),
-            new SettingsNavigationItem(SettingsRoute.Dictionary, "Dictionary", "\uE8D2"),
-            new SettingsNavigationItem(SettingsRoute.Snippets, "Snippets", "\uE8C8"),
-            new SettingsNavigationItem(SettingsRoute.Profiles, "Profiles", "\uE77B")
+            new SettingsNavigationItem(SettingsRoute.History, Loc.Instance["Nav.History"], "\uE81C"),
+            new SettingsNavigationItem(SettingsRoute.Dictionary, Loc.Instance["Nav.Dictionary"], "\uE8D2"),
+            new SettingsNavigationItem(SettingsRoute.Snippets, Loc.Instance["Nav.Snippets"], "\uE8C8"),
+            new SettingsNavigationItem(SettingsRoute.Profiles, Loc.Instance["Nav.Profiles"], "\uE77B")
         ]));
 
-        NavigationGroups.Add(CreateGroup(SettingsGroup.AI, "AI",
+        NavigationGroups.Add(CreateGroup(SettingsGroup.AI, Loc.Instance["SettingsGroup.AI"],
         [
-            new SettingsNavigationItem(SettingsRoute.Prompts, "Prompts", "\uE8FD"),
-            new SettingsNavigationItem(SettingsRoute.Integrations, "Integrations", "\uE943")
+            new SettingsNavigationItem(SettingsRoute.Prompts, Loc.Instance["Nav.Prompts"], "\uE8FD"),
+            new SettingsNavigationItem(SettingsRoute.Integrations, Loc.Instance["Nav.Plugins"], "\uE943")
         ]));
 
-        NavigationGroups.Add(CreateGroup(SettingsGroup.System, "System",
+        NavigationGroups.Add(CreateGroup(SettingsGroup.System, Loc.Instance["SettingsGroup.System"],
         [
-            new SettingsNavigationItem(SettingsRoute.General, "General", "\uE713"),
-            new SettingsNavigationItem(SettingsRoute.Appearance, "Appearance", "\uE790"),
-            new SettingsNavigationItem(SettingsRoute.Advanced, "Advanced", "\uE9CE"),
-            new SettingsNavigationItem(SettingsRoute.License, "License", "\uE72E"),
-            new SettingsNavigationItem(SettingsRoute.About, "About", "\uE946")
+            new SettingsNavigationItem(SettingsRoute.General, Loc.Instance["Nav.General"], "\uE713"),
+            new SettingsNavigationItem(SettingsRoute.Appearance, Loc.Instance["Nav.Appearance"], "\uE790"),
+            new SettingsNavigationItem(SettingsRoute.Advanced, Loc.Instance["Nav.Advanced"], "\uE9CE"),
+            new SettingsNavigationItem(SettingsRoute.License, Loc.Instance["Nav.License"], "\uE72E"),
+            new SettingsNavigationItem(SettingsRoute.About, Loc.Instance["Nav.About"], "\uE946")
         ]));
     }
 
@@ -315,45 +320,43 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
         CurrentPageTitle = route switch
         {
-            SettingsRoute.Dashboard => "Dashboard",
-            SettingsRoute.Setup => "Setup",
-            SettingsRoute.Dictation => "Dictation",
-            SettingsRoute.Shortcuts => "Shortcuts",
-            SettingsRoute.FileTranscription => "File transcription",
-            SettingsRoute.Recorder => "Recorder",
-            SettingsRoute.History => "History",
-            SettingsRoute.Dictionary => "Dictionary",
-            SettingsRoute.Snippets => "Snippets",
-            SettingsRoute.Profiles => "Profiles",
-            SettingsRoute.Prompts => "Prompts",
-            SettingsRoute.Integrations => "Integrations",
-            SettingsRoute.General => "General",
-            SettingsRoute.Appearance => "Appearance",
-            SettingsRoute.Advanced => "Advanced",
-            SettingsRoute.License => "License",
-            SettingsRoute.About => "About",
-            _ => "Settings"
+            SettingsRoute.Dashboard => Loc.Instance["Nav.Dashboard"],
+            SettingsRoute.Dictation => Loc.Instance["Nav.Dictation"],
+            SettingsRoute.Shortcuts => Loc.Instance["Nav.Shortcuts"],
+            SettingsRoute.FileTranscription => Loc.Instance["Nav.FileTranscription"],
+            SettingsRoute.Recorder => Loc.Instance["Nav.Recorder"],
+            SettingsRoute.History => Loc.Instance["Nav.History"],
+            SettingsRoute.Dictionary => Loc.Instance["Nav.Dictionary"],
+            SettingsRoute.Snippets => Loc.Instance["Nav.Snippets"],
+            SettingsRoute.Profiles => Loc.Instance["Nav.Profiles"],
+            SettingsRoute.Prompts => Loc.Instance["Nav.Prompts"],
+            SettingsRoute.Integrations => Loc.Instance["Nav.Plugins"],
+            SettingsRoute.General => Loc.Instance["Nav.General"],
+            SettingsRoute.Appearance => Loc.Instance["Nav.Appearance"],
+            SettingsRoute.Advanced => Loc.Instance["Nav.Advanced"],
+            SettingsRoute.License => Loc.Instance["Nav.License"],
+            SettingsRoute.About => Loc.Instance["Nav.About"],
+            _ => Loc.Instance["Settings.WindowTitle"]
         };
 
         CurrentPageSubtitle = route switch
         {
-            SettingsRoute.Dashboard => "Health, activity, and the quickest path back into the app.",
-            SettingsRoute.Setup => "A guided handoff for first-run checks, permissions, engines, and shortcuts.",
-            SettingsRoute.Dictation => "Engines, capture behavior, microphone controls, and translation defaults.",
-            SettingsRoute.Shortcuts => "Keyboard-first control over dictation, hold, toggle, and prompt actions.",
-            SettingsRoute.FileTranscription => "Transcribe audio or video files without leaving the settings shell.",
-            SettingsRoute.Recorder => "A dedicated recorder for longer takes and one-off captures.",
-            SettingsRoute.History => "Review, search, and refine your transcription timeline.",
-            SettingsRoute.Dictionary => "Corrections, packs, and reusable term quality improvements.",
-            SettingsRoute.Snippets => "Fast reusable insertions and placeholder-driven expansions.",
-            SettingsRoute.Profiles => "Context-aware overrides by app, website, and workflow.",
-            SettingsRoute.Prompts => "Prompt actions and default LLM routing for post-processing.",
-            SettingsRoute.Integrations => "Installed plugins, marketplace updates, and provider setup.",
-            SettingsRoute.General => "App-wide language, startup, and service controls.",
-            SettingsRoute.Appearance => "Overlay layout, widget composition, and indicator previews.",
-            SettingsRoute.Advanced => "Memory, retention, unloading, and diagnostic behavior.",
-            SettingsRoute.License => "License status and supporter information.",
-            SettingsRoute.About => "Versioning, diagnostics, and project credits.",
+            SettingsRoute.Dashboard => Loc.Instance["Page.DashboardSubtitle"],
+            SettingsRoute.Dictation => Loc.Instance["Page.DictationSubtitle"],
+            SettingsRoute.Shortcuts => Loc.Instance["Page.ShortcutsSubtitle"],
+            SettingsRoute.FileTranscription => Loc.Instance["Page.FileTranscriptionSubtitle"],
+            SettingsRoute.Recorder => Loc.Instance["Page.RecorderSubtitle"],
+            SettingsRoute.History => Loc.Instance["Page.HistorySubtitle"],
+            SettingsRoute.Dictionary => Loc.Instance["Page.DictionarySubtitle"],
+            SettingsRoute.Snippets => Loc.Instance["Page.SnippetsSubtitle"],
+            SettingsRoute.Profiles => Loc.Instance["Page.ProfilesSubtitle"],
+            SettingsRoute.Prompts => Loc.Instance["Page.PromptsSubtitle"],
+            SettingsRoute.Integrations => Loc.Instance["Page.IntegrationsSubtitle"],
+            SettingsRoute.General => Loc.Instance["Page.GeneralSubtitle"],
+            SettingsRoute.Appearance => Loc.Instance["Page.AppearanceSubtitle"],
+            SettingsRoute.Advanced => Loc.Instance["Page.AdvancedSubtitle"],
+            SettingsRoute.License => Loc.Instance["Page.LicenseSubtitle"],
+            SettingsRoute.About => Loc.Instance["Page.AboutSubtitle"],
             _ => string.Empty
         };
     }
