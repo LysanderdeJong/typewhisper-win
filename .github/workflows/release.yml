@@ -17,6 +17,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
 
       - name: Extract version from tag
         id: ver
@@ -25,24 +29,52 @@ jobs:
           $v = "${{ github.ref_name }}" -replace '^v',''
           echo "VERSION=$v" >> $env:GITHUB_OUTPUT
 
-      - run: dotnet restore
+      - name: Restore solution
+        run: dotnet restore TypeWhisper.slnx
 
-      - run: dotnet build -c Release -p:Version=${{ steps.ver.outputs.VERSION }} --no-restore
+      - name: Build solution
+        run: dotnet build TypeWhisper.slnx -c Release -p:Version=${{ steps.ver.outputs.VERSION }} --no-restore
 
-      - run: dotnet test -c Release --no-build
-        if: matrix.rid == 'win-x64'
-
-      - run: dotnet publish src/TypeWhisper.Windows -c Release -r ${{ matrix.rid }} -p:Version=${{ steps.ver.outputs.VERSION }} -o publish
-
-      - name: Copy built-in plugins to publish
+      - name: Build bundled plugins
         shell: pwsh
         run: |
-          $pluginsSrc = "src/TypeWhisper.Windows/bin/Release/net10.0-windows/Plugins"
-          if (Test-Path $pluginsSrc) {
-            Copy-Item -Path $pluginsSrc -Destination "publish/Plugins" -Recurse
+          foreach ($project in Get-ChildItem plugins -Recurse -Filter *.csproj | Sort-Object FullName) {
+            dotnet restore $project.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Restore failed: $($project.FullName)"
+            }
+
+            dotnet build $project.FullName -c Release --no-restore -p:Version=${{ steps.ver.outputs.VERSION }}
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build failed: $($project.FullName)"
+            }
           }
 
-      - run: dotnet tool install -g vpk
+      - name: Test TypeWhisper.Core
+        run: dotnet test tests/TypeWhisper.Core.Tests/TypeWhisper.Core.Tests.csproj -c Release --no-build
+        if: matrix.rid == 'win-x64'
+
+      - name: Test plugin system
+        run: dotnet test tests/TypeWhisper.PluginSystem.Tests/TypeWhisper.PluginSystem.Tests.csproj -c Release --no-build
+        if: matrix.rid == 'win-x64'
+
+      - name: Publish app
+        run: dotnet publish src/TypeWhisper.Windows/TypeWhisper.Windows.csproj -c Release -r ${{ matrix.rid }} -p:Version=${{ steps.ver.outputs.VERSION }} -o publish
+
+      - name: Copy bundled plugins into publish output
+        shell: pwsh
+        run: |
+          $pluginsSrc = Resolve-Path "src/TypeWhisper.Windows/bin/Release/net10.0-windows/Plugins"
+          $pluginDirs = Get-ChildItem $pluginsSrc -Directory
+
+          if (-not $pluginDirs) {
+            throw "No bundled plugins found in $pluginsSrc."
+          }
+
+          Copy-Item -Path $pluginsSrc -Destination "publish/Plugins" -Recurse -Force
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
 
       - name: Velopack Pack
         shell: pwsh

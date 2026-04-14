@@ -1,0 +1,189 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+
+  codeql:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          queries: security-extended,security-and-quality
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Restore solution and CLI
+        shell: pwsh
+        run: |
+          dotnet restore TypeWhisper.slnx
+          if ($LASTEXITCODE -ne 0) {
+            throw "Solution restore failed."
+          }
+
+          dotnet restore src/TypeWhisper.Cli/TypeWhisper.Cli.csproj
+          if ($LASTEXITCODE -ne 0) {
+            throw "CLI restore failed."
+          }
+
+      - name: Restore plugin projects
+        shell: pwsh
+        run: |
+          foreach ($project in Get-ChildItem plugins -Recurse -Filter *.csproj | Sort-Object FullName) {
+            dotnet restore $project.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Restore failed: $($project.FullName)"
+            }
+          }
+
+      - name: Build repository for CodeQL
+        shell: pwsh
+        run: |
+          dotnet build TypeWhisper.slnx -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) {
+            throw "Solution build failed."
+          }
+
+          dotnet build src/TypeWhisper.Cli/TypeWhisper.Cli.csproj -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) {
+            throw "CLI build failed."
+          }
+
+          foreach ($project in Get-ChildItem plugins -Recurse -Filter *.csproj | Sort-Object FullName) {
+            dotnet build $project.FullName -c Release --no-restore
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build failed: $($project.FullName)"
+            }
+          }
+
+      - uses: github/codeql-action/analyze@v3
+
+  dotnet-package-audit:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Create artifact directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path artifacts/security | Out-Null
+
+      - name: Audit NuGet dependencies
+        shell: pwsh
+        run: |
+          $failed = $false
+
+          foreach ($project in Get-ChildItem src, tests, plugins -Recurse -Filter *.csproj | Sort-Object FullName) {
+            $safeName = ($project.FullName.Replace($env:GITHUB_WORKSPACE, '').TrimStart('\') -replace '[\\/:*?"<>| ]', '_')
+
+            Write-Host "Auditing $($project.FullName)"
+            $reportJson = & dotnet list $project.FullName package --vulnerable --include-transitive --format json
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "dotnet list package failed: $($project.FullName)"
+            }
+
+            $reportJson | Set-Content "artifacts/security/$safeName.json"
+            $report = $reportJson | ConvertFrom-Json -Depth 100
+            $projectHasVulnerabilities = $false
+
+            foreach ($projectReport in @($report.projects | Where-Object { $null -ne $_ })) {
+              foreach ($framework in @($projectReport.frameworks | Where-Object { $null -ne $_ })) {
+                $topLevelPackages = @($framework.topLevelPackages | Where-Object { $null -ne $_ })
+                $transitivePackages = @($framework.transitivePackages | Where-Object { $null -ne $_ })
+
+                if ($topLevelPackages.Count -gt 0 -or $transitivePackages.Count -gt 0) {
+                  $projectHasVulnerabilities = $true
+                }
+              }
+            }
+
+            if ($projectHasVulnerabilities) {
+              Write-Warning "Vulnerable packages detected in $($project.FullName)"
+              $failed = $true
+            }
+          }
+
+          if ($failed) {
+            throw "One or more .NET projects have vulnerable packages."
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dotnet-package-audit
+          path: artifacts/security/*.json
+          if-no-files-found: ignore
+
+  python-package-audit:
+    if: ${{ hashFiles('plugins/TypeWhisper.Plugin.GraniteSpeech/Scripts/requirements.txt') != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+
+      - name: Audit Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/security
+          pip-audit -r plugins/TypeWhisper.Plugin.GraniteSpeech/Scripts/requirements.txt --progress-spinner off | tee artifacts/security/granite-speech-pip-audit.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-package-audit
+          path: artifacts/security/*.txt
+          if-no-files-found: ignore

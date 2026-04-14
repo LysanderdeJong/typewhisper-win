@@ -17,6 +17,7 @@ public sealed class PluginManager : IDisposable
     private readonly IActiveWindowService _activeWindow;
     private readonly IProfileService _profiles;
     private readonly ISettingsService _settings;
+    private readonly string[] _searchDirectories;
 
     private readonly List<LoadedPlugin> _allPlugins = [];
     private readonly Dictionary<string, PluginHostServices> _hostServices = [];
@@ -34,12 +35,24 @@ public sealed class PluginManager : IDisposable
         IActiveWindowService activeWindow,
         IProfileService profiles,
         ISettingsService settings)
+        : this(loader, eventBus, activeWindow, profiles, settings, [TypeWhisperEnvironment.PluginsPath])
+    {
+    }
+
+    internal PluginManager(
+        PluginLoader loader,
+        PluginEventBus eventBus,
+        IActiveWindowService activeWindow,
+        IProfileService profiles,
+        ISettingsService settings,
+        IEnumerable<string> searchDirectories)
     {
         _loader = loader;
         _eventBus = eventBus;
         _activeWindow = activeWindow;
         _profiles = profiles;
         _settings = settings;
+        _searchDirectories = searchDirectories.ToArray();
     }
 
     /// <summary>All discovered plugins (enabled and disabled).</summary>
@@ -89,12 +102,12 @@ public sealed class PluginManager : IDisposable
     public PluginEventBus EventBus => _eventBus;
 
     /// <summary>
-    /// Discovers plugins from the user plugins directory, restores enabled state
-    /// from settings, and activates all enabled plugins.
+    /// Discovers plugins from the configured search directories, restores enabled
+    /// state from settings, and activates all enabled plugins.
     /// </summary>
     public async Task InitializeAsync()
     {
-        var discovered = _loader.DiscoverAndLoad([TypeWhisperEnvironment.PluginsPath]);
+        var discovered = _loader.DiscoverAndLoad(_searchDirectories);
 
         lock (_lock)
         {

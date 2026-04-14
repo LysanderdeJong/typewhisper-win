@@ -1,0 +1,164 @@
+name: Plugins Smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugins-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover-plugins:
+    runs-on: windows-latest
+    outputs:
+      projects: ${{ steps.discover.outputs.projects }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: discover
+        shell: pwsh
+        run: |
+          $projects = Get-ChildItem plugins -Recurse -Filter *.csproj |
+            Sort-Object FullName |
+            ForEach-Object {
+              [ordered]@{
+                name = $_.BaseName
+                path = $_.FullName.Replace($env:GITHUB_WORKSPACE + [System.IO.Path]::DirectorySeparatorChar, '').Replace('\', '/')
+              }
+            }
+
+          if (-not $projects) {
+            throw "No plugin projects found under plugins/."
+          }
+
+          "projects=$($projects | ConvertTo-Json -Compress -Depth 3)" >> $env:GITHUB_OUTPUT
+
+  validate-metadata:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin manifests and localization files
+        shell: pwsh
+        run: |
+          $errors = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($manifestPath in Get-ChildItem plugins -Recurse -Filter manifest.json | Sort-Object FullName) {
+            try {
+              $manifest = Get-Content $manifestPath.FullName -Raw | ConvertFrom-Json
+            } catch {
+              $errors.Add("Invalid JSON in $($manifestPath.FullName): $($_.Exception.Message)")
+              continue
+            }
+
+            foreach ($key in 'id', 'name', 'version', 'assemblyName', 'pluginClass') {
+              if ([string]::IsNullOrWhiteSpace([string]$manifest.$key)) {
+                $errors.Add("Missing or empty '$key' in $($manifestPath.FullName)")
+              }
+            }
+
+            if ($manifest.assemblyName -and -not ([string]$manifest.assemblyName).EndsWith('.dll')) {
+              $errors.Add("assemblyName must end with .dll in $($manifestPath.FullName)")
+            }
+
+            $localizationDir = Join-Path $manifestPath.Directory.FullName 'Localization'
+            if (Test-Path $localizationDir) {
+              foreach ($locPath in Get-ChildItem $localizationDir -Filter *.json | Sort-Object FullName) {
+                try {
+                  $localization = Get-Content $locPath.FullName -Raw | ConvertFrom-Json -AsHashtable
+                } catch {
+                  $errors.Add("Invalid JSON in $($locPath.FullName): $($_.Exception.Message)")
+                  continue
+                }
+
+                if ($localization -isnot [System.Collections.IDictionary]) {
+                  $errors.Add("Localization file must contain a JSON object: $($locPath.FullName)")
+                }
+              }
+            }
+          }
+
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+
+  build-plugin:
+    needs: discover-plugins
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJson(needs.discover-plugins.outputs.projects) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            Directory.Build.props
+
+      - name: Create artifact directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path artifacts/logs | Out-Null
+
+      - name: Restore ${{ matrix.plugin.name }}
+        run: dotnet restore ${{ matrix.plugin.path }}
+
+      - name: Build ${{ matrix.plugin.name }}
+        run: dotnet build ${{ matrix.plugin.path }} -c Release --no-restore -bl:artifacts/logs/${{ matrix.plugin.name }}.binlog
+
+      - name: Validate built output
+        shell: pwsh
+        run: |
+          $projectPath = Resolve-Path "${{ matrix.plugin.path }}"
+          $projectDir = Split-Path $projectPath -Parent
+          $manifestPath = Join-Path $projectDir 'manifest.json'
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          $outputDir = Join-Path $projectDir 'bin/Release/net10.0-windows'
+          $assemblyPath = Join-Path $outputDir $manifest.assemblyName
+          $copiedManifestPath = Join-Path $outputDir 'manifest.json'
+
+          if (-not (Test-Path $assemblyPath)) {
+            throw "Expected plugin assembly not found: $assemblyPath"
+          }
+
+          if (-not (Test-Path $copiedManifestPath)) {
+            throw "manifest.json was not copied to output: $copiedManifestPath"
+          }
+
+          $localizationSourceDir = Join-Path $projectDir 'Localization'
+          if (Test-Path $localizationSourceDir) {
+            $builtLocalizationDir = Join-Path $outputDir 'Localization'
+            if (-not (Test-Path $builtLocalizationDir)) {
+              throw "Built localization directory missing: $builtLocalizationDir"
+            }
+          }
+
+          $scriptSourceDir = Join-Path $projectDir 'Scripts'
+          if (Test-Path $scriptSourceDir) {
+            $builtScriptDir = Join-Path $outputDir 'Scripts'
+            if (-not (Test-Path $builtScriptDir)) {
+              throw "Built scripts directory missing: $builtScriptDir"
+            }
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugins-smoke-${{ matrix.plugin.name }}
+          path: artifacts/logs/*.binlog
+          if-no-files-found: ignore

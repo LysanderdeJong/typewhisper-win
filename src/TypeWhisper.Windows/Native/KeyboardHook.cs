@@ -342,9 +342,13 @@ internal sealed class HotkeyMatchStateMachine
 
     private bool ShouldPreSuppressWinKeyDown(uint vkCode)
     {
-        // Don't suppress the Win key before we know the exact combination.
-        // This preserves system shortcuts like Win+S and Win+Shift+S.
-        return false;
+        if (!HotkeyKeyClassifier.IsWinKey(vkCode))
+            return false;
+
+        if ((_targetModifiers & NativeMethods.MOD_WIN) == 0)
+            return false;
+
+        return _targetVk != 0 || (_targetModifiers & ~NativeMethods.MOD_WIN) != 0;
     }
 
     private void CaptureWinKeyUpsForSuppression()
