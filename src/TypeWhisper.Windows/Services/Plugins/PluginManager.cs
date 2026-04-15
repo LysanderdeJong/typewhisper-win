@@ -19,6 +19,7 @@ public sealed class PluginManager : IDisposable
     private readonly IActiveWindowService _activeWindow;
     private readonly IProfileService _profiles;
     private readonly ISettingsService _settings;
+    private readonly string[] _searchDirectories;
 
     private readonly List<LoadedPlugin> _allPlugins = [];
     private readonly Dictionary<string, PluginHostServices> _hostServices = [];
@@ -36,12 +37,25 @@ public sealed class PluginManager : IDisposable
         IActiveWindowService activeWindow,
         IProfileService profiles,
         ISettingsService settings)
+        : this(loader, eventBus, activeWindow, profiles, settings,
+            [Path.Combine(AppContext.BaseDirectory, "Plugins"), TypeWhisperEnvironment.PluginsPath])
+    {
+    }
+
+    internal PluginManager(
+        PluginLoader loader,
+        PluginEventBus eventBus,
+        IActiveWindowService activeWindow,
+        IProfileService profiles,
+        ISettingsService settings,
+        IEnumerable<string> searchDirectories)
     {
         _loader = loader;
         _eventBus = eventBus;
         _activeWindow = activeWindow;
         _profiles = profiles;
         _settings = settings;
+        _searchDirectories = searchDirectories.ToArray();
     }
 
     /// <summary>All discovered plugins (enabled and disabled).</summary>
@@ -91,13 +105,13 @@ public sealed class PluginManager : IDisposable
     public PluginEventBus EventBus => _eventBus;
 
     /// <summary>
-    /// Discovers plugins from the bundled app directory and the user plugins
-    /// directory, preferring user-installed plugins when IDs collide. Restores
-    /// enabled state from settings and activates all enabled plugins.
+    /// Discovers plugins from the configured search directories, preferring
+    /// plugins found in later directories when IDs collide. Restores enabled
+    /// state from settings and activates all enabled plugins.
     /// </summary>
     public async Task InitializeAsync()
     {
-        var discovered = DiscoverPlugins();
+        var discovered = DiscoverPlugins(_searchDirectories);
 
         lock (_lock)
         {
@@ -124,15 +138,8 @@ public sealed class PluginManager : IDisposable
         MigrateApiKeys();
     }
 
-    private List<LoadedPlugin> DiscoverPlugins()
+    private List<LoadedPlugin> DiscoverPlugins(IEnumerable<string> searchDirectories)
     {
-        var bundledPluginsPath = Path.Combine(AppContext.BaseDirectory, "Plugins");
-        var searchDirectories = new[]
-        {
-            bundledPluginsPath,
-            TypeWhisperEnvironment.PluginsPath,
-        };
-
         var discoveredById = new Dictionary<string, LoadedPlugin>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var searchDir in searchDirectories)

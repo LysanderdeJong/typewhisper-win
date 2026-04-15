@@ -58,13 +58,13 @@ jobs:
             'speechmatics'       = 'TypeWhisper.Plugin.Speechmatics'
             'soniox'             = 'TypeWhisper.Plugin.Soniox'
             'cloudflare-asr'     = 'TypeWhisper.Plugin.CloudflareAsr'
-             'google-cloud-stt'   = 'TypeWhisper.Plugin.GoogleCloudStt'
-             'qwen3-stt'          = 'TypeWhisper.Plugin.Qwen3Stt'
-             'voxtral'            = 'TypeWhisper.Plugin.Voxtral'
-             'whisper-cpp'        = 'TypeWhisper.Plugin.WhisperCpp'
-             'file-memory'        = 'TypeWhisper.Plugin.FileMemory'
-             'openai-vector-memory' = 'TypeWhisper.Plugin.OpenAiVectorMemory'
-           }
+            'google-cloud-stt'   = 'TypeWhisper.Plugin.GoogleCloudStt'
+            'qwen3-stt'          = 'TypeWhisper.Plugin.Qwen3Stt'
+            'voxtral'            = 'TypeWhisper.Plugin.Voxtral'
+            'whisper-cpp'        = 'TypeWhisper.Plugin.WhisperCpp'
+            'file-memory'        = 'TypeWhisper.Plugin.FileMemory'
+            'openai-vector-memory' = 'TypeWhisper.Plugin.OpenAiVectorMemory'
+          }
           $projectName = $map[$env:PLUGIN_NAME]
           if (-not $projectName) {
             throw "Unknown plugin: $env:PLUGIN_NAME"
@@ -196,7 +196,9 @@ jobs:
             category = $manifest.category
             size = [long]$env:ZIP_SIZE
             downloadUrl = $downloadUrl
-            requiresApiKey = $false
+            iconSystemName = $manifest.iconSystemName
+            requiresApiKey = [bool]($manifest.requiresApiKey)
+            descriptions = $manifest.descriptions
           }
 
           $updated = $false

@@ -232,6 +232,7 @@ public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
         {
             DisposeFactoryUnsafe();
             _loadedModelId = null;
+            _selectedModelId = null;
         }
         finally
         {

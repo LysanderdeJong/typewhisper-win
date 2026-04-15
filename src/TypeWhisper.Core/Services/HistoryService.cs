@@ -1,6 +1,6 @@
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 

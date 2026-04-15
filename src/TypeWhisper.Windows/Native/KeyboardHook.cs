@@ -219,7 +219,6 @@ internal sealed class HotkeyMatchStateMachine
                     {
                         _pendingSuppressedKeyUps.Add(unsuppressedWinKey);
                         _suppressedKeyDowns.Add(unsuppressedWinKey);
-                        return new HotkeyProcessResult(raiseKeyDown, raiseKeyUp, swallow, unsuppressedWinKey);
                     }
 
                     if (preSuppressedWinDown)
@@ -459,6 +458,7 @@ internal static class HotkeyParser
 
         return key switch
         {
+            "ESC" or "ESCAPE" => NativeMethods.VK_ESCAPE,
             "SPACE" => NativeMethods.VK_SPACE,
             _ when key.Length == 1 && key[0] is >= 'A' and <= 'Z' => (uint)key[0],
             _ when key.Length == 1 && key[0] is >= '0' and <= '9' => (uint)key[0],
