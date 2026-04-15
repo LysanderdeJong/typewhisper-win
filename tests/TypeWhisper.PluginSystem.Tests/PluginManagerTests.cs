@@ -16,13 +16,10 @@ public class PluginManagerTests : IDisposable
     private readonly Mock<ISettingsService> _settings = new();
     private readonly PluginEventBus _eventBus = new();
     private readonly PluginLoader _loader = new();
-    private readonly string _pluginSearchDir;
     private PluginManager? _manager;
 
     public PluginManagerTests()
     {
-        _pluginSearchDir = Path.Combine(Path.GetTempPath(), "TypeWhisper.PluginManagerTests_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_pluginSearchDir);
         _profiles.Setup(p => p.Profiles).Returns(new List<Profile>());
         _settings.Setup(s => s.Current).Returns(new AppSettings());
     }
@@ -35,7 +32,7 @@ public class PluginManagerTests : IDisposable
             _activeWindow.Object,
             _profiles.Object,
             _settings.Object,
-            [_pluginSearchDir]);
+            []);
         return _manager;
     }
 
@@ -166,15 +163,6 @@ public class PluginManagerTests : IDisposable
     public void Dispose()
     {
         _manager?.Dispose();
-        try
-        {
-            if (Directory.Exists(_pluginSearchDir))
-                Directory.Delete(_pluginSearchDir, recursive: true);
-        }
-        catch
-        {
-            // Best-effort cleanup in tests
-        }
     }
 }
 

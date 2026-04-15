@@ -26,7 +26,7 @@ public class PluginRegistryServiceTests : IDisposable
 
     private PluginManager CreateManager()
     {
-        _manager = new PluginManager(_loader, _eventBus, _activeWindow.Object, _profiles.Object, _settings.Object);
+        _manager = new PluginManager(_loader, _eventBus, _activeWindow.Object, _profiles.Object, _settings.Object, []);
         return _manager;
     }
 
