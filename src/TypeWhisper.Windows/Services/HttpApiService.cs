@@ -4,8 +4,10 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using TypeWhisper.Core.Interfaces;
+using TypeWhisper.Core.Models;
 using TypeWhisper.Windows;
 using TypeWhisper.Windows.ViewModels;
+using System.Diagnostics;
 
 namespace TypeWhisper.Windows.Services;
 
@@ -186,24 +188,26 @@ public sealed class HttpApiService : IDisposable
                 await request.InputStream.CopyToAsync(fs, ct);
             }
 
-            var samples = await _audioFile.LoadAudioAsync(tempPath, ct);
-
             var s = _settings.Current;
             var language = request.QueryString["language"] ?? (s.Language == "auto" ? null : s.Language);
             var taskStr = request.QueryString["task"] ?? s.TranscriptionTask;
             var task = taskStr == "translate" ? TranscriptionTask.Translate : TranscriptionTask.Transcribe;
             var responseFormat = request.QueryString["response_format"] ?? "json";
 
-            var result = await _modelManager.Engine.TranscribeAsync(samples, language, task, ct);
-            var pipelineResult = await _pipeline.ProcessAsync(result.Text, new PipelineOptions
+            var pipelineOptions = new PipelineOptions
             {
                 VocabularyBooster = GetVocabularyBooster(),
                 DictionaryCorrector = _dictionary.ApplyCorrections
-            }, ct);
+            };
+
+            var totalDuration = AudioFileService.GetDuration(tempPath).TotalSeconds;
+            var result = FileTranscriptionMemoryPolicy.ShouldUseFileBackedTranscription(totalDuration, useSpeakerDiarization: false)
+                ? await TranscribeFileInChunksAsync(tempPath, totalDuration, language, task, pipelineOptions, ct)
+                : await TranscribeWholeFileAsync(await _audioFile.LoadAudioAsync(tempPath, ct), language, task, pipelineOptions, ct);
 
             var response = new
             {
-                text = pipelineResult.Text,
+                text = result.Text,
                 language = result.DetectedLanguage,
                 duration = result.Duration,
                 processing_time = result.ProcessingTime,
@@ -221,6 +225,82 @@ public sealed class HttpApiService : IDisposable
         {
             try { File.Delete(tempPath); } catch { }
         }
+    }
+
+    private async Task<TranscriptionResult> TranscribeWholeFileAsync(
+        float[] samples,
+        string? language,
+        TranscriptionTask task,
+        PipelineOptions pipelineOptions,
+        CancellationToken ct)
+    {
+        var result = await _modelManager.Engine.TranscribeAsync(samples, language, task, ct);
+        var pipelineResult = await _pipeline.ProcessAsync(result.Text, pipelineOptions, ct);
+
+        return result with
+        {
+            Text = pipelineResult.Text
+        };
+    }
+
+    private async Task<TranscriptionResult> TranscribeFileInChunksAsync(
+        string filePath,
+        double totalDuration,
+        string? language,
+        TranscriptionTask task,
+        PipelineOptions options,
+        CancellationToken ct)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        string? detectedLanguage = null;
+        var processedSegments = new List<TranscriptionSegment>();
+
+        await foreach (var chunk in _audioFile.StreamAudioChunksAsync(
+            filePath,
+            FileTranscriptionMemoryPolicy.FileBackedTranscriptionChunkSamples,
+            ct))
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var rawResult = await _modelManager.Engine.TranscribeAsync(chunk.Samples, language, task, ct);
+            detectedLanguage ??= rawResult.DetectedLanguage;
+
+            if (rawResult.Segments.Count > 0)
+            {
+                foreach (var rawSegment in rawResult.Segments)
+                {
+                    var processed = await _pipeline.ProcessAsync(rawSegment.Text, options, ct);
+                    var text = processed.Text.Trim();
+                    if (text.Length == 0)
+                        continue;
+
+                    processedSegments.Add(new TranscriptionSegment(
+                        text,
+                        chunk.StartSeconds + rawSegment.Start,
+                        chunk.StartSeconds + rawSegment.End));
+                }
+
+                continue;
+            }
+
+            var pipelineResult = await _pipeline.ProcessAsync(rawResult.Text, options, ct);
+            var chunkText = pipelineResult.Text.Trim();
+            if (chunkText.Length == 0)
+                continue;
+
+            processedSegments.Add(new TranscriptionSegment(chunkText, chunk.StartSeconds, chunk.EndSeconds));
+        }
+
+        stopwatch.Stop();
+
+        return new TranscriptionResult
+        {
+            Text = string.Join(" ", processedSegments.Select(segment => segment.Text)),
+            DetectedLanguage = detectedLanguage,
+            Duration = totalDuration,
+            ProcessingTime = stopwatch.Elapsed.TotalSeconds,
+            Segments = processedSegments,
+        };
     }
 
     // GET /v1/history?q=&limit=&offset=

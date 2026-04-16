@@ -89,7 +89,7 @@ public partial class App : Application
 
         // Validate commercial/supporter licensing state in the background.
         var licenseService = _serviceProvider.GetRequiredService<LicenseService>();
-        var supporterDiscord = _serviceProvider.GetRequiredService<SupporterDiscordService>();
+        var supporterDiscord = _serviceProvider!.GetRequiredService<SupporterDiscordService>();
         _ = Task.Run(async () =>
         {
             await licenseService.ValidateAllIfNeededAsync();
@@ -307,6 +307,9 @@ public partial class App : Application
         // Audio
         services.AddSingleton<AudioRecordingService>();
         services.AddSingleton<AudioFileService>();
+        services.AddSingleton<FileVocalIsolationService>();
+        services.AddSingleton<FileSpeechSegmentationService>();
+        services.AddSingleton<FileSpeakerDiarizationService>();
         services.AddSingleton<IAudioDuckingService, AudioDuckingService>();
         services.AddSingleton<IMediaPauseService, MediaPauseService>();
 

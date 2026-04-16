@@ -362,9 +362,11 @@ internal sealed class PluginTranscriptionEngineAdapter : ITranscriptionEngine
         TranscriptionTask task = TranscriptionTask.Transcribe,
         CancellationToken cancellationToken = default)
     {
-        var wavBytes = WavEncoder.Encode(audioSamples);
         var translate = task == TranscriptionTask.Translate;
-        var result = await _plugin.TranscribeAsync(wavBytes, language, translate, null, cancellationToken);
+        var result = _plugin is IPcmTranscriptionEnginePlugin pcmPlugin
+            ? await pcmPlugin.TranscribePcmAsync(audioSamples, 16000, language, translate, null, cancellationToken)
+            : await _plugin.TranscribeAsync(WavEncoder.Encode(audioSamples), language, translate, null, cancellationToken);
+
         return new TranscriptionResult
         {
             Text = result.Text,

@@ -194,25 +194,26 @@ public sealed class AudioRecordingService : IDisposable
 
         float peak = 0;
         float sumSquares = 0;
-        var chunkBuffer = new float[sampleCount];
-
-        for (var i = 0; i < sampleCount; i++)
-        {
-            var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-
-            if (WhisperModeEnabled)
-                sample = Math.Clamp(sample * agcGain, -1f, 1f);
-
-            chunkBuffer[i] = sample;
-
-            var abs = MathF.Abs(sample);
-            if (abs > peak) peak = abs;
-            sumSquares += sample * sample;
-        }
+        var shouldPublishSamples = SamplesAvailable is not null;
+        var chunkBuffer = shouldPublishSamples ? new float[sampleCount] : null;
 
         lock (_bufferLock)
         {
-            _sampleBuffer?.AddRange(chunkBuffer);
+            for (var i = 0; i < sampleCount; i++)
+            {
+                var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
+
+                if (WhisperModeEnabled)
+                    sample = Math.Clamp(sample * agcGain, -1f, 1f);
+
+                _sampleBuffer?.Add(sample);
+                if (chunkBuffer is not null)
+                    chunkBuffer[i] = sample;
+
+                var abs = MathF.Abs(sample);
+                if (abs > peak) peak = abs;
+                sumSquares += sample * sample;
+            }
         }
 
         var rms = MathF.Sqrt(sumSquares / sampleCount);
@@ -221,7 +222,7 @@ public sealed class AudioRecordingService : IDisposable
 
         AudioLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
 
-        if (SamplesAvailable is not null && _sampleBuffer is not null)
+        if (chunkBuffer is not null && SamplesAvailable is not null && _sampleBuffer is not null)
         {
             SamplesAvailable.Invoke(this, new SamplesAvailableEventArgs(chunkBuffer));
         }

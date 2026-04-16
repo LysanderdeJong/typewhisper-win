@@ -8,7 +8,7 @@ using Whisper.net.Ggml;
 
 namespace TypeWhisper.Plugin.WhisperCpp;
 
-public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEnginePlugin
+public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEnginePlugin, IPcmTranscriptionEnginePlugin
 {
     private static readonly IReadOnlyList<ModelDefinition> Models =
     [
@@ -190,34 +190,43 @@ public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
             using var processor = builder.Build();
             await using var audioStream = new MemoryStream(wavAudio, writable: false);
 
-            var text = new StringBuilder();
-            string? detectedLanguage = null;
-            double durationSeconds = 0;
-            float? noSpeechProbability = null;
+            return await ProcessAudioAsync(processor.ProcessAsync(audioStream, ct));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
-            await foreach (var segment in processor.ProcessAsync(audioStream, ct))
-            {
-                var segmentText = segment.Text.Trim();
-                if (segmentText.Length > 0)
-                {
-                    if (text.Length > 0)
-                        text.Append(' ');
+    public async Task<PluginTranscriptionResult> TranscribePcmAsync(
+        float[] audioSamples,
+        int sampleRate,
+        string? language,
+        bool translate,
+        string? prompt,
+        CancellationToken ct)
+    {
+        if (sampleRate != 16000)
+            throw new NotSupportedException($"Unsupported sample rate: {sampleRate}. whisper.cpp expects 16000 Hz PCM.");
 
-                    text.Append(segmentText);
-                }
+        await _gate.WaitAsync(ct);
+        try
+        {
+            if (_factory is null || _loadedModelId is null)
+                throw new InvalidOperationException("No model loaded. Call LoadModelAsync first.");
 
-                if (string.IsNullOrWhiteSpace(detectedLanguage) && !string.IsNullOrWhiteSpace(segment.Language))
-                    detectedLanguage = segment.Language;
+            var builder = _factory.CreateBuilder()
+                .WithLanguage(string.IsNullOrWhiteSpace(language) ? "auto" : language);
 
-                durationSeconds = Math.Max(durationSeconds, segment.End.TotalSeconds);
-                noSpeechProbability = segment.NoSpeechProbability;
-            }
+            if (!string.IsNullOrWhiteSpace(prompt))
+                builder.WithPrompt(prompt);
 
-            return new PluginTranscriptionResult(
-                text.ToString().Trim(),
-                detectedLanguage,
-                durationSeconds,
-                noSpeechProbability);
+            if (translate)
+                builder.WithTranslate();
+
+            using var processor = builder.Build();
+
+            return await ProcessAudioAsync(processor.ProcessAsync(audioSamples, ct));
         }
         finally
         {
@@ -260,6 +269,38 @@ public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
     {
         _factory?.Dispose();
         _factory = null;
+    }
+
+    private static async Task<PluginTranscriptionResult> ProcessAudioAsync(IAsyncEnumerable<SegmentData> segments)
+    {
+        var text = new StringBuilder();
+        string? detectedLanguage = null;
+        double durationSeconds = 0;
+        float? noSpeechProbability = null;
+
+        await foreach (var segment in segments)
+        {
+            var segmentText = segment.Text.Trim();
+            if (segmentText.Length > 0)
+            {
+                if (text.Length > 0)
+                    text.Append(' ');
+
+                text.Append(segmentText);
+            }
+
+            if (string.IsNullOrWhiteSpace(detectedLanguage) && !string.IsNullOrWhiteSpace(segment.Language))
+                detectedLanguage = segment.Language;
+
+            durationSeconds = Math.Max(durationSeconds, segment.End.TotalSeconds);
+            noSpeechProbability = segment.NoSpeechProbability;
+        }
+
+        return new PluginTranscriptionResult(
+            text.ToString().Trim(),
+            detectedLanguage,
+            durationSeconds,
+            noSpeechProbability);
     }
 
     private static void TryDeleteFile(string path)
