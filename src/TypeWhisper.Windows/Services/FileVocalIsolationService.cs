@@ -41,6 +41,7 @@ public sealed class FileVocalIsolationService : IDisposable
     private const int InferenceBatchSize = 4;
     private const int DownloadBufferBytes = 131072;
     private const int DecodeBufferBytes = 65536;
+    private const int LoadFloatBufferSamples = 16384;
     private const int MaxBufferedFrames = ChunkSamples + (GeneratedSamples * InferenceBatchSize) + TrimSamples;
 
     private readonly AudioFileService _audioFile;
@@ -652,16 +653,22 @@ public sealed class FileVocalIsolationService : IDisposable
             Math.Ceiling(reader.TotalTime.TotalSeconds * reader.WaveFormat.SampleRate * reader.WaveFormat.Channels));
         var samples = new float[Math.Max(estimatedSampleCount, 4096)];
         var samplesWritten = 0;
-        var buffer = new float[4096];
-        int samplesRead;
-
-        while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
+        var buffer = ArrayPool<float>.Shared.Rent(LoadFloatBufferSamples);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            int samplesRead;
+            while ((samplesRead = reader.Read(buffer, 0, LoadFloatBufferSamples)) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            EnsureCapacity(ref samples, samplesWritten + samplesRead);
-            Array.Copy(buffer, 0, samples, samplesWritten, samplesRead);
-            samplesWritten += samplesRead;
+                EnsureCapacity(ref samples, samplesWritten + samplesRead);
+                Array.Copy(buffer, 0, samples, samplesWritten, samplesRead);
+                samplesWritten += samplesRead;
+            }
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(buffer);
         }
 
         if (samplesWritten != samples.Length)
