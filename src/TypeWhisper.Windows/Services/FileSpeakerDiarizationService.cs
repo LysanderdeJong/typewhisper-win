@@ -30,6 +30,7 @@ public sealed class FileSpeakerDiarizationService : IDisposable
     private const string SegmentationFolderName = "sherpa-onnx-pyannote-segmentation-3-0";
     private const string EmbeddingFileName = "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx";
     private const int SampleRate = 16000;
+    private const int DownloadBufferBytes = 131072;
     private readonly HttpClient _httpClient = new();
     private readonly SemaphoreSlim _modelGate = new(1, 1);
 
@@ -176,9 +177,9 @@ public sealed class FileSpeakerDiarizationService : IDisposable
             var contentLength = response.Content.Headers.ContentLength;
 
             await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
-            await using (var destination = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
+            await using (var destination = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, DownloadBufferBytes, true))
             {
-                var buffer = new byte[81920];
+                var buffer = new byte[DownloadBufferBytes];
                 long totalBytesRead = 0;
                 var lastReportedPercent = -1;
                 int bytesRead;

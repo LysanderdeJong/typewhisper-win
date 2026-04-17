@@ -39,6 +39,7 @@ public sealed class FileVocalIsolationService : IDisposable
     private const int GeneratedSamples = ChunkSamples - (TrimSamples * 2);
     private const int FullFrequencyBins = Nfft / 2 + 1;
     private const int InferenceBatchSize = 4;
+    private const int DownloadBufferBytes = 131072;
     private const int DecodeBufferBytes = 65536;
     private const int MaxBufferedFrames = ChunkSamples + (GeneratedSamples * InferenceBatchSize) + TrimSamples;
 
@@ -243,9 +244,9 @@ public sealed class FileVocalIsolationService : IDisposable
             var contentLength = response.Content.Headers.ContentLength;
             {
                 await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-                await using var destination = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
+                await using var destination = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, DownloadBufferBytes, true);
 
-                var buffer = new byte[81920];
+                var buffer = new byte[DownloadBufferBytes];
                 long totalBytesRead = 0;
                 var lastReportedPercent = -1;
                 int bytesRead;
@@ -339,113 +340,6 @@ public sealed class FileVocalIsolationService : IDisposable
             InterOpNumThreads = 1,
             IntraOpNumThreads = useDirectMl ? 1 : Environment.ProcessorCount,
         };
-    }
-
-    private float[] IsolateVocalsCore(
-        float[] stereoSamples,
-        InferenceSession session,
-        IProgress<FileVocalIsolationProgress>? progress,
-        CancellationToken cancellationToken)
-    {
-        if (stereoSamples.Length == 0)
-            return [];
-        if (stereoSamples.Length % SourceChannels != 0)
-            throw new InvalidOperationException("Expected interleaved stereo samples for vocal isolation.");
-
-        var frameCount = stereoSamples.Length / SourceChannels;
-        var left = new float[frameCount];
-        var right = new float[frameCount];
-        for (var i = 0; i < frameCount; i++)
-        {
-            left[i] = stereoSamples[i * SourceChannels];
-            right[i] = stereoSamples[i * SourceChannels + 1];
-        }
-
-        var padSamples = (GeneratedSamples - (frameCount % GeneratedSamples)) % GeneratedSamples;
-        var paddedLength = frameCount + (TrimSamples * 2) + padSamples;
-        var leftPadded = new float[paddedLength];
-        var rightPadded = new float[paddedLength];
-        Array.Copy(left, 0, leftPadded, TrimSamples, frameCount);
-        Array.Copy(right, 0, rightPadded, TrimSamples, frameCount);
-
-        var outputLeft = new float[frameCount + padSamples];
-        var outputRight = new float[frameCount + padSamples];
-        var chunkOffsets = Enumerable.Range(0, ((paddedLength - ChunkSamples) / GeneratedSamples) + 1)
-            .Select(index => index * GeneratedSamples)
-            .ToArray();
-        var totalChunks = chunkOffsets.Length;
-        var processedChunks = 0;
-
-        for (var batchStart = 0; batchStart < chunkOffsets.Length; batchStart += InferenceBatchSize)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var batchCount = Math.Min(InferenceBatchSize, chunkOffsets.Length - batchStart);
-            var leftChunks = new float[batchCount][];
-            var rightChunks = new float[batchCount][];
-            (float[] Left, float[] Right)[]? batchOutputs = null;
-            try
-            {
-                for (var i = 0; i < batchCount; i++)
-                {
-                    var chunkOffset = chunkOffsets[batchStart + i];
-                    leftChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
-                    rightChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
-                    Array.Copy(leftPadded, chunkOffset, leftChunks[i], 0, ChunkSamples);
-                    Array.Copy(rightPadded, chunkOffset, rightChunks[i], 0, ChunkSamples);
-                }
-
-                batchOutputs = ProcessChunkBatch(session, leftChunks, rightChunks);
-                for (var i = 0; i < batchOutputs.Length; i++)
-                {
-                    var writeOffset = (batchStart + i) * GeneratedSamples;
-                    Array.Copy(batchOutputs[i].Left, TrimSamples, outputLeft, writeOffset, GeneratedSamples);
-                    Array.Copy(batchOutputs[i].Right, TrimSamples, outputRight, writeOffset, GeneratedSamples);
-                }
-
-                processedChunks += batchCount;
-                progress?.Report(new FileVocalIsolationProgress(
-                    FileVocalIsolationStage.IsolatingVocals,
-                    processedChunks / (double)totalChunks,
-                    _executionProvider));
-            }
-            finally
-            {
-                for (var i = 0; i < batchCount; i++)
-                {
-                    if (leftChunks[i] is not null)
-                        ArrayPool<float>.Shared.Return(leftChunks[i]);
-                    if (rightChunks[i] is not null)
-                        ArrayPool<float>.Shared.Return(rightChunks[i]);
-                }
-
-                if (batchOutputs is not null)
-                {
-                    for (var i = 0; i < batchOutputs.Length; i++)
-                    {
-                        if (batchOutputs[i].Left is { } l)
-                            ArrayPool<float>.Shared.Return(l);
-                        if (batchOutputs[i].Right is { } r)
-                            ArrayPool<float>.Shared.Return(r);
-                    }
-                }
-            }
-        }
-
-        if (padSamples > 0)
-        {
-            Array.Resize(ref outputLeft, frameCount);
-            Array.Resize(ref outputRight, frameCount);
-        }
-
-        var interleaved = new float[frameCount * SourceChannels];
-        for (var i = 0; i < frameCount; i++)
-        {
-            interleaved[i * SourceChannels] = outputLeft[i];
-            interleaved[i * SourceChannels + 1] = outputRight[i];
-        }
-
-        return interleaved;
     }
 
     private StreamingIsolationResult IsolateVocalsToTemporaryWaveFile(

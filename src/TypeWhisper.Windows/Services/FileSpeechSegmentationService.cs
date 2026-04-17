@@ -124,8 +124,10 @@ public sealed class FileSpeechSegmentationService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var windowLength = Math.Min(VadWindowSize, samplesRead - offset);
-                Array.Clear(window, 0, window.Length);
                 Array.Copy(sampleBuffer, offset, window, 0, windowLength);
+                if (windowLength < window.Length)
+                    Array.Clear(window, windowLength, window.Length - windowLength);
+
                 vad.AcceptWaveform(window);
 
                 DrainSegments(vad, drainedSegments, cancellationToken);
@@ -168,8 +170,10 @@ public sealed class FileSpeechSegmentationService
 
             var windowOffset = i * VadWindowSize;
             var windowLength = Math.Min(VadWindowSize, samples.Length - windowOffset);
-            Array.Clear(window, 0, window.Length);
             Array.Copy(samples, windowOffset, window, 0, windowLength);
+            if (windowLength < window.Length)
+                Array.Clear(window, windowLength, window.Length - windowLength);
+
             vad.AcceptWaveform(window);
             DrainSegments(vad, segments, cancellationToken);
         }
@@ -240,22 +244,23 @@ public sealed class FileSpeechSegmentationService
         return splitSegments;
     }
 
-    private static IEnumerable<AudioSpeechSegment> SplitLongSegment(AudioSpeechSegment segment)
+    private static IReadOnlyList<AudioSpeechSegment> SplitLongSegment(AudioSpeechSegment segment)
     {
         if (segment.SampleCount <= MaxSegmentSamples)
-        {
-            yield return segment;
-            yield break;
-        }
+            return [segment];
 
         var sourceSamples = segment.Samples;
+        var splitCount = (segment.SampleCount + MaxSegmentSamples - 1) / MaxSegmentSamples;
+        var splitSegments = new List<AudioSpeechSegment>(splitCount);
         for (var offset = 0; offset < segment.SampleCount; offset += MaxSegmentSamples)
         {
             var chunkLength = Math.Min(MaxSegmentSamples, segment.SampleCount - offset);
 
             var chunkStart = segment.StartSeconds + offset / (double)SampleRate;
             var chunkEnd = Math.Min(segment.EndSeconds, chunkStart + chunkLength / (double)SampleRate);
-            yield return AudioSpeechSegment.CreateSlice(sourceSamples, offset, chunkLength, chunkStart, chunkEnd);
+            splitSegments.Add(AudioSpeechSegment.CreateSlice(sourceSamples, offset, chunkLength, chunkStart, chunkEnd));
         }
+
+        return splitSegments;
     }
 }

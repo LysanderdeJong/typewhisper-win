@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
@@ -10,8 +12,11 @@ namespace TypeWhisper.Windows.Services;
 /// </summary>
 public sealed class SystemAudioCaptureService : IDisposable
 {
+    private const int DefaultSampleCapacity = 16000 * 60;
+
     private WasapiLoopbackCapture? _capture;
-    private readonly List<float> _samples = [];
+    private float[] _samples = new float[DefaultSampleCapacity];
+    private int _samplesCount;
     private bool _isRecording;
 
     public bool IsRecording => _isRecording;
@@ -25,39 +30,20 @@ public sealed class SystemAudioCaptureService : IDisposable
         if (_isRecording) return;
 
         _capture = new WasapiLoopbackCapture();
-        _samples.Clear();
+        _samplesCount = 0;
 
         _capture.DataAvailable += (_, e) =>
         {
-            // Convert to float samples
-            var buffer = e.Buffer;
             var bytesRecorded = e.BytesRecorded;
-            var samplesCount = bytesRecorded / 4; // 32-bit float
-            var waveFormat = _capture.WaveFormat;
+            if (bytesRecorded <= 0)
+                return;
 
-            for (var i = 0; i < bytesRecorded; i += 4)
-            {
-                if (i + 4 <= bytesRecorded)
-                {
-                    var sample = BitConverter.ToSingle(buffer, i);
-                    _samples.Add(sample);
-                }
-            }
+            var samples = MemoryMarshal.Cast<byte, float>(e.Buffer.AsSpan(0, bytesRecorded));
+            EnsureCapacity(_samplesCount + samples.Length);
+            samples.CopyTo(_samples.AsSpan(_samplesCount));
+            _samplesCount += samples.Length;
 
-            // Report level
-            if (bytesRecorded > 0)
-            {
-                float max = 0;
-                for (var i = 0; i < bytesRecorded; i += 4)
-                {
-                    if (i + 4 <= bytesRecorded)
-                    {
-                        var abs = Math.Abs(BitConverter.ToSingle(buffer, i));
-                        if (abs > max) max = abs;
-                    }
-                }
-                AudioLevelChanged?.Invoke(max);
-            }
+            AudioLevelChanged?.Invoke(GetPeakLevel(samples));
         };
 
         _capture.RecordingStopped += (_, _) => { _isRecording = false; };
@@ -83,33 +69,72 @@ public sealed class SystemAudioCaptureService : IDisposable
         _capture = null;
 
         // Downmix to mono if stereo
-        var mono = sourceChannels > 1 ? DownmixToMono(_samples, sourceChannels) : [.. _samples];
+        var captured = _samples.AsSpan(0, _samplesCount);
+        var mono = sourceChannels > 1
+            ? DownmixToMono(captured, sourceChannels)
+            : captured.ToArray();
 
         // Resample to 16kHz
         if (sourceSampleRate != 16000)
             mono = Resample(mono, sourceSampleRate, 16000);
 
-        return [.. mono];
-    }
-
-    private static List<float> DownmixToMono(List<float> samples, int channels)
-    {
-        var mono = new List<float>(samples.Count / channels);
-        for (var i = 0; i + channels <= samples.Count; i += channels)
-        {
-            float sum = 0;
-            for (var c = 0; c < channels; c++)
-                sum += samples[i + c];
-            mono.Add(sum / channels);
-        }
         return mono;
     }
 
-    private static List<float> Resample(List<float> samples, int fromRate, int toRate)
+    private void EnsureCapacity(int requiredLength)
+    {
+        if (requiredLength <= _samples.Length)
+            return;
+
+        var newLength = _samples.Length;
+        while (newLength < requiredLength)
+            newLength = Math.Max(requiredLength, newLength * 2);
+
+        Array.Resize(ref _samples, newLength);
+    }
+
+    private static float GetPeakLevel(ReadOnlySpan<float> samples)
+    {
+        var max = 0f;
+        var i = 0;
+        if (Vector.IsHardwareAccelerated && samples.Length >= Vector<float>.Count)
+        {
+            var vectorMax = Vector<float>.Zero;
+            var lastVectorStart = samples.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+                vectorMax = Vector.Max(vectorMax, Vector.Abs(new Vector<float>(samples.Slice(i, Vector<float>.Count))));
+
+            for (var j = 0; j < Vector<float>.Count; j++)
+                max = Math.Max(max, vectorMax[j]);
+        }
+
+        for (; i < samples.Length; i++)
+            max = Math.Max(max, Math.Abs(samples[i]));
+
+        return max;
+    }
+
+    private static float[] DownmixToMono(ReadOnlySpan<float> samples, int channels)
+    {
+        var frameCount = samples.Length / channels;
+        var mono = new float[frameCount];
+        for (var i = 0; i < frameCount; i++)
+        {
+            float sum = 0;
+            for (var c = 0; c < channels; c++)
+                sum += samples[(i * channels) + c];
+
+            mono[i] = sum / channels;
+        }
+
+        return mono;
+    }
+
+    private static float[] Resample(ReadOnlySpan<float> samples, int fromRate, int toRate)
     {
         var ratio = (double)toRate / fromRate;
-        var outputLength = (int)(samples.Count * ratio);
-        var output = new List<float>(outputLength);
+        var outputLength = (int)(samples.Length * ratio);
+        var output = new float[outputLength];
 
         for (var i = 0; i < outputLength; i++)
         {
@@ -117,10 +142,10 @@ public sealed class SystemAudioCaptureService : IDisposable
             var idx = (int)srcIndex;
             var frac = (float)(srcIndex - idx);
 
-            if (idx + 1 < samples.Count)
-                output.Add(samples[idx] * (1 - frac) + samples[idx + 1] * frac);
-            else if (idx < samples.Count)
-                output.Add(samples[idx]);
+            if (idx + 1 < samples.Length)
+                output[i] = (samples[idx] * (1 - frac)) + (samples[idx + 1] * frac);
+            else if (idx < samples.Length)
+                output[i] = samples[idx];
         }
 
         return output;
