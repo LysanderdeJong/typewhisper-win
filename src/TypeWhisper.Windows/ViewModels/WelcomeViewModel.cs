@@ -163,11 +163,7 @@ public partial class WelcomeViewModel : ObservableObject
                 .ToList();
 
             Application.Current?.Dispatcher.Invoke(() =>
-            {
-                Plugins.Clear();
-                foreach (var rp in registryPlugins)
-                    Plugins.Add(new RegistryPluginItemViewModel(rp, _registry));
-            });
+                Plugins.Replace(registryPlugins.Select(rp => new RegistryPluginItemViewModel(rp, _registry))));
         }
         finally
         {
@@ -179,8 +175,6 @@ public partial class WelcomeViewModel : ObservableObject
 
     private void RefreshModels()
     {
-        AvailableModels.Clear();
-
         var collectedModels = new List<WelcomeModelItem>();
         foreach (var engine in _modelManager.PluginManager.TranscriptionEngines)
         {
@@ -194,13 +188,10 @@ public partial class WelcomeViewModel : ObservableObject
             }
         }
 
-        foreach (var model in collectedModels
-                     .OrderBy(m => GetModelPriority(m.FullModelId))
-                     .ThenByDescending(m => m.IsRecommended)
-                     .ThenBy(m => m.DisplayName))
-        {
-            AvailableModels.Add(model);
-        }
+        AvailableModels.Replace(collectedModels
+            .OrderBy(m => GetModelPriority(m.FullModelId))
+            .ThenByDescending(m => m.IsRecommended)
+            .ThenBy(m => m.DisplayName));
 
         // Auto-select recommended or first
         if (SelectedModelId is null || !AvailableModels.Any(m => m.FullModelId == SelectedModelId))

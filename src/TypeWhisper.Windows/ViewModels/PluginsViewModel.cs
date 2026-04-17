@@ -50,15 +50,16 @@ public partial class PluginsViewModel : ObservableObject
         // Preserve expanded state across refresh
         var expandedIds = Plugins.Where(p => p.IsExpanded).Select(p => p.Id).ToHashSet();
 
-        Plugins.Clear();
-        foreach (var plugin in _pluginManager.AllPlugins.Where(p => FeatureFlags.IsPluginVisible(p.Manifest.Category, p.Instance)))
-        {
-            var isEnabled = _pluginManager.IsEnabled(plugin.Manifest.Id);
-            var vm = new PluginItemViewModel(plugin, isEnabled, _pluginManager, _registryService);
-            if (expandedIds.Contains(vm.Id))
-                vm.IsExpanded = true;
-            Plugins.Add(vm);
-        }
+        Plugins.Replace(_pluginManager.AllPlugins
+            .Where(p => FeatureFlags.IsPluginVisible(p.Manifest.Category, p.Instance))
+            .Select(plugin =>
+            {
+                var vm = new PluginItemViewModel(plugin, _pluginManager.IsEnabled(plugin.Manifest.Id), _pluginManager, _registryService)
+                {
+                    IsExpanded = expandedIds.Contains(plugin.Manifest.Id)
+                };
+                return vm;
+            }));
 
         NotifyStateChanged();
     }
@@ -80,29 +81,8 @@ public partial class PluginsViewModel : ObservableObject
                 .ThenBy(plugin => plugin.Name)
                 .ToList();
 
-            RegistryPlugins.Clear();
-            MarketplaceGroups.Clear();
-            MarketplaceCategories.Clear();
-
-            foreach (var plugin in registryItems)
-            {
-                RegistryPlugins.Add(plugin);
-            }
-
-            foreach (var group in registryItems
-                         .GroupBy(plugin => plugin.CategoryKey)
-                         .OrderBy(group => group.First().CategorySortOrder))
-            {
-                var first = group.First();
-                MarketplaceGroups.Add(new RegistryPluginCategoryGroupViewModel(first.CategoryLabel, group));
-                MarketplaceCategories.Add(new MarketplaceCategoryTabViewModel(first.CategoryKey, first.CategoryLabel, group.Count()));
-            }
-
-            var selectedCategory = MarketplaceCategories.Any(category => category.Key == SelectedMarketplaceCategoryKey)
-                ? SelectedMarketplaceCategoryKey
-                : MarketplaceCategories.FirstOrDefault()?.Key;
-
-            SelectedMarketplaceCategoryKey = selectedCategory;
+            RegistryPlugins.Replace(registryItems);
+            RebuildMarketplaceGroups();
 
             NotifyStateChanged();
         }
@@ -117,9 +97,7 @@ public partial class PluginsViewModel : ObservableObject
         foreach (var category in MarketplaceCategories)
             category.IsSelected = string.Equals(category.Key, value, StringComparison.OrdinalIgnoreCase);
 
-        FilteredMarketplacePlugins.Clear();
-        foreach (var plugin in RegistryPlugins.Where(plugin => string.Equals(plugin.CategoryKey, value, StringComparison.OrdinalIgnoreCase)))
-            FilteredMarketplacePlugins.Add(plugin);
+        FilteredMarketplacePlugins.Replace(RegistryPlugins.Where(plugin => string.Equals(plugin.CategoryKey, value, StringComparison.OrdinalIgnoreCase)));
 
         OnPropertyChanged(nameof(SelectedMarketplaceCategoryName));
         OnPropertyChanged(nameof(MarketplaceCategorySummaryText));
