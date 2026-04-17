@@ -166,7 +166,7 @@ public sealed class FileVocalIsolationService : IDisposable
                 _session?.Dispose();
                 _session = null;
                 _inputName = null;
-                TryDelete(Path.Combine(GetModelsRoot(), ModelFileName));
+                TryDelete(Path.Join(GetModelsRoot(), ModelFileName));
             }
 
             if (_session is not null)
@@ -174,7 +174,7 @@ public sealed class FileVocalIsolationService : IDisposable
 
             progress?.Report(new FileVocalIsolationProgress(FileVocalIsolationStage.PreparingModel));
 
-            var modelPath = Path.Combine(GetModelsRoot(), ModelFileName);
+            var modelPath = Path.Join(GetModelsRoot(), ModelFileName);
             if (!File.Exists(modelPath))
                 await DownloadModelAsync(modelPath, progress, cancellationToken);
 
@@ -198,7 +198,19 @@ public sealed class FileVocalIsolationService : IDisposable
         {
             return CreateSession(modelPath);
         }
-        catch when (!forceRedownload)
+        catch (OnnxRuntimeException) when (!forceRedownload)
+        {
+            TryDelete(modelPath);
+            await DownloadModelAsync(modelPath, progress, cancellationToken);
+            return CreateSession(modelPath);
+        }
+        catch (InvalidOperationException) when (!forceRedownload)
+        {
+            TryDelete(modelPath);
+            await DownloadModelAsync(modelPath, progress, cancellationToken);
+            return CreateSession(modelPath);
+        }
+        catch (BadImageFormatException) when (!forceRedownload)
         {
             TryDelete(modelPath);
             await DownloadModelAsync(modelPath, progress, cancellationToken);
@@ -274,7 +286,35 @@ public sealed class FileVocalIsolationService : IDisposable
             _executionProvider = "DirectML";
             return directMlSession;
         }
-        catch
+        catch (OnnxRuntimeException)
+        {
+            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
+            var cpuSession = new InferenceSession(modelPath, cpuOptions);
+            _executionProvider = "CPU";
+            return cpuSession;
+        }
+        catch (DllNotFoundException)
+        {
+            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
+            var cpuSession = new InferenceSession(modelPath, cpuOptions);
+            _executionProvider = "CPU";
+            return cpuSession;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
+            var cpuSession = new InferenceSession(modelPath, cpuOptions);
+            _executionProvider = "CPU";
+            return cpuSession;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
+            var cpuSession = new InferenceSession(modelPath, cpuOptions);
+            _executionProvider = "CPU";
+            return cpuSession;
+        }
+        catch (BadImageFormatException)
         {
             using var cpuOptions = CreateSessionOptions(useDirectMl: false);
             var cpuSession = new InferenceSession(modelPath, cpuOptions);
@@ -382,10 +422,11 @@ public sealed class FileVocalIsolationService : IDisposable
         IProgress<FileVocalIsolationProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var tempDirectory = Path.Combine(GetModelsRoot(), "Temp");
+        var tempDirectory = Path.Join(GetModelsRoot(), "Temp");
         Directory.CreateDirectory(tempDirectory);
 
-        var tempPath = Path.Combine(tempDirectory, Guid.NewGuid().ToString("N") + ".wav");
+        var tempPath = Path.Join(tempDirectory, Guid.NewGuid().ToString("N") + ".wav");
+        var succeeded = false;
         try
         {
             using var reader = new MediaFoundationReader(filePath);
@@ -494,12 +535,13 @@ public sealed class FileVocalIsolationService : IDisposable
             monoResampler.Complete(writer);
             writer.Flush();
             var targetFrames = Math.Max(1, (int)Math.Round(totalFramesRead * (double)OutputSampleRate / SourceSampleRate));
+            succeeded = true;
             return new StreamingIsolationResult(tempPath, targetFrames);
         }
-        catch
+        finally
         {
-            TryDelete(tempPath);
-            throw;
+            if (!succeeded)
+                TryDelete(tempPath);
         }
     }
 
@@ -560,8 +602,8 @@ public sealed class FileVocalIsolationService : IDisposable
 
             for (var bin = 0; bin < ModelFrequencyBins; bin++)
             {
-                inputTensor[batchIndex, realChannelIndex, bin, frame] = (float)fftBuffer[bin].Real;
-                inputTensor[batchIndex, imaginaryChannelIndex, bin, frame] = (float)fftBuffer[bin].Imaginary;
+                inputTensor[batchIndex, realChannelIndex, bin, frame] = fftBuffer[bin].Real;
+                inputTensor[batchIndex, imaginaryChannelIndex, bin, frame] = fftBuffer[bin].Imaginary;
             }
         }
     }
@@ -732,12 +774,11 @@ public sealed class FileVocalIsolationService : IDisposable
     private static bool GetCpuMemArenaEnabled()
     {
         var environmentValue = Environment.GetEnvironmentVariable(CpuMemArenaEnvironmentVariable);
-        return environmentValue is null
-            ? false
-            : environmentValue.Equals("1", StringComparison.OrdinalIgnoreCase)
+        return environmentValue is not null
+            && (environmentValue.Equals("1", StringComparison.OrdinalIgnoreCase)
                 || environmentValue.Equals("true", StringComparison.OrdinalIgnoreCase)
                 || environmentValue.Equals("on", StringComparison.OrdinalIgnoreCase)
-                || environmentValue.Equals("yes", StringComparison.OrdinalIgnoreCase);
+                || environmentValue.Equals("yes", StringComparison.OrdinalIgnoreCase));
     }
 
     private static GraphOptimizationLevel GetGraphOptimizationLevel()
@@ -759,12 +800,15 @@ public sealed class FileVocalIsolationService : IDisposable
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }
 
-    private static string GetModelsRoot() => Path.Combine(TypeWhisperEnvironment.DataPath, "FileTranscription", "VocalIsolation");
+    private static string GetModelsRoot() => Path.Join(TypeWhisperEnvironment.DataPath, "FileTranscription", "VocalIsolation");
 
     private sealed class StreamingMonoResampler(int sourceSampleRate, int targetSampleRate)
     {

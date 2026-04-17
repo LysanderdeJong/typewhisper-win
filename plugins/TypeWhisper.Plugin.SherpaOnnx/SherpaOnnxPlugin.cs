@@ -217,7 +217,7 @@ public sealed class SherpaOnnxPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
 
             var (text, detectedLanguage) = model.SupportsTranslation
                 ? ParseCanaryResult(rawText)
-                : (rawText, (string?)null);
+                : (rawText, null);
 
             return new PluginTranscriptionResult(text, detectedLanguage, audioDuration, NoSpeechProbability: null);
         }

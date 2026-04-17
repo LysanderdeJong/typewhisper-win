@@ -1,5 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
+using System.IO;
+using System.Net.WebSockets;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.PluginSDK;
 
@@ -136,7 +138,10 @@ public sealed class StreamingHandler : IDisposable
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        catch (ObjectDisposedException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        catch (InvalidOperationException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        catch (IOException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        catch (WebSocketException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
         finally { ArrayPool<byte>.Shared.Return(pcm16); }
     }
 

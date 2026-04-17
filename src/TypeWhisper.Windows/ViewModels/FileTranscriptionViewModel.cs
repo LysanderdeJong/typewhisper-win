@@ -1,7 +1,9 @@
 using System.IO;
 using System.Diagnostics;
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.ML.OnnxRuntime;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.Core.Models;
 using TypeWhisper.Core.Services;
@@ -89,8 +91,8 @@ public partial class FileTranscriptionViewModel : ObservableObject
 
         _cts?.Cancel();
         _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        var currentCts = _cts;
+        using var currentCts = new CancellationTokenSource();
+        _cts = currentCts;
         string? preparedAudioPath = null;
 
         try
@@ -167,9 +169,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
                 }
                 else
                 {
-                    samples ??= await _audioFile.LoadAudioAsync(transcriptionAudioPath, currentCts.Token);
-                    var speechSegments = await _speechSegmentation.SegmentAsync(samples, currentCts.Token);
-                    samples = null;
+                    var speechSegments = await LoadSpeechSegmentsAsync(transcriptionAudioPath, samples, currentCts.Token);
                     result = await TranscribeSpeechSegmentsAsync(speechSegments, diarizedSpeakers, language, task, pipelineOptions, totalDuration, currentCts.Token);
                 }
             }
@@ -212,7 +212,15 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
@@ -222,10 +230,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
                 TryDeleteTemporaryFile(preparedAudioPath);
 
             if (ReferenceEquals(_cts, currentCts))
-            {
                 _cts = null;
-                currentCts.Dispose();
-            }
 
             IsProcessing = false;
         }
@@ -246,8 +251,8 @@ public partial class FileTranscriptionViewModel : ObservableObject
         IsProcessing = true;
         _cts?.Cancel();
         _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        var currentCts = _cts;
+        using var currentCts = new CancellationTokenSource();
+        _cts = currentCts;
 
         try
         {
@@ -263,17 +268,30 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (IOException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (InvalidDataException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
         finally
         {
             if (ReferenceEquals(_cts, currentCts))
-            {
                 _cts = null;
-                currentCts.Dispose();
-            }
 
             IsProcessing = false;
         }
@@ -288,8 +306,8 @@ public partial class FileTranscriptionViewModel : ObservableObject
         IsProcessing = true;
         _cts?.Cancel();
         _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        var currentCts = _cts;
+        using var currentCts = new CancellationTokenSource();
+        _cts = currentCts;
 
         try
         {
@@ -305,17 +323,30 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (IOException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
+        }
+        catch (OnnxRuntimeException ex)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
         finally
         {
             if (ReferenceEquals(_cts, currentCts))
-            {
                 _cts = null;
-                currentCts.Dispose();
-            }
 
             IsProcessing = false;
         }
@@ -412,6 +443,15 @@ public partial class FileTranscriptionViewModel : ObservableObject
             NoSpeechProbability = rawResult.NoSpeechProbability,
             Segments = rawResult.Segments,
         };
+    }
+
+    private async Task<IReadOnlyList<AudioSpeechSegment>> LoadSpeechSegmentsAsync(
+        string transcriptionAudioPath,
+        float[]? preloadedSamples,
+        CancellationToken cancellationToken)
+    {
+        var loadedSamples = preloadedSamples ?? await _audioFile.LoadAudioAsync(transcriptionAudioPath, cancellationToken);
+        return await _speechSegmentation.SegmentAsync(loadedSamples, cancellationToken);
     }
 
     private async Task<TranscriptionResult> TranscribeSpeechSegmentsAsync(
@@ -738,7 +778,10 @@ public partial class FileTranscriptionViewModel : ObservableObject
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }

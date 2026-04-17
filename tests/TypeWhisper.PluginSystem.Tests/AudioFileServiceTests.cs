@@ -61,7 +61,7 @@ public sealed class AudioFileServiceTests
 
     private static string CreateTestWave(int sampleRate, float[] samples)
     {
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wav");
+        var path = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wav");
         using var writer = new WaveFileWriter(path, WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 1));
         writer.WriteSamples(samples, 0, samples.Length);
         return path;

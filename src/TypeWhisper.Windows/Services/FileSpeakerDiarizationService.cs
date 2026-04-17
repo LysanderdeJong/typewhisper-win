@@ -112,7 +112,7 @@ public sealed class FileSpeakerDiarizationService : IDisposable
 
             if (!File.Exists(GetSegmentationModelPath()))
             {
-                var archivePath = Path.Combine(GetModelsRoot(), "speaker-segmentation.tar.bz2");
+                var archivePath = Path.Join(GetModelsRoot(), "speaker-segmentation.tar.bz2");
                 progress?.Report(new FileSpeakerDiarizationProgress(FileSpeakerDiarizationStage.DownloadingSegmentationModel));
                 await DownloadFileAsync(SegmentationArchiveUrl, archivePath, FileSpeakerDiarizationStage.DownloadingSegmentationModel, progress, cancellationToken);
                 progress?.Report(new FileSpeakerDiarizationProgress(FileSpeakerDiarizationStage.ExtractingSegmentationModel));
@@ -126,7 +126,27 @@ public sealed class FileSpeakerDiarizationService : IDisposable
                 await DownloadFileAsync(EmbeddingModelUrl, GetEmbeddingModelPath(), FileSpeakerDiarizationStage.DownloadingEmbeddingModel, progress, cancellationToken);
             }
         }
-        catch when (!attemptedRecovery)
+        catch (HttpRequestException) when (!attemptedRecovery)
+        {
+            TryDeleteDirectory(GetModelsRoot());
+            shouldRetry = true;
+        }
+        catch (IOException) when (!attemptedRecovery)
+        {
+            TryDeleteDirectory(GetModelsRoot());
+            shouldRetry = true;
+        }
+        catch (InvalidDataException) when (!attemptedRecovery)
+        {
+            TryDeleteDirectory(GetModelsRoot());
+            shouldRetry = true;
+        }
+        catch (InvalidOperationException) when (!attemptedRecovery)
+        {
+            TryDeleteDirectory(GetModelsRoot());
+            shouldRetry = true;
+        }
+        catch (UnauthorizedAccessException) when (!attemptedRecovery)
         {
             TryDeleteDirectory(GetModelsRoot());
             shouldRetry = true;
@@ -203,14 +223,14 @@ public sealed class FileSpeakerDiarizationService : IDisposable
     {
         var modelsRoot = GetModelsRoot();
         var finalSegmentationDirectory = GetSegmentationDirectoryPath();
-        var tempRoot = Path.Combine(modelsRoot, "extract-" + Guid.NewGuid().ToString("N"));
+        var tempRoot = Path.Join(modelsRoot, "extract-" + Guid.NewGuid().ToString("N"));
 
         Directory.CreateDirectory(tempRoot);
         try
         {
             ExtractArchive(archivePath, tempRoot, cancellationToken);
 
-            var extractedSegmentationDirectory = Path.Combine(tempRoot, SegmentationFolderName);
+            var extractedSegmentationDirectory = Path.Join(tempRoot, SegmentationFolderName);
             if (!Directory.Exists(extractedSegmentationDirectory))
                 throw new InvalidOperationException($"Segmentation archive did not contain '{SegmentationFolderName}'.");
 
@@ -251,7 +271,10 @@ public sealed class FileSpeakerDiarizationService : IDisposable
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }
@@ -263,13 +286,16 @@ public sealed class FileSpeakerDiarizationService : IDisposable
             if (Directory.Exists(path))
                 Directory.Delete(path, recursive: true);
         }
-        catch
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
         {
         }
     }
 
-    private static string GetModelsRoot() => Path.Combine(TypeWhisperEnvironment.DataPath, "FileTranscription", "Diarization");
-    private static string GetSegmentationDirectoryPath() => Path.Combine(GetModelsRoot(), SegmentationFolderName);
-    private static string GetSegmentationModelPath() => Path.Combine(GetModelsRoot(), SegmentationFolderName, "model.onnx");
-    private static string GetEmbeddingModelPath() => Path.Combine(GetModelsRoot(), EmbeddingFileName);
+    private static string GetModelsRoot() => Path.Join(TypeWhisperEnvironment.DataPath, "FileTranscription", "Diarization");
+    private static string GetSegmentationDirectoryPath() => Path.Join(GetModelsRoot(), SegmentationFolderName);
+    private static string GetSegmentationModelPath() => Path.Join(GetModelsRoot(), SegmentationFolderName, "model.onnx");
+    private static string GetEmbeddingModelPath() => Path.Join(GetModelsRoot(), EmbeddingFileName);
 }
