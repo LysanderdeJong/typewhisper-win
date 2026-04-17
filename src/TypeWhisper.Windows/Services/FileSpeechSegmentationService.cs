@@ -13,13 +13,15 @@ public sealed class AudioSpeechSegment
     private float[]? _samples;
     private float[]? _sourceSamples;
     private int _sourceOffset;
+    private Action<float[]>? _releaseSamples;
 
-    public AudioSpeechSegment(float[] samples, double startSeconds, double endSeconds)
+    public AudioSpeechSegment(float[] samples, double startSeconds, double endSeconds, Action<float[]>? releaseSamples = null)
     {
         _samples = samples;
         SampleCount = samples.Length;
         StartSeconds = startSeconds;
         EndSeconds = endSeconds;
+        _releaseSamples = releaseSamples;
     }
 
     private AudioSpeechSegment(float[] sourceSamples, int sourceOffset, int sampleCount, double startSeconds, double endSeconds)
@@ -54,9 +56,13 @@ public sealed class AudioSpeechSegment
 
     public void ReleaseSamples()
     {
+        if (_samples is { Length: > 0 } samples)
+            _releaseSamples?.Invoke(samples);
+
         _samples = [];
         _sourceSamples = null;
         _sourceOffset = 0;
+        _releaseSamples = null;
     }
 }
 

@@ -68,59 +68,86 @@ public sealed class AudioFileService
         };
 
         var chunkSamples = chunkFrameCount * targetChannels;
-        // We fill the per-segment float[] directly from PCM conversions; consumers own the
-        // buffer for their yield lifetime so pooling is not safe here.
-        var currentSegment = new float[chunkSamples];
+        var samplePool = new ExactFloatBufferPool(chunkSamples);
+        Action<float[]> returnChunk = samplePool.Return;
+        // Streamed consumers process one chunk at a time and call ReleaseSamples() when done,
+        // so a tiny per-stream pool can safely recycle the full-size chunk buffers.
+        var currentSegment = samplePool.Rent();
         var byteBuffer = ArrayPool<byte>.Shared.Rent(ReadBufferBytes);
         var bufferedSamples = 0;
         long emittedFrames = 0;
         try
         {
-            int bytesRead;
-            while ((bytesRead = resampled.Read(byteBuffer, 0, ReadBufferBytes)) > 0)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var sampleCount = bytesRead / 2;
-                var sampleOffset = 0;
-                while (sampleOffset < sampleCount)
+                int bytesRead;
+                while ((bytesRead = resampled.Read(byteBuffer, 0, ReadBufferBytes)) > 0)
                 {
-                    var capacityRemaining = chunkSamples - bufferedSamples;
-                    var toCopy = Math.Min(capacityRemaining, sampleCount - sampleOffset);
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                    PcmSampleConverter.ConvertPcm16LeToFloat(
-                        byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
-                        currentSegment.AsSpan(bufferedSamples, toCopy));
+                    var sampleCount = bytesRead / 2;
+                    var sampleOffset = 0;
+                    while (sampleOffset < sampleCount)
+                    {
+                        var capacityRemaining = chunkSamples - bufferedSamples;
+                        var toCopy = Math.Min(capacityRemaining, sampleCount - sampleOffset);
 
-                    bufferedSamples += toCopy;
-                    sampleOffset += toCopy;
+                        PcmSampleConverter.ConvertPcm16LeToFloat(
+                            byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
+                            currentSegment.AsSpan(bufferedSamples, toCopy));
 
-                    if (bufferedSamples != chunkSamples)
-                        continue;
+                        bufferedSamples += toCopy;
+                        sampleOffset += toCopy;
 
-                    var start = emittedFrames / (double)targetSampleRate;
-                    emittedFrames += chunkFrameCount;
-                    var end = emittedFrames / (double)targetSampleRate;
-                    yield return new AudioSpeechSegment(currentSegment, start, end);
-                    currentSegment = new float[chunkSamples];
-                    bufferedSamples = 0;
+                        if (bufferedSamples != chunkSamples)
+                            continue;
+
+                        var start = emittedFrames / (double)targetSampleRate;
+                        emittedFrames += chunkFrameCount;
+                        var end = emittedFrames / (double)targetSampleRate;
+                        yield return new AudioSpeechSegment(currentSegment, start, end, returnChunk);
+                        currentSegment = samplePool.Rent();
+                        bufferedSamples = 0;
+                    }
                 }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(byteBuffer);
+            }
+
+            if (bufferedSamples > 0)
+            {
+                var remainingFrames = bufferedSamples / targetChannels;
+                var start = emittedFrames / (double)targetSampleRate;
+                var end = start + (remainingFrames / (double)targetSampleRate);
+                // Trim the final (short) segment so the consumer doesn't see trailing zeros.
+                var trailing = new float[bufferedSamples];
+                Array.Copy(currentSegment, 0, trailing, 0, bufferedSamples);
+                yield return new AudioSpeechSegment(trailing, start, end);
             }
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(byteBuffer);
+            samplePool.Return(currentSegment);
+        }
+    }
+
+    private sealed class ExactFloatBufferPool(int bufferLength)
+    {
+        private float[]? _buffer;
+
+        public float[] Rent()
+        {
+            var buffer = _buffer;
+            _buffer = null;
+            return buffer ?? new float[bufferLength];
         }
 
-        if (bufferedSamples > 0)
+        public void Return(float[] buffer)
         {
-            var remainingFrames = bufferedSamples / targetChannels;
-            var start = emittedFrames / (double)targetSampleRate;
-            var end = start + (remainingFrames / (double)targetSampleRate);
-            // Trim the final (short) segment so the consumer doesn't see trailing zeros.
-            var trailing = new float[bufferedSamples];
-            Array.Copy(currentSegment, 0, trailing, 0, bufferedSamples);
-            yield return new AudioSpeechSegment(trailing, start, end);
+            if (buffer.Length == bufferLength && _buffer is null)
+                _buffer = buffer;
         }
     }
 
