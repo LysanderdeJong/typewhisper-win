@@ -10,7 +10,11 @@ public sealed class AudioFileService
 {
     private const int TargetSampleRate = 16000;
     private const int TargetChannels = 1;
-    private const int ReadBufferBytes = 4096;
+
+    // 64 KiB = 32768 PCM16 samples (~2s at 16 kHz mono). Larger reads amortize the per-call
+    // MediaFoundationResampler overhead and reduce decode-loop iteration count by ~16x without
+    // meaningfully increasing working-set memory.
+    private const int ReadBufferBytes = 65536;
 
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -67,7 +71,9 @@ public sealed class AudioFileService
         };
 
         var chunkSamples = chunkFrameCount * targetChannels;
-        var chunkBuffer = new float[chunkSamples];
+        // We fill the per-segment float[] directly from PCM conversions; consumers own the
+        // buffer for their yield lifetime so pooling is not safe here.
+        var currentSegment = new float[chunkSamples];
         var byteBuffer = new byte[ReadBufferBytes];
         var bufferedSamples = 0;
         long emittedFrames = 0;
@@ -86,7 +92,7 @@ public sealed class AudioFileService
 
                 PcmSampleConverter.ConvertPcm16LeToFloat(
                     byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
-                    chunkBuffer.AsSpan(bufferedSamples, toCopy));
+                    currentSegment.AsSpan(bufferedSamples, toCopy));
 
                 bufferedSamples += toCopy;
                 sampleOffset += toCopy;
@@ -97,9 +103,8 @@ public sealed class AudioFileService
                 var start = emittedFrames / (double)targetSampleRate;
                 emittedFrames += chunkFrameCount;
                 var end = emittedFrames / (double)targetSampleRate;
-                var segmentSamples = new float[chunkSamples];
-                Array.Copy(chunkBuffer, 0, segmentSamples, 0, chunkSamples);
-                yield return new AudioSpeechSegment(segmentSamples, start, end);
+                yield return new AudioSpeechSegment(currentSegment, start, end);
+                currentSegment = new float[chunkSamples];
                 bufferedSamples = 0;
             }
         }
@@ -109,9 +114,10 @@ public sealed class AudioFileService
             var remainingFrames = bufferedSamples / targetChannels;
             var start = emittedFrames / (double)targetSampleRate;
             var end = start + (remainingFrames / (double)targetSampleRate);
-            var segmentSamples = new float[bufferedSamples];
-            Array.Copy(chunkBuffer, 0, segmentSamples, 0, bufferedSamples);
-            yield return new AudioSpeechSegment(segmentSamples, start, end);
+            // Trim the final (short) segment so the consumer doesn't see trailing zeros.
+            var trailing = new float[bufferedSamples];
+            Array.Copy(currentSegment, 0, trailing, 0, bufferedSamples);
+            yield return new AudioSpeechSegment(trailing, start, end);
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO;
 using System.Net.Http;
 using System.Numerics;
@@ -593,23 +594,34 @@ public sealed class FileVocalIsolationService : IDisposable
 
     private void CopyStftToTensor(DenseTensor<float> inputTensor, int batchIndex, int realChannelIndex, int imaginaryChannelIndex, float[] samples)
     {
-        var padded = new float[ChunkSamples + Nfft];
+        // Pool the ~1 MB padded scratch buffer. MathNet's Fourier.Forward operates on the full
+        // array length, so the FFT workspace has to match Nfft exactly and cannot come from
+        // ArrayPool (which rounds up to power-of-two buckets).
+        var padded = ArrayPool<float>.Shared.Rent(ChunkSamples + Nfft);
         var fftBuffer = new MathNet.Numerics.Complex32[Nfft];
-        Array.Copy(samples, 0, padded, TrimSamples, ChunkSamples);
-
-        for (var frame = 0; frame < ModelFrames; frame++)
+        try
         {
-            var frameOffset = frame * HopLength;
-            for (var i = 0; i < Nfft; i++)
-                fftBuffer[i] = new MathNet.Numerics.Complex32(padded[frameOffset + i] * _window[i], 0);
+            Array.Clear(padded, 0, ChunkSamples + Nfft);
+            Array.Copy(samples, 0, padded, TrimSamples, ChunkSamples);
 
-            Fourier.Forward(fftBuffer, FourierOptions.AsymmetricScaling);
-
-            for (var bin = 0; bin < ModelFrequencyBins; bin++)
+            for (var frame = 0; frame < ModelFrames; frame++)
             {
-                inputTensor[batchIndex, realChannelIndex, bin, frame] = fftBuffer[bin].Real;
-                inputTensor[batchIndex, imaginaryChannelIndex, bin, frame] = fftBuffer[bin].Imaginary;
+                var frameOffset = frame * HopLength;
+                for (var i = 0; i < Nfft; i++)
+                    fftBuffer[i] = new MathNet.Numerics.Complex32(padded[frameOffset + i] * _window[i], 0);
+
+                Fourier.Forward(fftBuffer, FourierOptions.AsymmetricScaling);
+
+                for (var bin = 0; bin < ModelFrequencyBins; bin++)
+                {
+                    inputTensor[batchIndex, realChannelIndex, bin, frame] = fftBuffer[bin].Real;
+                    inputTensor[batchIndex, imaginaryChannelIndex, bin, frame] = fftBuffer[bin].Imaginary;
+                }
             }
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(padded);
         }
     }
 
@@ -623,37 +635,51 @@ public sealed class FileVocalIsolationService : IDisposable
         int sourceStart,
         int length)
     {
-        var output = new float[ChunkSamples + Nfft];
-        var windowSums = new float[ChunkSamples + Nfft];
+        // Pool the two ~1 MB scratch buffers. They are allocated up to 8 times per inference
+        // batch (2 channels * 4 batch items), so pooling cuts ~16 MB of short-lived allocations
+        // per ProcessChunkBatch call. FFT workspace must match Nfft exactly - see CopyStftToTensor.
+        var paddedLength = ChunkSamples + Nfft;
+        var output = ArrayPool<float>.Shared.Rent(paddedLength);
+        var windowSums = ArrayPool<float>.Shared.Rent(paddedLength);
         var fftBuffer = new MathNet.Numerics.Complex32[Nfft];
-
-        for (var frame = 0; frame < ModelFrames; frame++)
+        try
         {
-            Array.Clear(fftBuffer, 0, Nfft);
+            Array.Clear(output, 0, paddedLength);
+            Array.Clear(windowSums, 0, paddedLength);
 
-            for (var bin = 0; bin < ModelFrequencyBins; bin++)
-                fftBuffer[bin] = new MathNet.Numerics.Complex32(outputTensor[batchIndex, realChannelIndex, bin, frame], outputTensor[batchIndex, imaginaryChannelIndex, bin, frame]);
-
-            for (var bin = 1; bin < FullFrequencyBins - 1; bin++)
-                fftBuffer[Nfft - bin] = fftBuffer[bin].Conjugate();
-
-            Fourier.Inverse(fftBuffer, FourierOptions.AsymmetricScaling);
-
-            var frameOffset = frame * HopLength;
-            for (var i = 0; i < Nfft; i++)
+            for (var frame = 0; frame < ModelFrames; frame++)
             {
-                var weighted = fftBuffer[i].Real * _window[i];
-                output[frameOffset + i] += weighted;
-                windowSums[frameOffset + i] += _window[i] * _window[i];
+                Array.Clear(fftBuffer, 0, Nfft);
+
+                for (var bin = 0; bin < ModelFrequencyBins; bin++)
+                    fftBuffer[bin] = new MathNet.Numerics.Complex32(outputTensor[batchIndex, realChannelIndex, bin, frame], outputTensor[batchIndex, imaginaryChannelIndex, bin, frame]);
+
+                for (var bin = 1; bin < FullFrequencyBins - 1; bin++)
+                    fftBuffer[Nfft - bin] = fftBuffer[bin].Conjugate();
+
+                Fourier.Inverse(fftBuffer, FourierOptions.AsymmetricScaling);
+
+                var frameOffset = frame * HopLength;
+                for (var i = 0; i < Nfft; i++)
+                {
+                    var weighted = fftBuffer[i].Real * _window[i];
+                    output[frameOffset + i] += weighted;
+                    windowSums[frameOffset + i] += _window[i] * _window[i];
+                }
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                var sourceIndex = sourceStart + i;
+                destination[destinationOffset + i] = windowSums[sourceIndex] > 1e-8
+                    ? output[sourceIndex] / windowSums[sourceIndex]
+                    : 0;
             }
         }
-
-        for (var i = 0; i < length; i++)
+        finally
         {
-            var sourceIndex = sourceStart + i;
-            destination[destinationOffset + i] = windowSums[sourceIndex] > 1e-8
-                ? output[sourceIndex] / windowSums[sourceIndex]
-                : 0;
+            ArrayPool<float>.Shared.Return(output);
+            ArrayPool<float>.Shared.Return(windowSums);
         }
     }
 
