@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Numerics;
 using System.Net.Http;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -253,17 +254,7 @@ public sealed class TranslationService : ITranslationService, IDisposable
 
             var vocabSize = logits.Dimensions[2];
             var lastTokenOffset = (decoderLen - 1) * vocabSize;
-            var bestId = 0;
-            var bestVal = float.NegativeInfinity;
-            for (var v = 0; v < vocabSize; v++)
-            {
-                var val = logits.Buffer.Span[lastTokenOffset + v];
-                if (val > bestVal)
-                {
-                    bestVal = val;
-                    bestId = v;
-                }
-            }
+            var bestId = FindBestLogitIndex(logits.Buffer.Span.Slice(lastTokenOffset, vocabSize));
 
             if (bestId == model.Config.EosTokenId) break;
             decodedIds[decodedCount] = bestId;
@@ -272,6 +263,44 @@ public sealed class TranslationService : ITranslationService, IDisposable
         }
 
         return model.Tokenizer.Decode(decodedIds.AsSpan(1, decodedCount - 1));
+    }
+
+    private static int FindBestLogitIndex(ReadOnlySpan<float> logits)
+    {
+        var maxValue = float.NegativeInfinity;
+        var i = 0;
+
+        if (Vector.IsHardwareAccelerated && logits.Length >= Vector<float>.Count)
+        {
+            var negativeInfinity = new Vector<float>(float.NegativeInfinity);
+            var vectorMax = negativeInfinity;
+            var lastVectorStart = logits.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var vector = new Vector<float>(logits.Slice(i, Vector<float>.Count));
+                var validMask = Vector.Equals(vector, vector);
+                var sanitized = Vector.ConditionalSelect(validMask, vector, negativeInfinity);
+                vectorMax = Vector.Max(vectorMax, sanitized);
+            }
+
+            for (var lane = 0; lane < Vector<float>.Count; lane++)
+                maxValue = MathF.Max(maxValue, vectorMax[lane]);
+        }
+
+        for (; i < logits.Length; i++)
+        {
+            var value = logits[i];
+            if (!float.IsNaN(value) && value > maxValue)
+                maxValue = value;
+        }
+
+        for (var index = 0; index < logits.Length; index++)
+        {
+            if (logits[index] == maxValue)
+                return index;
+        }
+
+        return 0;
     }
 
     private static string ModelKey(string sourceLang, string targetLang) =>
