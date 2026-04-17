@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Numerics;
 using NAudio.Wave;
 using TypeWhisper.Core.Audio;
 
@@ -188,13 +189,8 @@ public sealed class AudioRecordingService : IDisposable
                 e.Buffer.AsSpan(0, sampleCount * 2),
                 floatBuffer.AsSpan(0, sampleCount));
 
-            // Compute pre-gain RMS for speech energy detection (unaffected by AGC)
-            float preGainSum = 0;
-            for (var i = 0; i < sampleCount; i++)
-            {
-                var s = floatBuffer[i];
-                preGainSum += s * s;
-            }
+            // Compute pre-gain RMS for speech energy detection (unaffected by AGC).
+            ComputePeakAndSumSquares(floatBuffer.AsSpan(0, sampleCount), out _, out var preGainSum);
             var preGainRms = MathF.Sqrt(preGainSum / sampleCount);
             if (preGainRms > _preGainPeakRms) _preGainPeakRms = preGainRms;
 
@@ -205,29 +201,31 @@ public sealed class AudioRecordingService : IDisposable
                     agcGain = Math.Clamp(AgcTargetRms / preGainRms, AgcMinGain, AgcMaxGain);
             }
 
-            float peak = 0;
-            float sumSquares = 0;
             var shouldPublishSamples = SamplesAvailable is not null;
             var chunkBuffer = shouldPublishSamples ? new float[sampleCount] : null;
+            var processedSamples = chunkBuffer is not null
+                ? chunkBuffer.AsSpan()
+                : floatBuffer.AsSpan(0, sampleCount);
+
+            for (var i = 0; i < sampleCount; i++)
+            {
+                var sample = floatBuffer[i];
+                if (WhisperModeEnabled)
+                    sample = Math.Clamp(sample * agcGain, -1f, 1f);
+
+                processedSamples[i] = sample;
+            }
 
             lock (_bufferLock)
             {
-                for (var i = 0; i < sampleCount; i++)
+                if (_sampleBuffer is not null)
                 {
-                    var sample = floatBuffer[i];
-
-                    if (WhisperModeEnabled)
-                        sample = Math.Clamp(sample * agcGain, -1f, 1f);
-
-                    _sampleBuffer?.Add(sample);
-                    if (chunkBuffer is not null)
-                        chunkBuffer[i] = sample;
-
-                    var abs = MathF.Abs(sample);
-                    if (abs > peak) peak = abs;
-                    sumSquares += sample * sample;
+                    for (var i = 0; i < sampleCount; i++)
+                        _sampleBuffer.Add(processedSamples[i]);
                 }
             }
+
+            ComputePeakAndSumSquares(processedSamples, out var peak, out var sumSquares);
 
             var rms = MathF.Sqrt(sumSquares / sampleCount);
             _currentRmsLevel = rms;
@@ -250,20 +248,14 @@ public sealed class AudioRecordingService : IDisposable
 
     private static void NormalizeAudio(float[] samples)
     {
-        float peakAmplitude = 0;
-        foreach (var s in samples)
-        {
-            var abs = MathF.Abs(s);
-            if (abs > peakAmplitude) peakAmplitude = abs;
-        }
+        var peakAmplitude = FindPeak(samples);
 
         if (peakAmplitude < 0.01f) return;
 
         var gain = NormalizationTarget / peakAmplitude;
         if (gain <= 1.0f) return;
 
-        for (var i = 0; i < samples.Length; i++)
-            samples[i] = Math.Clamp(samples[i] * gain, -1f, 1f);
+        ApplyGainAndClamp(samples, gain);
     }
 
     private static int FindBestMicrophoneDevice()
@@ -388,15 +380,7 @@ public sealed class AudioRecordingService : IDisposable
                 e.Buffer.AsSpan(0, sampleCount * 2),
                 floatBuffer.AsSpan(0, sampleCount));
 
-            float peak = 0;
-            float sumSquares = 0;
-            for (var i = 0; i < sampleCount; i++)
-            {
-                var sample = floatBuffer[i];
-                var abs = MathF.Abs(sample);
-                if (abs > peak) peak = abs;
-                sumSquares += sample * sample;
-            }
+            ComputePeakAndSumSquares(floatBuffer.AsSpan(0, sampleCount), out var peak, out var sumSquares);
 
             var rms = MathF.Sqrt(sumSquares / sampleCount);
             PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
@@ -430,6 +414,67 @@ public sealed class AudioRecordingService : IDisposable
             DisposeWaveIn();
             _disposed = true;
         }
+    }
+
+    private static float FindPeak(ReadOnlySpan<float> samples)
+    {
+        ComputePeakAndSumSquares(samples, out var peak, out _);
+        return peak;
+    }
+
+    private static void ComputePeakAndSumSquares(ReadOnlySpan<float> samples, out float peak, out float sumSquares)
+    {
+        peak = 0;
+        sumSquares = 0;
+        var i = 0;
+
+        if (Vector.IsHardwareAccelerated && samples.Length >= Vector<float>.Count)
+        {
+            var vectorPeak = Vector<float>.Zero;
+            var vectorSumSquares = Vector<float>.Zero;
+            var lastVectorStart = samples.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var vector = new Vector<float>(samples.Slice(i, Vector<float>.Count));
+                var abs = Vector.Abs(vector);
+                vectorPeak = Vector.Max(vectorPeak, abs);
+                vectorSumSquares += vector * vector;
+            }
+
+            for (var lane = 0; lane < Vector<float>.Count; lane++)
+            {
+                peak = MathF.Max(peak, vectorPeak[lane]);
+                sumSquares += vectorSumSquares[lane];
+            }
+        }
+
+        for (; i < samples.Length; i++)
+        {
+            var sample = samples[i];
+            peak = MathF.Max(peak, MathF.Abs(sample));
+            sumSquares += sample * sample;
+        }
+    }
+
+    private static void ApplyGainAndClamp(Span<float> samples, float gain)
+    {
+        var i = 0;
+        if (Vector.IsHardwareAccelerated && samples.Length >= Vector<float>.Count)
+        {
+            var gainVector = new Vector<float>(gain);
+            var minVector = new Vector<float>(-1f);
+            var maxVector = new Vector<float>(1f);
+            var lastVectorStart = samples.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var scaled = new Vector<float>(samples.Slice(i, Vector<float>.Count)) * gainVector;
+                Vector.Min(Vector.Max(scaled, minVector), maxVector)
+                    .CopyTo(samples.Slice(i, Vector<float>.Count));
+            }
+        }
+
+        for (; i < samples.Length; i++)
+            samples[i] = Math.Clamp(samples[i] * gain, -1f, 1f);
     }
 }
 
