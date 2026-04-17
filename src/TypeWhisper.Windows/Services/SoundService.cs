@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using NAudio.Wave;
 
@@ -19,21 +20,49 @@ public sealed class SoundService
     public void PlaySuccessSound() => Play(_success);
     public void PlayErrorSound() => Play(_error);
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Ownership is transferred to the PlaybackStopped handler after a successful "
+            + "Init+Play; the catch block disposes the locals along the failure path.")]
     private void Play(byte[]? wav)
     {
         if (!IsEnabled || wav is null) return;
+
+        MemoryStream? ms = null;
+        WaveFileReader? reader = null;
+        WaveOutEvent? output = null;
         try
         {
-            var ms = new MemoryStream(wav);
-            var reader = new WaveFileReader(ms);
-            var output = new WaveOutEvent();
+            ms = new MemoryStream(wav);
+            reader = new WaveFileReader(ms);
+            output = new WaveOutEvent();
             output.Init(reader);
-            output.PlaybackStopped += (_, _) => { reader.Dispose(); output.Dispose(); };
+
+            // Capture locals so the handler closes over concrete non-null references;
+            // the outer variables are nulled below to prevent the catch-fallback from disposing.
+            var capturedReader = reader;
+            var capturedMs = ms;
+            var capturedOutput = output;
+            output.PlaybackStopped += (_, _) =>
+            {
+                capturedReader.Dispose();
+                capturedMs.Dispose();
+                capturedOutput.Dispose();
+            };
             output.Play();
+
+            // Ownership has been transferred to the PlaybackStopped handler.
+            reader = null;
+            ms = null;
+            output = null;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Sound playback failed: {ex.Message}");
+            output?.Dispose();
+            reader?.Dispose();
+            ms?.Dispose();
         }
     }
 

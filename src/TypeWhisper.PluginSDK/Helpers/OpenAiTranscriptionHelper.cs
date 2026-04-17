@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -24,6 +25,12 @@ public static class OpenAiTranscriptionHelper
     /// <param name="responseFormat">Response format (e.g. "verbose_json", "json", "text").</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Transcription result with text, detected language, and duration.</returns>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Each HttpContent is handed off to MultipartFormDataContent via AddDisposable, "
+            + "which disposes the child on a failed Add and otherwise transfers ownership to the "
+            + "parent MultipartFormDataContent whose Dispose() disposes all children.")]
     public static async Task<PluginTranscriptionResult> TranscribeAsync(
         HttpClient httpClient, string baseUrl, string apiKey,
         string model, byte[] wavAudio, string? language, bool translate,
@@ -33,23 +40,78 @@ public static class OpenAiTranscriptionHelper
             ? $"{baseUrl}/v1/audio/translations"
             : $"{baseUrl}/v1/audio/transcriptions";
 
+        // MultipartFormDataContent.Dispose() disposes its child contents, so children added
+        // successfully are covered by the outer using. Children created but not yet added
+        // (e.g. if Add() throws) are wrapped individually to avoid leaks on the failure path.
         using var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(wavAudio);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
-        content.Add(fileContent, "file", "audio.wav");
-        content.Add(new StringContent(model), "model");
-        content.Add(new StringContent(responseFormat), "response_format");
+
+        AddDisposable(content, CreateAudioContent(wavAudio), "file", "audio.wav");
+        AddDisposable(content, new StringContent(model), "model");
+        AddDisposable(content, new StringContent(responseFormat), "response_format");
 
         if (!string.IsNullOrEmpty(language) && language != "auto")
-            content.Add(new StringContent(language), "language");
+            AddDisposable(content, new StringContent(language), "language");
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = content;
 
-        var response = await OpenAiApiHelper.SendWithErrorHandlingAsync(httpClient, request, ct);
+        using var response = await OpenAiApiHelper.SendWithErrorHandlingAsync(httpClient, request, ct);
         var json = await response.Content.ReadAsStringAsync(ct);
         return ParseTranscriptionResponse(json);
+    }
+
+    /// <summary>
+    /// Creates the audio ByteArrayContent with the proper content-type.
+    /// Factored out so the create/add pair can be protected against Add() failures.
+    /// </summary>
+    private static ByteArrayContent CreateAudioContent(byte[] wavAudio)
+    {
+        var fileContent = new ByteArrayContent(wavAudio);
+        try
+        {
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+            return fileContent;
+        }
+        catch
+        {
+            fileContent.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Adds a child HttpContent to a MultipartFormDataContent, disposing the child if Add throws.
+    /// Once successfully added, the parent's Dispose() is responsible for disposing the child.
+    /// </summary>
+    private static void AddDisposable(MultipartFormDataContent parent, HttpContent child, string name)
+    {
+        try
+        {
+            parent.Add(child, name);
+        }
+        catch
+        {
+            child.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Adds a child HttpContent to a MultipartFormDataContent with a file name, disposing the
+    /// child if Add throws. Once successfully added, the parent's Dispose() owns the child.
+    /// </summary>
+    private static void AddDisposable(MultipartFormDataContent parent, HttpContent child, string name, string fileName)
+    {
+        try
+        {
+            parent.Add(child, name, fileName);
+        }
+        catch
+        {
+            child.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

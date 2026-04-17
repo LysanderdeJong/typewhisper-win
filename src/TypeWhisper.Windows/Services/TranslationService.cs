@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using Microsoft.ML.OnnxRuntime;
@@ -160,22 +161,44 @@ public sealed class TranslationService : ITranslationService, IDisposable
         }
     }
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Encoder/decoder ownership is transferred to LoadedTranslationModel on success; "
+            + "the catch block disposes partially-constructed sessions along the failure path.")]
     private static LoadedTranslationModel LoadModel(string modelDir)
     {
         var config = MarianConfig.Load(Path.Combine(modelDir, "config.json"));
         var tokenizer = MarianTokenizer.Load(Path.Combine(modelDir, "tokenizer.json"), config.EosTokenId);
 
-        var sessionOptions = new SessionOptions
+        // SessionOptions is only needed during session construction; InferenceSession
+        // captures the settings internally, so disposing it afterwards is safe.
+        using var sessionOptions = new SessionOptions
         {
             GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
             InterOpNumThreads = 1,
             IntraOpNumThreads = Environment.ProcessorCount
         };
 
-        var encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
-        var decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
+        InferenceSession? encoder = null;
+        InferenceSession? decoder = null;
+        try
+        {
+            encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
+            decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
 
-        return new LoadedTranslationModel(encoder, decoder, tokenizer, config);
+            var model = new LoadedTranslationModel(encoder, decoder, tokenizer, config);
+            // Ownership transferred to LoadedTranslationModel.
+            encoder = null;
+            decoder = null;
+            return model;
+        }
+        catch
+        {
+            decoder?.Dispose();
+            encoder?.Dispose();
+            throw;
+        }
     }
 
     private static string RunInference(LoadedTranslationModel model, string text)
