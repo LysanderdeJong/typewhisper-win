@@ -28,13 +28,9 @@ public sealed class HttpApiService : IDisposable
     private Task? _listenTask;
     private bool _disposed;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        WriteIndented = false
-    };
-
     public bool IsRunning => _listener?.IsListening == true;
+
+    private static (int, string) Json(int code, object body) => (code, JsonSerializer.Serialize(body));
 
     public HttpApiService(
         ModelManagerService modelManager,
@@ -104,9 +100,7 @@ public sealed class HttpApiService : IDisposable
         try
         {
             var path = request.Url?.AbsolutePath ?? "";
-            var method = request.HttpMethod;
-
-            var (statusCode, body) = (path, method) switch
+            var (statusCode, body) = (path, request.HttpMethod) switch
             {
                 ("/v1/status", "GET") => HandleStatus(),
                 ("/v1/models", "GET") => HandleModels(),
@@ -118,42 +112,37 @@ public sealed class HttpApiService : IDisposable
                 ("/v1/dictation/start", "POST") => await HandleDictationStart(),
                 ("/v1/dictation/stop", "POST") => await HandleDictationStop(),
                 ("/v1/dictation/status", "GET") => HandleDictationStatus(),
-                _ => (404, JsonSerializer.Serialize(new { error = "Not found" }))
+                _ => Json(404, new { error = "Not found" })
             };
-
-            response.StatusCode = statusCode;
-            response.ContentType = "application/json";
-            var bytes = Encoding.UTF8.GetBytes(body);
-            response.ContentLength64 = bytes.Length;
-            await response.OutputStream.WriteAsync(bytes, ct);
+            await WriteJsonAsync(response, statusCode, body, ct);
         }
         catch (Exception ex)
         {
-            response.StatusCode = 500;
-            response.ContentType = "application/json";
-            var errorBytes = Encoding.UTF8.GetBytes(
-                JsonSerializer.Serialize(new { error = ex.Message }));
-            response.ContentLength64 = errorBytes.Length;
-            await response.OutputStream.WriteAsync(errorBytes, ct);
+            await WriteJsonAsync(response, 500, JsonSerializer.Serialize(new { error = ex.Message }), ct);
         }
-        finally
-        {
-            response.Close();
-        }
+        finally { response.Close(); }
+    }
+
+    private static async Task WriteJsonAsync(HttpListenerResponse response, int statusCode, string body, CancellationToken ct)
+    {
+        response.StatusCode = statusCode;
+        response.ContentType = "application/json";
+        var bytes = Encoding.UTF8.GetBytes(body);
+        response.ContentLength64 = bytes.Length;
+        await response.OutputStream.WriteAsync(bytes, ct);
     }
 
     private (int, string) HandleStatus()
     {
         var activePlugin = _modelManager.ActiveTranscriptionPlugin;
-        var result = new
+        return Json(200, new
         {
             status = _modelManager.Engine.IsModelLoaded ? "ready" : "no_model",
             activeModel = _modelManager.ActiveModelId,
             apiVersion = "1.0",
             supports_streaming = activePlugin?.SupportsStreaming ?? false,
             supports_translation = activePlugin?.SupportsTranslation ?? false
-        };
-        return (200, JsonSerializer.Serialize(result));
+        });
     }
 
     private (int, string) HandleModels()
@@ -172,13 +161,13 @@ public sealed class HttpApiService : IDisposable
                     active = _modelManager.ActiveModelId == fullId
                 };
             }));
-        return (200, JsonSerializer.Serialize(new { models }));
+        return Json(200, new { models });
     }
 
     private async Task<(int, string)> HandleTranscribe(HttpListenerRequest request, CancellationToken ct)
     {
         if (!_modelManager.Engine.IsModelLoaded)
-            return (503, JsonSerializer.Serialize(new { error = "No model loaded" }));
+            return Json(503, new { error = "No model loaded" });
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"tw_api_{Guid.NewGuid()}.tmp");
         try
@@ -205,21 +194,14 @@ public sealed class HttpApiService : IDisposable
                 ? await TranscribeFileInChunksAsync(tempPath, totalDuration, language, task, pipelineOptions, ct)
                 : await TranscribeWholeFileAsync(await _audioFile.LoadAudioAsync(tempPath, ct), language, task, pipelineOptions, ct);
 
-            var response = new
+            return Json(200, new
             {
                 text = result.Text,
                 language = result.DetectedLanguage,
                 duration = result.Duration,
                 processing_time = result.ProcessingTime,
-                segments = result.Segments.Select(seg => new
-                {
-                    text = seg.Text,
-                    start = seg.Start,
-                    end = seg.End
-                })
-            };
-
-            return (200, JsonSerializer.Serialize(response));
+                segments = result.Segments.Select(seg => new { text = seg.Text, start = seg.Start, end = seg.End })
+            });
         }
         finally
         {
@@ -332,14 +314,7 @@ public sealed class HttpApiService : IDisposable
             words = r.WordCount
         });
 
-        var result = new
-        {
-            total = records.Count,
-            offset,
-            limit,
-            records = paged
-        };
-        return (200, JsonSerializer.Serialize(result));
+        return Json(200, new { total = records.Count, offset, limit, records = paged });
     }
 
     // DELETE /v1/history?id=
@@ -347,10 +322,10 @@ public sealed class HttpApiService : IDisposable
     {
         var id = request.QueryString["id"];
         if (string.IsNullOrEmpty(id))
-            return (400, JsonSerializer.Serialize(new { error = "Missing id parameter" }));
+            return Json(400, new { error = "Missing id parameter" });
 
         _history.DeleteRecord(id);
-        return (200, JsonSerializer.Serialize(new { deleted = true, id }));
+        return Json(200, new { deleted = true, id });
     }
 
     // GET /v1/profiles
@@ -371,7 +346,7 @@ public sealed class HttpApiService : IDisposable
             prompt_action_id = p.PromptActionId
         });
 
-        return (200, JsonSerializer.Serialize(new { profiles }));
+        return Json(200, new { profiles });
     }
 
     // PUT /v1/profiles/toggle?id=
@@ -379,50 +354,44 @@ public sealed class HttpApiService : IDisposable
     {
         var id = request.QueryString["id"];
         if (string.IsNullOrEmpty(id))
-            return (400, JsonSerializer.Serialize(new { error = "Missing id parameter" }));
+            return Json(400, new { error = "Missing id parameter" });
 
         var profile = _profiles.Profiles.FirstOrDefault(p => p.Id == id);
         if (profile is null)
-            return (404, JsonSerializer.Serialize(new { error = "Profile not found" }));
+            return Json(404, new { error = "Profile not found" });
 
         _profiles.UpdateProfile(profile with { IsEnabled = !profile.IsEnabled });
-        return (200, JsonSerializer.Serialize(new { id, is_enabled = !profile.IsEnabled }));
+        return Json(200, new { id, is_enabled = !profile.IsEnabled });
     }
 
     // POST /v1/dictation/start
     private async Task<(int, string)> HandleDictationStart()
     {
         if (_dictation.IsRecording)
-            return (409, JsonSerializer.Serialize(new { error = "Already recording" }));
+            return Json(409, new { error = "Already recording" });
 
-        await Application.Current.Dispatcher.InvokeAsync(
-            () => _dictation.StartRecordingAsync());
-        return (200, JsonSerializer.Serialize(new { started = true }));
+        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StartRecordingAsync());
+        return Json(200, new { started = true });
     }
 
     // POST /v1/dictation/stop
     private async Task<(int, string)> HandleDictationStop()
     {
         if (!_dictation.IsRecording)
-            return (409, JsonSerializer.Serialize(new { error = "Not recording" }));
+            return Json(409, new { error = "Not recording" });
 
-        await Application.Current.Dispatcher.InvokeAsync(
-            () => _dictation.StopRecordingAsync());
-        return (200, JsonSerializer.Serialize(new { stopped = true }));
+        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StopRecordingAsync());
+        return Json(200, new { stopped = true });
     }
 
     // GET /v1/dictation/status
-    private (int, string) HandleDictationStatus()
+    private (int, string) HandleDictationStatus() => Json(200, new
     {
-        var result = new
-        {
-            state = _dictation.State.ToString().ToLowerInvariant(),
-            is_recording = _dictation.IsRecording,
-            active_model = _modelManager.ActiveModelId,
-            active_profile = _dictation.ActiveProfileName
-        };
-        return (200, JsonSerializer.Serialize(result));
-    }
+        state = _dictation.State.ToString().ToLowerInvariant(),
+        is_recording = _dictation.IsRecording,
+        active_model = _modelManager.ActiveModelId,
+        active_profile = _dictation.ActiveProfileName
+    });
 
     public void Dispose()
     {

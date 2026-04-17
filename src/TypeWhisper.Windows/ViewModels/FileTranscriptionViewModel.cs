@@ -639,26 +639,20 @@ public partial class FileTranscriptionViewModel : ObservableObject
 
     partial void OnUseVoiceActivityDetectionChanged(bool value)
     {
-        if (_settings.Current.FileTranscriptionVadEnabled == value)
-            return;
-
-        _settings.Save(_settings.Current with { FileTranscriptionVadEnabled = value });
+        if (_settings.Current.FileTranscriptionVadEnabled != value)
+            _settings.Save(_settings.Current with { FileTranscriptionVadEnabled = value });
     }
 
     partial void OnUseSpeakerDiarizationChanged(bool value)
     {
-        if (_settings.Current.FileTranscriptionSpeakerDiarizationEnabled == value)
-            return;
-
-        _settings.Save(_settings.Current with { FileTranscriptionSpeakerDiarizationEnabled = value });
+        if (_settings.Current.FileTranscriptionSpeakerDiarizationEnabled != value)
+            _settings.Save(_settings.Current with { FileTranscriptionSpeakerDiarizationEnabled = value });
     }
 
     partial void OnUseVocalIsolationChanged(bool value)
     {
-        if (_settings.Current.FileTranscriptionVocalIsolationEnabled == value)
-            return;
-
-        _settings.Save(_settings.Current with { FileTranscriptionVocalIsolationEnabled = value });
+        if (_settings.Current.FileTranscriptionVocalIsolationEnabled != value)
+            _settings.Save(_settings.Current with { FileTranscriptionVocalIsolationEnabled = value });
     }
 
     private static string GetDiarizationStatusText(FileSpeakerDiarizationProgress progress) => progress.Stage switch
