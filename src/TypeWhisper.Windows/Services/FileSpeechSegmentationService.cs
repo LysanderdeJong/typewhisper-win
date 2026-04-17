@@ -184,9 +184,12 @@ public sealed class FileSpeechSegmentationService
 
         var speechSegments = segments.Count > 0
             ? segments
-            : [new AudioSpeechSegment(samples, 0, samples.Length / (double)SampleRate)];
+            : (IReadOnlyList<AudioSpeechSegment>)[new AudioSpeechSegment(samples, 0, samples.Length / (double)SampleRate)];
 
-        return SplitLongSegments(speechSegments);
+        var result = new List<AudioSpeechSegment>(speechSegments.Count);
+        foreach (var s in speechSegments)
+            result.AddRange(SplitLongSegment(s));
+        return result;
     }
 
     private static VadModelConfig CreateConfig(string modelPath)
@@ -232,18 +235,6 @@ public sealed class FileSpeechSegmentationService
     }
 
     // Keep engine requests bounded when VAD yields one very long uninterrupted speech span.
-    private static IReadOnlyList<AudioSpeechSegment> SplitLongSegments(IReadOnlyList<AudioSpeechSegment> segments)
-    {
-        var splitSegments = new List<AudioSpeechSegment>(segments.Count);
-
-        foreach (var segment in segments)
-        {
-            splitSegments.AddRange(SplitLongSegment(segment));
-        }
-
-        return splitSegments;
-    }
-
     private static IReadOnlyList<AudioSpeechSegment> SplitLongSegment(AudioSpeechSegment segment)
     {
         if (segment.SampleCount <= MaxSegmentSamples)

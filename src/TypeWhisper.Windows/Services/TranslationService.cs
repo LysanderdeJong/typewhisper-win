@@ -92,13 +92,10 @@ public sealed class TranslationService : ITranslationService, IDisposable
         throw new NotSupportedException(Loc.Instance.GetString("Error.TranslationNotAvailableFormat", sourceLang, targetLang));
     }
 
-    private async Task<LoadedTranslationModel> GetOrLoadModelAsync(string sourceLang, string targetLang, CancellationToken ct)
-    {
-        var key = ModelKey(sourceLang, targetLang);
-        if (_loadedModels.TryGetValue(key, out var model))
-            return model;
-        return await EnsureModelLoadedAsync(sourceLang, targetLang, ct);
-    }
+    private async Task<LoadedTranslationModel> GetOrLoadModelAsync(string sourceLang, string targetLang, CancellationToken ct) =>
+        _loadedModels.TryGetValue(ModelKey(sourceLang, targetLang), out var model)
+            ? model
+            : await EnsureModelLoadedAsync(sourceLang, targetLang, ct);
 
     private async Task<LoadedTranslationModel> EnsureModelLoadedAsync(string sourceLang, string targetLang, CancellationToken ct)
     {
@@ -209,11 +206,8 @@ public sealed class TranslationService : ITranslationService, IDisposable
 
         var inputIdsBuffer = new long[seqLen];
         var attentionMaskBuffer = new long[seqLen];
-        for (var i = 0; i < seqLen; i++)
-        {
-            inputIdsBuffer[i] = inputIds[i];
-            attentionMaskBuffer[i] = 1;
-        }
+        for (var i = 0; i < seqLen; i++) inputIdsBuffer[i] = inputIds[i];
+        Array.Fill(attentionMaskBuffer, 1L);
 
         var encoderDimensions = new[] { 1, seqLen };
         var inputIdsTensor = new DenseTensor<long>(inputIdsBuffer.AsMemory(), encoderDimensions);
