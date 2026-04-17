@@ -24,7 +24,8 @@ public sealed class AudioRecordingService : IDisposable
 
     private WaveInEvent? _waveIn;
     private WaveInEvent? _previewWaveIn;
-    private List<float>? _sampleBuffer;
+    private float[]? _sampleBuffer;
+    private int _sampleBufferCount;
     private readonly object _bufferLock = new();
     private bool _isRecording;
     private bool _isWarmedUp;
@@ -136,7 +137,8 @@ public sealed class AudioRecordingService : IDisposable
 
         if (_waveIn is null) return;
 
-        _sampleBuffer = new List<float>(SampleRate * 60); // Pre-alloc ~1 min
+        _sampleBuffer = new float[SampleRate * 60]; // Pre-alloc ~1 min
+        _sampleBufferCount = 0;
         _peakRmsLevel = 0;
         _preGainPeakRms = 0;
         _recordingStartTime = DateTime.UtcNow;
@@ -146,7 +148,12 @@ public sealed class AudioRecordingService : IDisposable
     public float[]? GetCurrentBuffer()
     {
         if (!_isRecording || _sampleBuffer is null) return null;
-        lock (_bufferLock) { return [.. _sampleBuffer]; }
+        lock (_bufferLock)
+        {
+            var snapshot = new float[_sampleBufferCount];
+            Array.Copy(_sampleBuffer, snapshot, _sampleBufferCount);
+            return snapshot;
+        }
     }
 
     public float[]? StopRecording()
@@ -159,8 +166,18 @@ public sealed class AudioRecordingService : IDisposable
         float[]? samples;
         lock (_bufferLock)
         {
-            samples = _sampleBuffer?.ToArray();
+            if (_sampleBuffer is null || _sampleBufferCount == 0)
+            {
+                samples = null;
+            }
+            else
+            {
+                samples = new float[_sampleBufferCount];
+                Array.Copy(_sampleBuffer, samples, _sampleBufferCount);
+            }
+
             _sampleBuffer = null;
+            _sampleBufferCount = 0;
         }
 
         if (samples is null || samples.Length == 0)
@@ -220,8 +237,9 @@ public sealed class AudioRecordingService : IDisposable
             {
                 if (_sampleBuffer is not null)
                 {
-                    for (var i = 0; i < sampleCount; i++)
-                        _sampleBuffer.Add(processedSamples[i]);
+                    EnsureSampleBufferCapacity(sampleCount);
+                    processedSamples.CopyTo(_sampleBuffer.AsSpan(_sampleBufferCount));
+                    _sampleBufferCount += sampleCount;
                 }
             }
 
@@ -420,6 +438,22 @@ public sealed class AudioRecordingService : IDisposable
     {
         ComputePeakAndSumSquares(samples, out var peak, out _);
         return peak;
+    }
+
+    private void EnsureSampleBufferCapacity(int additionalSamples)
+    {
+        if (_sampleBuffer is null)
+            return;
+
+        var requiredLength = _sampleBufferCount + additionalSamples;
+        if (requiredLength <= _sampleBuffer.Length)
+            return;
+
+        var newLength = _sampleBuffer.Length;
+        while (newLength < requiredLength)
+            newLength = Math.Max(requiredLength, newLength * 2);
+
+        Array.Resize(ref _sampleBuffer, newLength);
     }
 
     private static void ComputePeakAndSumSquares(ReadOnlySpan<float> samples, out float peak, out float sumSquares)
