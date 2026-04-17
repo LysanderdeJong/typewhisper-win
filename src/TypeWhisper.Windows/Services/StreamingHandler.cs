@@ -139,10 +139,10 @@ public sealed class StreamingHandler : IDisposable
             }
         }
         catch (OperationCanceledException) { }
-        catch (ObjectDisposedException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
-        catch (InvalidOperationException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
-        catch (IOException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
-        catch (WebSocketException ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
+        catch (Exception ex) when (ex is ObjectDisposedException or InvalidOperationException or IOException or WebSocketException)
+        {
+            Debug.WriteLine($"SendAudio error: {ex.Message}");
+        }
         finally { ArrayPool<byte>.Shared.Return(pcm16); }
     }
 
@@ -224,14 +224,6 @@ public sealed class StreamingHandler : IDisposable
     }
 
     // ── Helpers ──
-
-    /// <summary>Converts float[-1..1] PCM samples to 16-bit signed little-endian bytes.</summary>
-    internal static byte[] FloatToPcm16(float[] samples)
-    {
-        var bytes = new byte[samples.Length * 2];
-        WritePcm16(bytes, samples);
-        return bytes;
-    }
 
     private static byte[] RentPcm16(float[] samples, out int byteCount)
     {
