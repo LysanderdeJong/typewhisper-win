@@ -504,10 +504,10 @@ public sealed class FileVocalIsolationService : IDisposable
 
     private (float[] Left, float[] Right)[] ProcessChunkBatch(
         InferenceSession session,
-        IReadOnlyList<float[]> leftChunks,
-        IReadOnlyList<float[]> rightChunks)
+        float[][] leftChunks,
+        float[][] rightChunks)
     {
-        var batchCount = leftChunks.Count;
+        var batchCount = leftChunks.Length;
         var inputTensor = GetOrCreateInputTensor(batchCount);
         inputTensor.Buffer.Span.Clear();
         Parallel.For(0, batchCount, batchIndex =>
