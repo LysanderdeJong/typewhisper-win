@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using NAudio.Wave;
+using TypeWhisper.Core.Audio;
 using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.Services;
@@ -77,9 +78,18 @@ public sealed class AudioFileService
             cancellationToken.ThrowIfCancellationRequested();
 
             var sampleCount = bytesRead / 2;
-            for (var i = 0; i < sampleCount; i++)
+            var sampleOffset = 0;
+            while (sampleOffset < sampleCount)
             {
-                chunkBuffer[bufferedSamples++] = BitConverter.ToInt16(byteBuffer, i * 2) / 32768f;
+                var capacityRemaining = chunkSamples - bufferedSamples;
+                var toCopy = Math.Min(capacityRemaining, sampleCount - sampleOffset);
+
+                PcmSampleConverter.ConvertPcm16LeToFloat(
+                    byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
+                    chunkBuffer.AsSpan(bufferedSamples, toCopy));
+
+                bufferedSamples += toCopy;
+                sampleOffset += toCopy;
 
                 if (bufferedSamples != chunkSamples)
                     continue;
@@ -163,8 +173,9 @@ public sealed class AudioFileService
             var sampleCount = bytesRead / 2; // 16-bit = 2 bytes per sample
             EnsureCapacity(ref samples, samplesWritten + sampleCount);
 
-            for (var i = 0; i < sampleCount; i++)
-                samples[samplesWritten + i] = BitConverter.ToInt16(buffer, i * 2) / 32768f;
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                buffer.AsSpan(0, sampleCount * 2),
+                samples.AsSpan(samplesWritten, sampleCount));
 
             samplesWritten += sampleCount;
         }

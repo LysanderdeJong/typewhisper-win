@@ -475,11 +475,16 @@ public sealed class FileVocalIsolationService : IDisposable
                     if (bufferedFrames + framesRead > MaxBufferedFrames)
                         throw new InvalidOperationException("Streaming vocal isolation buffer overflow.");
 
+                    // Reinterpret the decode buffer as shorts and deinterleave with direct indexing
+                    // to avoid the per-call overhead of BitConverter.ToInt16.
+                    var shortView = System.Runtime.InteropServices.MemoryMarshal
+                        .Cast<byte, short>(decodeBuffer.AsSpan(0, framesRead * SourceChannels * 2));
+                    const float scale = 1f / 32768f;
                     for (var frame = 0; frame < framesRead; frame++)
                     {
-                        var sampleOffset = frame * SourceChannels * 2;
-                        leftBuffer[bufferedFrames + frame] = BitConverter.ToInt16(decodeBuffer, sampleOffset) / 32768f;
-                        rightBuffer[bufferedFrames + frame] = BitConverter.ToInt16(decodeBuffer, sampleOffset + 2) / 32768f;
+                        var sampleIndex = frame * SourceChannels;
+                        leftBuffer[bufferedFrames + frame] = shortView[sampleIndex] * scale;
+                        rightBuffer[bufferedFrames + frame] = shortView[sampleIndex + 1] * scale;
                     }
 
                     bufferedFrames += framesRead;

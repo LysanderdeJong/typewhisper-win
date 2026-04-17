@@ -78,12 +78,5 @@ public static class WavEncoder
     }
 
     private static void WritePcm16Samples(Span<byte> buffer, ReadOnlySpan<float> samples)
-    {
-        for (var i = 0; i < samples.Length; i++)
-        {
-            var clamped = Math.Clamp(samples[i], -1.0f, 1.0f);
-            var pcm = (short)(clamped * 32767);
-            BinaryPrimitives.WriteInt16LittleEndian(buffer[(i * 2)..], pcm);
-        }
-    }
+        => PcmSampleConverter.ConvertFloatToPcm16Le(samples, buffer);
 }
