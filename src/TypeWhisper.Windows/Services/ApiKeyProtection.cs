@@ -28,14 +28,9 @@ public static class ApiKeyProtection
             var decrypted = ProtectedData.Unprotect(bytes, Entropy, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(decrypted);
         }
-        catch (CryptographicException)
+        catch (Exception ex) when (ex is CryptographicException or FormatException)
         {
-            // Key was stored in plaintext (migration from old version) — return as-is
-            return encrypted;
-        }
-        catch (FormatException)
-        {
-            // Not Base64 — likely plaintext from old version
+            // Key was stored in plaintext (migration from old version) or not Base64 — return as-is
             return encrypted;
         }
     }

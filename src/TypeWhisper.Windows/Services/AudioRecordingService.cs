@@ -266,14 +266,11 @@ public sealed class AudioRecordingService : IDisposable
 
     private static void NormalizeAudio(float[] samples)
     {
-        var peakAmplitude = FindPeak(samples);
-
+        ComputePeakAndSumSquares(samples, out var peakAmplitude, out _);
         if (peakAmplitude < 0.01f) return;
 
         var gain = NormalizationTarget / peakAmplitude;
-        if (gain <= 1.0f) return;
-
-        ApplyGainAndClamp(samples, gain);
+        if (gain > 1.0f) ApplyGainAndClamp(samples, gain);
     }
 
     private static int FindBestMicrophoneDevice()
@@ -432,12 +429,6 @@ public sealed class AudioRecordingService : IDisposable
             DisposeWaveIn();
             _disposed = true;
         }
-    }
-
-    private static float FindPeak(ReadOnlySpan<float> samples)
-    {
-        ComputePeakAndSumSquares(samples, out var peak, out _);
-        return peak;
     }
 
     private void EnsureSampleBufferCapacity(int additionalSamples)

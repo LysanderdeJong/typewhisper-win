@@ -212,15 +212,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (IOException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
@@ -268,23 +260,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (HttpRequestException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (IOException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (InvalidDataException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
@@ -323,23 +299,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             StatusText = Loc.Instance["Status.Cancelled"];
         }
-        catch (HttpRequestException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (IOException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-        }
-        catch (OnnxRuntimeException ex)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or InvalidOperationException or OnnxRuntimeException)
         {
             StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
         }
