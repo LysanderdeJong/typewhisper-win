@@ -370,17 +370,12 @@ public sealed partial class SupporterDiscordService : ObservableObject
         }
     }
 
-    private static bool IsHelperUnavailableError(Exception ex)
-    {
-        if (ex is HttpRequestException)
-            return true;
+    private static readonly string[] HelperUnavailableMarkers =
+        ["127.0.0.1:8787", "actively refused", "No connection could be made", "Connection refused"];
 
-        var text = ex.ToString();
-        return text.Contains("127.0.0.1:8787", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("actively refused", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("No connection could be made", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsHelperUnavailableError(Exception ex) =>
+        ex is HttpRequestException ||
+        HelperUnavailableMarkers.Any(m => ex.ToString().Contains(m, StringComparison.OrdinalIgnoreCase));
 
     private static string GetAppVersion()
     {

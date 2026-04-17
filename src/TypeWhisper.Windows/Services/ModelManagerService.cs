@@ -63,35 +63,19 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
     {
         get
         {
-            if (_activeModelId is not null && IsPluginModel(_activeModelId))
-            {
-                var (pluginId, _) = ParsePluginModelId(_activeModelId);
-                var plugin = _pluginManager.TranscriptionEngines
-                    .FirstOrDefault(e => e.PluginId == pluginId);
-                if (plugin is not null)
-                    return new PluginTranscriptionEngineAdapter(plugin);
-            }
-
-            // Fallback: first available transcription engine
-            var fallback = _pluginManager.TranscriptionEngines.FirstOrDefault();
-            if (fallback is not null)
-                return new PluginTranscriptionEngineAdapter(fallback);
-
-            return NoOpTranscriptionEngine.Instance;
+            var plugin = ActiveTranscriptionPlugin ?? _pluginManager.TranscriptionEngines.FirstOrDefault();
+            return plugin is not null ? new PluginTranscriptionEngineAdapter(plugin) : NoOpTranscriptionEngine.Instance;
         }
     }
 
     /// <summary>Returns the active <see cref="ITranscriptionEnginePlugin"/> if a plugin model is selected.</summary>
-    public ITranscriptionEnginePlugin? ActiveTranscriptionPlugin
-    {
-        get
-        {
-            if (_activeModelId is null || !IsPluginModel(_activeModelId))
-                return null;
-            var (pluginId, _) = ParsePluginModelId(_activeModelId);
-            return _pluginManager.TranscriptionEngines.FirstOrDefault(e => e.PluginId == pluginId);
-        }
-    }
+    public ITranscriptionEnginePlugin? ActiveTranscriptionPlugin =>
+        _activeModelId is not null && IsPluginModel(_activeModelId)
+            ? FindPlugin(ParsePluginModelId(_activeModelId).PluginId)
+            : null;
+
+    private ITranscriptionEnginePlugin? FindPlugin(string pluginId) =>
+        _pluginManager.TranscriptionEngines.FirstOrDefault(e => e.PluginId == pluginId);
 
     public ModelManagerService(PluginManager pluginManager, ISettingsService settings)
     {
@@ -111,16 +95,12 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
             return ModelStatus.Ready;
 
         var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
-        var plugin = _pluginManager.TranscriptionEngines
-            .FirstOrDefault(e => e.PluginId == pluginId);
-
+        var plugin = FindPlugin(pluginId);
         if (plugin is null)
             return ModelStatus.NotDownloaded;
 
-        if (plugin.SupportsModelDownload)
-            return plugin.IsModelDownloaded(pluginModelId) ? ModelStatus.Ready : ModelStatus.NotDownloaded;
-
-        return plugin.IsConfigured ? ModelStatus.Ready : ModelStatus.NotDownloaded;
+        var ready = plugin.SupportsModelDownload ? plugin.IsModelDownloaded(pluginModelId) : plugin.IsConfigured;
+        return ready ? ModelStatus.Ready : ModelStatus.NotDownloaded;
     }
 
     public bool IsDownloaded(string modelId)
@@ -129,16 +109,8 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
             return false;
 
         var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
-        var plugin = _pluginManager.TranscriptionEngines
-            .FirstOrDefault(e => e.PluginId == pluginId);
-
-        if (plugin is null)
-            return false;
-
-        if (plugin.SupportsModelDownload)
-            return plugin.IsModelDownloaded(pluginModelId);
-
-        return plugin.IsConfigured;
+        var plugin = FindPlugin(pluginId);
+        return plugin is not null && (plugin.SupportsModelDownload ? plugin.IsModelDownloaded(pluginModelId) : plugin.IsConfigured);
     }
 
     public async Task DownloadAndLoadModelAsync(string modelId, CancellationToken cancellationToken = default)
@@ -150,8 +122,7 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
                 throw new ArgumentException($"Unknown model: {modelId}");
 
             var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
-            var plugin = _pluginManager.TranscriptionEngines
-                .FirstOrDefault(e => e.PluginId == pluginId)
+            var plugin = FindPlugin(pluginId)
                 ?? throw new ArgumentException($"Unknown plugin: {pluginId}");
 
             if (plugin.SupportsModelDownload && !plugin.IsModelDownloaded(pluginModelId))
@@ -189,8 +160,7 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
             throw new ArgumentException($"Unknown model: {modelId}");
 
         var (pluginId, pluginModelId) = ParsePluginModelId(modelId);
-        var plugin = _pluginManager.TranscriptionEngines
-            .FirstOrDefault(e => e.PluginId == pluginId)
+        var plugin = FindPlugin(pluginId)
             ?? throw new ArgumentException($"Unknown plugin: {pluginId}");
 
         if (!plugin.IsConfigured && !plugin.SupportsModelDownload)
