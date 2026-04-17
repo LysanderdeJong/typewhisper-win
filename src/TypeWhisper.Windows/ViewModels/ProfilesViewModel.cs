@@ -108,12 +108,12 @@ public partial class ProfilesViewModel : ObservableObject
     private void RebuildModelOptions()
     {
         var selected = EditTranscriptionModelOverride;
-        AvailableModelOptions.Clear();
-        AvailableModelOptions.Add(new(null, Loc.Instance["Profiles.GlobalDefault"]));
-        foreach (var engine in _modelManager.PluginManager.TranscriptionEngines)
-            foreach (var model in engine.TranscriptionModels)
-                AvailableModelOptions.Add(new(ModelManagerService.GetPluginModelId(engine.PluginId, model.Id),
-                    $"{engine.ProviderDisplayName}: {model.DisplayName}"));
+        AvailableModelOptions.Replace(
+            [new ModelOption(null, Loc.Instance["Profiles.GlobalDefault"]),
+             .. _modelManager.PluginManager.TranscriptionEngines.SelectMany(engine =>
+                 engine.TranscriptionModels.Select(model => new ModelOption(
+                     ModelManagerService.GetPluginModelId(engine.PluginId, model.Id),
+                     $"{engine.ProviderDisplayName}: {model.DisplayName}")))]);
         EditTranscriptionModelOverride = selected;
     }
 

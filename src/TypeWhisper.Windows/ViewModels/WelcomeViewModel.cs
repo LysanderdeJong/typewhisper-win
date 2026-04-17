@@ -391,10 +391,9 @@ public partial class WelcomeViewModel : ObservableObject
 
     private void RefreshMicrophones()
     {
-        Microphones.Clear();
-        Microphones.Add(new MicrophoneItem(null, Loc.Instance["Microphone.Default"]));
-        foreach (var (number, name) in AudioRecordingService.GetAvailableDevices())
-            Microphones.Add(new MicrophoneItem(number, name));
+        Microphones.Replace(
+            [new MicrophoneItem(null, Loc.Instance["Microphone.Default"]),
+             .. AudioRecordingService.GetAvailableDevices().Select(device => new MicrophoneItem(device.DeviceNumber, device.Name))]);
     }
 
     private void Finish()

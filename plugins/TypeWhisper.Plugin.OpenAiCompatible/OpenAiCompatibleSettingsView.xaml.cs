@@ -116,13 +116,6 @@ public partial class OpenAiCompatibleSettingsView : UserControl
 
     private void ShowConnectionSuccess(int modelCount, string url)
     {
-        var transcriptionCount = 0;
-        var llmCount = 0;
-
-        // All models could be used for either purpose
-        transcriptionCount = modelCount;
-        llmCount = modelCount;
-
         var detail = L("Settings.ConnectionSuccess", url, modelCount);
         ShowConnectionStatus("\u2705", L("Settings.Connected", modelCount), detail,
             new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)));
