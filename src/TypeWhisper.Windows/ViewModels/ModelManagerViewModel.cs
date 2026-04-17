@@ -55,36 +55,36 @@ public partial class ModelManagerViewModel : ObservableObject
 
     private void RebuildProviders()
     {
-        Providers.Clear();
-        AvailableModelOptions.Clear();
-        foreach (var engine in _modelManager.PluginManager.TranscriptionEngines)
+        var providers = _modelManager.PluginManager.TranscriptionEngines.Select(engine =>
         {
-            var isLlmProvider = _modelManager.PluginManager.LlmProviders
-                .Any(l => l.PluginId == engine.PluginId);
-            var providerVm = new ProviderViewModel(
+            var provider = new ProviderViewModel(
                 engine.PluginId, engine.ProviderDisplayName,
-                engine.IsConfigured, isLlmProvider, engine.SupportsModelDownload);
+                engine.IsConfigured,
+                _modelManager.PluginManager.LlmProviders.Any(llm => llm.PluginId == engine.PluginId),
+                engine.SupportsModelDownload);
 
-            foreach (var model in engine.TranscriptionModels)
+            provider.Models.Replace(engine.TranscriptionModels.Select(model =>
             {
                 var fullId = ModelManagerService.GetPluginModelId(engine.PluginId, model.Id);
-                var status = _modelManager.GetStatus(fullId);
-                providerVm.Models.Add(new ModelItemViewModel(
+                return new ModelItemViewModel(
                     fullId, model, engine.IsConfigured,
                     _modelManager.ActiveModelId == fullId,
                     engine.SupportsTranslation,
                     engine.SupportsModelDownload,
                     _modelManager.IsDownloaded(fullId),
-                    status));
+                    _modelManager.GetStatus(fullId));
+            }));
 
-                AvailableModelOptions.Add(new ModelOptionViewModel(
-                    fullId,
-                    engine.ProviderDisplayName,
-                    model.DisplayName,
-                    $"{engine.ProviderDisplayName} / {model.DisplayName}"));
-            }
-            Providers.Add(providerVm);
-        }
+            return provider;
+        }).ToList();
+
+        Providers.Replace(providers);
+        AvailableModelOptions.Replace(providers.SelectMany(provider => provider.Models.Select(model =>
+            new ModelOptionViewModel(
+                model.FullId,
+                provider.DisplayName,
+                model.DisplayName,
+                $"{provider.DisplayName} / {model.DisplayName}"))));
 
         SyncSelectedModelOption();
         RefreshActiveModelDetails();
