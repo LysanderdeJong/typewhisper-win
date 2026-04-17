@@ -38,18 +38,12 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
     [ObservableProperty] private UserControl? _currentSection;
     [ObservableProperty] private SettingsRoute _currentRoute = _lastOpenedRoute;
-    [ObservableProperty] private string _currentPageTitle = "";
-    [ObservableProperty] private string _currentPageSubtitle = "";
-    [ObservableProperty] private SettingsPageMetadata _currentPageMetadata = new(SettingsPageKind.PreferencePage);
     [ObservableProperty] private string _updateStatusText = "";
     [ObservableProperty] private bool _isCheckingForUpdates;
     [ObservableProperty] private bool _isUpdateAvailable;
     [ObservableProperty] private int _pendingFileImporterRequestId;
 
     public string CurrentAppVersion => _updateService.CurrentVersion;
-    public double CurrentPageContentWidth => CurrentPageMetadata.ContentWidth;
-    public bool CurrentPageShowsSummaryRow => CurrentPageMetadata.ShowsSummaryRow;
-    public bool CurrentPageUsesStickyActions => CurrentPageMetadata.UsesStickyActions;
     public ObservableCollection<ErrorLogEntry> ErrorLogEntries { get; } = [];
     public bool HasErrorLogEntries => ErrorLogEntries.Count > 0;
     public ObservableCollection<SettingsNavigationGroup> NavigationGroups { get; } = [];
@@ -91,7 +85,6 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
             System.Windows.Application.Current?.Dispatcher.Invoke(() =>
             {
                 BuildNavigation();
-                SyncRouteMetadata(CurrentRoute);
                 SyncNavigationSelection();
             });
         };
@@ -99,11 +92,8 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
         BuildNavigation();
         RefreshErrorLog();
         _errorLog.EntriesChanged += RefreshErrorLog;
-        SyncRouteMetadata(CurrentRoute);
         SyncNavigationSelection();
     }
-
-    public string CurrentSectionName => CurrentRoute.ToString();
 
     [RelayCommand]
     private async Task NavigateToRoute(SettingsRoute route)
@@ -121,15 +111,6 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
         return NavigateToRoute(item.Route);
     }
-
-    [RelayCommand]
-    private Task OpenHistory() => NavigateToRoute(SettingsRoute.History);
-
-    [RelayCommand]
-    private Task OpenIntegrations() => NavigateToRoute(SettingsRoute.Integrations);
-
-    [RelayCommand]
-    private Task OpenShortcuts() => NavigateToRoute(SettingsRoute.Shortcuts);
 
     [RelayCommand]
     private void OpenFileImporter()
@@ -238,8 +219,6 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     partial void OnCurrentRouteChanged(SettingsRoute value)
     {
         SyncNavigationSelection();
-        SyncRouteMetadata(value);
-        OnPropertyChanged(nameof(CurrentSectionName));
     }
 
     private void RefreshErrorLog()
@@ -309,65 +288,4 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
             item.IsSelected = item.Route == CurrentRoute;
     }
 
-    private void SyncRouteMetadata(SettingsRoute route)
-    {
-        CurrentPageMetadata = route switch
-        {
-            SettingsRoute.Profiles => new SettingsPageMetadata(SettingsPageKind.GuidedEditorPage, 1180, true, true),
-            SettingsRoute.Prompts => new SettingsPageMetadata(SettingsPageKind.CollectionPage, 1040),
-            SettingsRoute.Snippets => new SettingsPageMetadata(SettingsPageKind.CollectionPage, 1040),
-            SettingsRoute.Integrations => new SettingsPageMetadata(SettingsPageKind.CollectionPage, 1120),
-            SettingsRoute.History => new SettingsPageMetadata(SettingsPageKind.CollectionPage, 1100),
-            _ => new SettingsPageMetadata(SettingsPageKind.PreferencePage, 980)
-        };
-
-        CurrentPageTitle = route switch
-        {
-            SettingsRoute.Dashboard => Loc.Instance["Nav.Dashboard"],
-            SettingsRoute.Dictation => Loc.Instance["Nav.Dictation"],
-            SettingsRoute.Shortcuts => Loc.Instance["Nav.Shortcuts"],
-            SettingsRoute.FileTranscription => Loc.Instance["Nav.FileTranscription"],
-            SettingsRoute.Recorder => Loc.Instance["Nav.Recorder"],
-            SettingsRoute.History => Loc.Instance["Nav.History"],
-            SettingsRoute.Dictionary => Loc.Instance["Nav.Dictionary"],
-            SettingsRoute.Snippets => Loc.Instance["Nav.Snippets"],
-            SettingsRoute.Profiles => Loc.Instance["Nav.Profiles"],
-            SettingsRoute.Prompts => Loc.Instance["Nav.Prompts"],
-            SettingsRoute.Integrations => Loc.Instance["Nav.Plugins"],
-            SettingsRoute.General => Loc.Instance["Nav.General"],
-            SettingsRoute.Appearance => Loc.Instance["Nav.Appearance"],
-            SettingsRoute.Advanced => Loc.Instance["Nav.Advanced"],
-            SettingsRoute.License => Loc.Instance["Nav.License"],
-            SettingsRoute.About => Loc.Instance["Nav.About"],
-            _ => Loc.Instance["Settings.WindowTitle"]
-        };
-
-        CurrentPageSubtitle = route switch
-        {
-            SettingsRoute.Dashboard => Loc.Instance["Page.DashboardSubtitle"],
-            SettingsRoute.Dictation => Loc.Instance["Page.DictationSubtitle"],
-            SettingsRoute.Shortcuts => Loc.Instance["Page.ShortcutsSubtitle"],
-            SettingsRoute.FileTranscription => Loc.Instance["Page.FileTranscriptionSubtitle"],
-            SettingsRoute.Recorder => Loc.Instance["Page.RecorderSubtitle"],
-            SettingsRoute.History => Loc.Instance["Page.HistorySubtitle"],
-            SettingsRoute.Dictionary => Loc.Instance["Page.DictionarySubtitle"],
-            SettingsRoute.Snippets => Loc.Instance["Page.SnippetsSubtitle"],
-            SettingsRoute.Profiles => Loc.Instance["Page.ProfilesSubtitle"],
-            SettingsRoute.Prompts => Loc.Instance["Page.PromptsSubtitle"],
-            SettingsRoute.Integrations => Loc.Instance["Page.IntegrationsSubtitle"],
-            SettingsRoute.General => Loc.Instance["Page.GeneralSubtitle"],
-            SettingsRoute.Appearance => Loc.Instance["Page.AppearanceSubtitle"],
-            SettingsRoute.Advanced => Loc.Instance["Page.AdvancedSubtitle"],
-            SettingsRoute.License => Loc.Instance["Page.LicenseSubtitle"],
-            SettingsRoute.About => Loc.Instance["Page.AboutSubtitle"],
-            _ => string.Empty
-        };
-    }
-
-    partial void OnCurrentPageMetadataChanged(SettingsPageMetadata value)
-    {
-        OnPropertyChanged(nameof(CurrentPageContentWidth));
-        OnPropertyChanged(nameof(CurrentPageShowsSummaryRow));
-        OnPropertyChanged(nameof(CurrentPageUsesStickyActions));
-    }
 }
