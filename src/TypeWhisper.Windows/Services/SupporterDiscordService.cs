@@ -77,7 +77,6 @@ public sealed partial class SupporterDiscordService : ObservableObject
     public bool HasLinkedRoles => LinkedRoles.Length > 0;
     public string LinkedRolesText => string.Join(", ", LinkedRoles);
     public string GitHubSponsorsUrl => $"{BaseUrl}/claims/github";
-    public string CallbackUri => $"{CallbackScheme}://{CallbackHost}{CallbackPath}";
 
     private string BaseUrl =>
         Environment.GetEnvironmentVariable("TYPEWHISPER_DISCORD_CLAIM_BASE_URL")

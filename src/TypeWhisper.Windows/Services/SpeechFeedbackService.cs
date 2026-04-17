@@ -30,11 +30,7 @@ public sealed class SpeechFeedbackService : IDisposable
         }
     }
 
-    public void AnnounceRecordingStarted() => Speak("Recording");
-
     public void AnnounceTranscriptionComplete(string text) => Speak(text);
-
-    public void AnnounceError(string reason) => Speak($"Error: {reason}");
 
     public void Stop()
     {
