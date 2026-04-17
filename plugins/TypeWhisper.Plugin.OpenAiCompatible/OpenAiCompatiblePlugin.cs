@@ -147,16 +147,10 @@ public sealed class OpenAiCompatiblePlugin : ITranscriptionEnginePlugin, ILlmPro
         _host?.NotifyCapabilitiesChanged();
     }
 
-    internal async Task SetApiKeyAsync(string key)
+    internal Task SetApiKeyAsync(string key)
     {
         _apiKey = string.IsNullOrWhiteSpace(key) ? null : key;
-        if (_host is not null)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                await _host.DeleteSecretAsync("api-key");
-            else
-                await _host.StoreSecretAsync("api-key", key);
-        }
+        return _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
     }
 
     internal void SelectLlmModel(string modelId)

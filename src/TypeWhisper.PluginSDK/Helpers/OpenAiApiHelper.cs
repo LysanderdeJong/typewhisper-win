@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace TypeWhisper.PluginSDK.Helpers;
@@ -49,6 +50,26 @@ public static class OpenAiApiHelper
         {
             response.Dispose();
             throw;
+        }
+    }
+
+    public static async Task<bool> ValidateApiKeyAsync(
+        HttpClient httpClient, string url, string apiKey, string? scheme = "Bearer", CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (scheme is null)
+            request.Headers.Add("Authorization", apiKey);
+        else
+            request.Headers.Authorization = new AuthenticationHeaderValue(scheme, apiKey);
+
+        try
+        {
+            using var response = await httpClient.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
         }
     }
 

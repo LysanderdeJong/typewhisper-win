@@ -117,20 +117,8 @@ public sealed class VoxtralPlugin : ITranscriptionEnginePlugin
 
     internal string? ApiKey => _apiKey;
 
-    internal async Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/v1/models");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        try
-        {
-            var response = await _httpClient.SendAsync(request, ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    internal Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default) =>
+        OpenAiApiHelper.ValidateApiKeyAsync(_httpClient, $"{BaseUrl}/v1/models", apiKey, ct: ct);
 
     public void Dispose() => _httpClient.Dispose();
 }

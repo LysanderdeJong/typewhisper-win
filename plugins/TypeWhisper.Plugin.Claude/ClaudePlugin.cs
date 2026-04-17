@@ -116,16 +116,10 @@ public sealed class ClaudePlugin : ILlmProviderPlugin
     internal string? ApiKey => _apiKey;
     internal IPluginLocalization? Loc => _host?.Localization;
 
-    internal async Task SetApiKeyAsync(string apiKey)
+    internal Task SetApiKeyAsync(string apiKey)
     {
         _apiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey;
-        if (_host is not null)
-        {
-            if (string.IsNullOrWhiteSpace(apiKey))
-                await _host.DeleteSecretAsync("api-key");
-            else
-                await _host.StoreSecretAsync("api-key", apiKey);
-        }
+        return _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
     }
 
     internal bool ValidateApiKeyFormat(string apiKey)
