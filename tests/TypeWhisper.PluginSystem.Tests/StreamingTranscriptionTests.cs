@@ -172,3 +172,98 @@ public class StabilizeTextTests
         Assert.Equal("Hello", result);
     }
 }
+
+public class StreamingTranscriptStateTests
+{
+    [Fact]
+    public void StopSession_InvalidatesLateRealtimeEvents()
+    {
+        var sut = new StreamingTranscriptState();
+        var sessionVersion = sut.StartSession();
+
+        var appliedBeforeStop = sut.TryApplyRealtime(
+            sessionVersion,
+            new StreamingTranscriptEvent("Hello world", false),
+            text => text,
+            out var displayBeforeStop);
+
+        Assert.True(appliedBeforeStop);
+        Assert.Equal("Hello world", displayBeforeStop);
+
+        var finalText = sut.StopSession();
+
+        Assert.Equal("Hello world", finalText);
+
+        var appliedAfterStop = sut.TryApplyRealtime(
+            sessionVersion,
+            new StreamingTranscriptEvent("Should be ignored", false),
+            text => text,
+            out var displayAfterStop);
+
+        Assert.False(appliedAfterStop);
+        Assert.Equal("", displayAfterStop);
+    }
+
+    [Fact]
+    public void RealtimeFinalTranscript_AppendsToConfirmedText()
+    {
+        var sut = new StreamingTranscriptState();
+        var sessionVersion = sut.StartSession();
+
+        var interimApplied = sut.TryApplyRealtime(
+            sessionVersion,
+            new StreamingTranscriptEvent("Hello", false),
+            text => text,
+            out var interimDisplay);
+        var finalApplied = sut.TryApplyRealtime(
+            sessionVersion,
+            new StreamingTranscriptEvent("world", true),
+            text => text,
+            out var finalDisplay);
+
+        Assert.True(interimApplied);
+        Assert.Equal("Hello", interimDisplay);
+        Assert.True(finalApplied);
+        Assert.Equal("world", finalDisplay);
+        Assert.Equal("world", sut.StopSession());
+    }
+
+    [Fact]
+    public void PollingTranscript_UsesStabilizedCurrentSessionOnly()
+    {
+        var sut = new StreamingTranscriptState();
+        var firstSession = sut.StartSession();
+
+        var firstApplied = sut.TryApplyPolling(
+            firstSession,
+            "Hello world",
+            text => text,
+            out var firstDisplay);
+        var secondApplied = sut.TryApplyPolling(
+            firstSession,
+            "Hello world, how are you?",
+            text => text,
+            out var secondDisplay);
+
+        Assert.True(firstApplied);
+        Assert.Equal("Hello world", firstDisplay);
+        Assert.True(secondApplied);
+        Assert.Equal("Hello world, how are you?", secondDisplay);
+
+        var secondSession = sut.StartSession();
+        var staleApplied = sut.TryApplyPolling(
+            firstSession,
+            "Old session text",
+            text => text,
+            out _);
+        var currentApplied = sut.TryApplyPolling(
+            secondSession,
+            "Fresh session text",
+            text => text,
+            out var currentDisplay);
+
+        Assert.False(staleApplied);
+        Assert.True(currentApplied);
+        Assert.Equal("Fresh session text", currentDisplay);
+    }
+}

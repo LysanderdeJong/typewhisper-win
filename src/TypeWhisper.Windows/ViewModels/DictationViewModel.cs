@@ -142,22 +142,15 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             if (_isRecording)
             {
                 _isRecording = false;
-                _durationTimer?.Stop();
                 _audio.StopRecording();
-                _audioDucking.RestoreAudio();
-                _mediaPause.ResumeMedia();
-                State = DictationState.Idle;
-                IsOverlayVisible = false;
+                StopActiveRecordingInfrastructure();
             }
-            FeedbackText = Loc.Instance["Status.NoMicrophone"];
-            FeedbackIsError = true;
-            ShowFeedback = true;
+
+            ApplyTransientIdleFeedback(Loc.Instance["Status.NoMicrophone"], feedbackIsError: true);
         });
         _audio.DeviceAvailable += (_, _) => Application.Current?.Dispatcher.InvokeAsync(() =>
         {
-            FeedbackText = Loc.Instance["Status.MicrophoneRestored"];
-            FeedbackIsError = false;
-            ShowFeedback = true;
+            ShowTransientFeedback(Loc.Instance["Status.MicrophoneRestored"], isError: false);
         });
         _settings.SettingsChanged += _ =>
         {
@@ -175,10 +168,10 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             {
                 System.Diagnostics.Debug.WriteLine($"StopRecording error: {ex}");
                 _isRecording = false;
-                _audioDucking.RestoreAudio();
-                _mediaPause.ResumeMedia();
-                StatusText = Loc.Instance.GetString("Status.ErrorFormat", ex.Message);
-                UpdateVisualState();
+                StopActiveRecordingInfrastructure();
+                ApplyTransientIdleFeedback(
+                    Loc.Instance.GetString("Status.ErrorFormat", ex.Message),
+                    feedbackIsError: true);
             }
         });
 
@@ -195,6 +188,12 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
     public OverlayWidget LeftWidget => _settings.Current.OverlayLeftWidget;
     public OverlayWidget RightWidget => _settings.Current.OverlayRightWidget;
+    public bool ShowInlineFeedback =>
+        DictationOverlayPresentation.ShowInlineFeedback(IsOverlayVisible, ShowFeedback);
+    public bool ShowDetachedFeedback =>
+        DictationOverlayPresentation.ShowDetachedFeedback(IsOverlayVisible, ShowFeedback);
+    public bool HasOverlayContentVisible =>
+        DictationOverlayPresentation.HasVisibleContent(IsOverlayVisible, ShowFeedback);
 
     partial void OnPartialTextChanged(string value)
     {
@@ -221,6 +220,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
     partial void OnShowFeedbackChanged(bool value)
     {
+        RaiseOverlayPresentationChanged();
         _feedbackTimer?.Stop();
         _feedbackTimer?.Dispose();
         if (value)
@@ -234,6 +234,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             _feedbackTimer.Start();
         }
     }
+
+    partial void OnIsOverlayVisibleChanged(bool value) => RaiseOverlayPresentationChanged();
 
     // Effective settings: profile override → global setting
     private string? EffectiveLanguage =>
@@ -260,10 +262,119 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     /// <summary>Whether the service is currently recording.</summary>
     public bool IsRecording => _isRecording;
 
+    private void RaiseOverlayPresentationChanged()
+    {
+        OnPropertyChanged(nameof(ShowInlineFeedback));
+        OnPropertyChanged(nameof(ShowDetachedFeedback));
+        OnPropertyChanged(nameof(HasOverlayContentVisible));
+    }
+
+    private void ClearCapturedContext()
+    {
+        ActiveProcessName = null;
+        ActiveProfileName = null;
+        _activeProfile = null;
+        _capturedProcessName = null;
+        _capturedWindowTitle = null;
+    }
+
+    private void ClearPartialPreview()
+    {
+        _partialSegments.Clear();
+        PartialText = "";
+        IsExpanded = false;
+    }
+
+    private int DecrementPendingJobCount()
+    {
+        while (true)
+        {
+            var current = Volatile.Read(ref _pendingJobCount);
+            if (current == 0)
+                return 0;
+
+            var next = current - 1;
+            if (Interlocked.CompareExchange(ref _pendingJobCount, next, current) == current)
+                return next;
+        }
+    }
+
+    private void ShowTransientFeedback(string text, bool isError)
+    {
+        FeedbackText = text;
+        FeedbackIsError = isError;
+
+        if (ShowFeedback)
+            ShowFeedback = false;
+
+        ShowFeedback = true;
+    }
+
+    private void ResetSessionToIdle(bool clearFeedback = false, bool forceHotkeyStop = false)
+    {
+        State = DictationState.Idle;
+        StatusText = Loc.Instance["Status.Ready"];
+        IsOverlayVisible = false;
+        RecordingSeconds = 0;
+        CurrentHotkeyMode = null;
+        ClearCapturedContext();
+        ClearPartialPreview();
+
+        if (clearFeedback)
+        {
+            FeedbackText = null;
+            FeedbackIsError = false;
+            ShowFeedback = false;
+        }
+
+        if (forceHotkeyStop)
+            _hotkey.ForceStop();
+
+        _hotkey.IsCancelShortcutEnabled = _isRecording || _pendingJobCount > 0;
+    }
+
+    private void ApplyTransientIdleFeedback(string feedbackText, bool feedbackIsError = false)
+    {
+        var resetOutcome = DictationOverlayPresentation.CreateTransientIdleFeedback(feedbackIsError);
+
+        State = resetOutcome.State;
+        IsOverlayVisible = resetOutcome.IsOverlayVisible;
+        RecordingSeconds = 0;
+        CurrentHotkeyMode = null;
+        ClearCapturedContext();
+        ClearPartialPreview();
+        StatusText = Loc.Instance["Status.Ready"];
+        ShowTransientFeedback(feedbackText, resetOutcome.FeedbackIsError);
+
+        if (resetOutcome.ForceHotkeyStop)
+            _hotkey.ForceStop();
+
+        _hotkey.IsCancelShortcutEnabled = _isRecording || _pendingJobCount > 0;
+    }
+
+    private void StopActiveRecordingInfrastructure()
+    {
+        _durationTimer?.Stop();
+        _durationTimer?.Dispose();
+        _durationTimer = null;
+
+        _streamingHandler.Stop();
+        _audio.SamplesAvailable -= OnSamplesAvailable;
+        _audioDucking.RestoreAudio();
+        _mediaPause.ResumeMedia();
+        _vad?.Dispose();
+        _vad = null;
+        RecordingSeconds = 0;
+        CurrentHotkeyMode = null;
+    }
+
     private async Task StartRecording()
     {
         if (_isRecording) return;
         _isRecording = true;
+        FeedbackText = null;
+        FeedbackIsError = false;
+        ShowFeedback = false;
 
         // Capture active window context at recording start
         _capturedProcessName = _activeWindow.GetActiveWindowProcessName();
@@ -289,26 +400,25 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             }
             catch (Exception ex)
             {
-                StatusText = Loc.Instance.GetString("Status.ModelErrorFormat", ex.Message);
                 _isRecording = false;
+                ApplyTransientIdleFeedback(
+                    Loc.Instance.GetString("Status.ModelErrorFormat", ex.Message),
+                    feedbackIsError: true);
                 return;
             }
         }
 
         if (!_modelManager.Engine.IsModelLoaded)
         {
-            StatusText = Loc.Instance["Status.NoModelLoaded"];
             _isRecording = false;
+            ApplyTransientIdleFeedback(Loc.Instance["Status.NoModelLoaded"], feedbackIsError: true);
             return;
         }
 
         if (!_audio.HasDevice)
         {
-            StatusText = Loc.Instance["Status.NoMicrophone"];
-            FeedbackText = StatusText;
-            FeedbackIsError = true;
-            ShowFeedback = true;
             _isRecording = false;
+            ApplyTransientIdleFeedback(Loc.Instance["Status.NoMicrophone"], feedbackIsError: true);
             return;
         }
 
@@ -338,6 +448,15 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             _audio.SamplesAvailable += OnSamplesAvailable;
         }
 
+        _audio.StartRecording();
+        if (!_audio.IsRecording)
+        {
+            _isRecording = false;
+            StopActiveRecordingInfrastructure();
+            ApplyTransientIdleFeedback(Loc.Instance["Status.NoMicrophone"], feedbackIsError: true);
+            return;
+        }
+
         _sound.PlayStartSound();
 
         if (_settings.Current.AudioDuckingEnabled)
@@ -345,7 +464,6 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         if (_settings.Current.PauseMediaDuringRecording)
             _mediaPause.PauseMedia();
 
-        _audio.StartRecording();
         _eventBus.Publish(new RecordingStartedEvent
         {
             AppName = _activeWindow.GetActiveWindowTitle(),
@@ -376,18 +494,18 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         if (!_isRecording) return;
         _isRecording = false;
 
-        _durationTimer?.Stop();
-        _durationTimer?.Dispose();
-        _durationTimer = null;
-
         var streamingText = _streamingHandler.Stop();
         _audio.SamplesAvailable -= OnSamplesAvailable;
 
         var samples = _audio.StopRecording();
         _eventBus.Publish(new RecordingStoppedEvent { DurationSeconds = _audio.RecordingDuration.TotalSeconds });
+        _durationTimer?.Stop();
+        _durationTimer?.Dispose();
+        _durationTimer = null;
         _audioDucking.RestoreAudio();
         _mediaPause.ResumeMedia();
         RecordingSeconds = 0;
+        CurrentHotkeyMode = null;
 
         // Flush remaining VAD segments
         List<string> partialSnapshot;
@@ -406,20 +524,14 @@ public partial class DictationViewModel : ObservableObject, IDisposable
 
         if (samples is null || samples.Length < 1600) // < 100ms
         {
-            UpdateVisualState();
-            StatusText = Loc.Instance["Status.TooShort"];
-            PartialText = "";
-            _hotkey.ForceStop();
+            ApplyTransientIdleFeedback(Loc.Instance["Status.TooShort"]);
             return;
         }
 
         // Skip transcription if audio is essentially silence (prevents cloud model hallucinations)
         if (!_audio.HasSpeechEnergy && partialSnapshot.Count == 0)
         {
-            UpdateVisualState();
-            StatusText = Loc.Instance["Status.NoSpeech"];
-            PartialText = "";
-            _hotkey.ForceStop();
+            ApplyTransientIdleFeedback(Loc.Instance["Status.NoSpeech"]);
             return;
         }
 
@@ -444,32 +556,16 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         if (_isRecording)
         {
             _isRecording = false;
-
-            _durationTimer?.Stop();
-            _durationTimer?.Dispose();
-            _durationTimer = null;
-
-            _streamingHandler.Stop();
-            _audio.SamplesAvailable -= OnSamplesAvailable;
             _audio.StopRecording();
-            _audioDucking.RestoreAudio();
-            _mediaPause.ResumeMedia();
-            _vad?.Dispose();
-            _vad = null;
-            _partialSegments.Clear();
-            PartialText = "";
-            RecordingSeconds = 0;
-            CurrentHotkeyMode = null;
-            _hotkey.ForceStop();
-            StatusText = Loc.Instance["Status.Cancelled"];
-            UpdateVisualState();
+            StopActiveRecordingInfrastructure();
+            ApplyTransientIdleFeedback(Loc.Instance["Status.Cancelled"]);
             return Task.CompletedTask;
         }
 
         if (_pendingJobCount > 0)
         {
             CancelProcessing();
-            StatusText = Loc.Instance["Status.Cancelled"];
+            ApplyTransientIdleFeedback(Loc.Instance["Status.Cancelled"]);
         }
 
         return Task.CompletedTask;
@@ -480,9 +576,15 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         await foreach (var job in _jobChannel.Reader.ReadAllAsync(ct))
         {
             await Application.Current.Dispatcher.InvokeAsync(() => UpdateVisualState());
-            await ProcessSingleJobAsync(job, ct);
-            Interlocked.Decrement(ref _pendingJobCount);
-            await Application.Current.Dispatcher.InvokeAsync(() => UpdateVisualState());
+            try
+            {
+                await ProcessSingleJobAsync(job, ct);
+            }
+            finally
+            {
+                DecrementPendingJobCount();
+                await Application.Current.Dispatcher.InvokeAsync(() => UpdateVisualState());
+            }
         }
     }
 
@@ -513,20 +615,14 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 if (result.NoSpeechProbability is > 0.8f)
                 {
                     await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        StatusText = Loc.Instance["Status.NoSpeech"];
-                        UpdateVisualState();
-                    });
+                        ApplyTransientIdleFeedback(Loc.Instance["Status.NoSpeech"]));
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(result.Text))
                 {
                     await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        StatusText = Loc.Instance["Status.NoSpeech"];
-                        UpdateVisualState();
-                    });
+                        ApplyTransientIdleFeedback(Loc.Instance["Status.NoSpeech"]));
                     return;
                 }
 
@@ -537,10 +633,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
             if (string.IsNullOrWhiteSpace(rawText))
             {
                 await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    StatusText = Loc.Instance["Status.NoSpeech"];
-                    UpdateVisualState();
-                });
+                    ApplyTransientIdleFeedback(Loc.Instance["Status.NoSpeech"]));
                 return;
             }
 
@@ -763,10 +856,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         catch (OperationCanceledException)
         {
             await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                StatusText = Loc.Instance["Status.Cancelled"];
-                UpdateVisualState();
-            });
+                ApplyTransientIdleFeedback(Loc.Instance["Status.Cancelled"]));
         }
         catch (Exception ex)
         {
@@ -805,14 +895,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         }
         else
         {
-            State = DictationState.Idle;
-            StatusText = Loc.Instance["Status.Ready"];
-            IsOverlayVisible = false;
-            ActiveProcessName = null;
-            ActiveProfileName = null;
-            PartialText = "";
-            IsExpanded = false;
-            ShowFeedback = false;
+            ResetSessionToIdle(clearFeedback: false, forceHotkeyStop: false);
+            return;
         }
 
         _hotkey.IsCancelShortcutEnabled = _isRecording || _pendingJobCount > 0;
@@ -888,7 +972,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _consumerCts.Cancel();
 
         while (_jobChannel.Reader.TryRead(out _))
-            Interlocked.Decrement(ref _pendingJobCount);
+            DecrementPendingJobCount();
 
         // Restart consumer with fresh CTS
         _consumerCts = new CancellationTokenSource();
