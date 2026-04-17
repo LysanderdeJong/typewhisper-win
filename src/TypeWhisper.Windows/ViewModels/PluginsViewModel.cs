@@ -224,7 +224,6 @@ public partial class PluginItemViewModel : ObservableObject
     public string? Description => _plugin.Manifest.Description;
     public string IconEmoji => PluginIconHelper.GetIcon(Id);
     public string IconGradientStart => PluginIconHelper.GetGradientStart(Id);
-    public string IconGradientEnd => PluginIconHelper.GetGradientEnd(Id);
     public string StatusLabel => IsEnabled ? Loc.Instance["Plugins.Enabled"] : Loc.Instance["Plugins.Disabled"];
 
     [ObservableProperty] private bool _isEnabled;
@@ -236,7 +235,6 @@ public partial class PluginItemViewModel : ObservableObject
     public bool IsLlmProvider => _plugin.Instance is TypeWhisper.PluginSDK.ILlmProviderPlugin;
     public bool IsPostProcessor => _plugin.Instance is TypeWhisper.PluginSDK.IPostProcessorPlugin;
     public bool IsActionProvider => _plugin.Instance is TypeWhisper.PluginSDK.IActionPlugin;
-    public bool IsMemoryStorage => _plugin.Instance is TypeWhisper.PluginSDK.IMemoryStoragePlugin;
 
     public string Category => PluginMarketplaceCategories.Resolve(_plugin.Manifest.Category ?? DetectCategory()).DisplayName;
 

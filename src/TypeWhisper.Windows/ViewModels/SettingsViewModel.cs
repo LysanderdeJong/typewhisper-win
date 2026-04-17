@@ -239,16 +239,9 @@ public partial class SettingsViewModel : ObservableObject
 
     private void RefreshLocalizedCollections()
     {
-        ReplaceCollection(TranslationTargetOptions, LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions));
-        ReplaceCollection(WidgetOptions, BuildWidgetOptions());
+        TranslationTargetOptions.Replace(LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions));
+        WidgetOptions.Replace(BuildWidgetOptions());
         RefreshMicrophones();
-    }
-
-    private static void ReplaceCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> values)
-    {
-        target.Clear();
-        foreach (var value in values)
-            target.Add(value);
     }
 }
 

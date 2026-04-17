@@ -370,7 +370,7 @@ public sealed class HttpApiService : IDisposable
         if (_dictation.IsRecording)
             return Json(409, new { error = "Already recording" });
 
-        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StartRecordingAsync());
+        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StartRecording());
         return Json(200, new { started = true });
     }
 
@@ -380,7 +380,7 @@ public sealed class HttpApiService : IDisposable
         if (!_dictation.IsRecording)
             return Json(409, new { error = "Not recording" });
 
-        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StopRecordingAsync());
+        await Application.Current.Dispatcher.InvokeAsync(() => _dictation.StopRecording());
         return Json(200, new { stopped = true });
     }
 

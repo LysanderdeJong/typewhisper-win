@@ -21,14 +21,4 @@ internal static class PluginIconHelper
         "com.typewhisper.webhook" => "#8B5CF6",
         _ => "#0078D4"
     };
-
-    public static string GetGradientEnd(string pluginId) => pluginId switch
-    {
-        "com.typewhisper.groq" => "#C0392B",
-        "com.typewhisper.openai" => "#0D8A6A",
-        "com.typewhisper.openai-compatible" => "#4F46E5",
-        "com.typewhisper.sherpa-onnx" => "#D97706",
-        "com.typewhisper.webhook" => "#7C3AED",
-        _ => "#005A9E"
-    };
 }

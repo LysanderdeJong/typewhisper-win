@@ -225,9 +225,7 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
     {
         System.Windows.Application.Current?.Dispatcher.InvokeAsync(() =>
         {
-            ErrorLogEntries.Clear();
-            foreach (var entry in _errorLog.Entries)
-                ErrorLogEntries.Add(entry);
+            ErrorLogEntries.Replace(_errorLog.Entries);
             OnPropertyChanged(nameof(HasErrorLogEntries));
         });
     }

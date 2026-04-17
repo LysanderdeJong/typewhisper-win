@@ -20,7 +20,6 @@ public partial class RegistryPluginItemViewModel : ObservableObject
     public string SizeDisplay => FormatSize(_registryPlugin.Size);
     public string IconEmoji => PluginIconHelper.GetIcon(Id);
     public string IconGradientStart => PluginIconHelper.GetGradientStart(Id);
-    public string IconGradientEnd => PluginIconHelper.GetGradientEnd(Id);
     public string CategoryKey => PluginMarketplaceCategories.Resolve(Category).Key;
     public string CategoryLabel => PluginMarketplaceCategories.Resolve(Category).DisplayName;
     public int CategorySortOrder => PluginMarketplaceCategories.Resolve(Category).SortOrder;

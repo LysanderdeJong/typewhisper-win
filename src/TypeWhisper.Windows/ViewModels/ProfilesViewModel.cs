@@ -131,8 +131,8 @@ public partial class ProfilesViewModel : ObservableObject
 
     private void RefreshLocalizedCollections()
     {
-        ReplaceCollection(TranslationTargetOptions, LocalizeTranslationOptions(TranslationModelInfo.ProfileTargetOptions));
-        ReplaceCollection(LanguageOptions,
+        TranslationTargetOptions.Replace(LocalizeTranslationOptions(TranslationModelInfo.ProfileTargetOptions));
+        LanguageOptions.Replace(
         [
             new SettingOption(null, Loc.Instance["Profiles.GlobalSetting"]),
             new SettingOption("auto", Loc.Instance["Profiles.Auto"]),
@@ -141,7 +141,7 @@ public partial class ProfilesViewModel : ObservableObject
             new SettingOption("fr", "Français"),
             new SettingOption("es", "Español")
         ]);
-        ReplaceCollection(TaskOptions,
+        TaskOptions.Replace(
         [
             new SettingOption(null, Loc.Instance["Profiles.TaskGlobal"]),
             new SettingOption("transcribe", Loc.Instance["Profiles.TaskTranscribe"]),
@@ -395,9 +395,7 @@ public partial class ProfilesViewModel : ObservableObject
     private void RefreshProfiles()
     {
         var selectedId = SelectedProfile?.Id;
-        Profiles.Clear();
-        foreach (var p in _profiles.Profiles)
-            Profiles.Add(p);
+        Profiles.Replace(_profiles.Profiles);
 
         if (selectedId is not null)
         {
@@ -465,12 +463,6 @@ public partial class ProfilesViewModel : ObservableObject
         return rawUrl;
     }
 
-    private static void ReplaceCollection<T>(ObservableCollection<T> target, IEnumerable<T> values)
-    {
-        target.Clear();
-        foreach (var value in values)
-            target.Add(value);
-    }
 }
 
 public sealed record ModelOption(string? Id, string DisplayName);

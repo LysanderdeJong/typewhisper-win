@@ -194,9 +194,7 @@ public partial class PromptsViewModel : ObservableObject
 
     private void RefreshActions()
     {
-        Actions.Clear();
-        foreach (var action in _promptActions.Actions.OrderBy(a => a.SortOrder))
-            Actions.Add(action);
+        Actions.Replace(_promptActions.Actions.OrderBy(a => a.SortOrder));
         NotifyStateChanged();
     }
 

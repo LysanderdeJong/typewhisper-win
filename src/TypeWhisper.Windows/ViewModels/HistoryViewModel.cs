@@ -98,9 +98,7 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand]
     private void RefreshRecords()
     {
-        Entries.Clear();
-        foreach (var r in _history.Records)
-            Entries.Add(new HistoryEntryViewModel(r, this));
+        Entries.Replace(_history.Records.Select(r => new HistoryEntryViewModel(r, this)));
 
         RebuildAppFilter();
         GroupedEntries.Refresh();
@@ -109,9 +107,7 @@ public partial class HistoryViewModel : ObservableObject
     private void RebuildAppFilter()
     {
         var current = SelectedAppFilter;
-        AvailableApps.Clear();
-        foreach (var app in _history.GetDistinctApps())
-            AvailableApps.Add(app);
+        AvailableApps.Replace(_history.GetDistinctApps());
         SelectedAppFilter = current is not null && AvailableApps.Contains(current) ? current : null;
     }
 
@@ -202,9 +198,7 @@ public partial class HistoryViewModel : ObservableObject
         var suggestions = TextDiffService.ExtractCorrections(originalText, newText);
         if (suggestions.Count > 0)
         {
-            entry.CorrectionSuggestions.Clear();
-            foreach (var s in suggestions)
-                entry.CorrectionSuggestions.Add(s);
+            entry.CorrectionSuggestions.Replace(suggestions);
             entry.HasSuggestions = true;
         }
 
