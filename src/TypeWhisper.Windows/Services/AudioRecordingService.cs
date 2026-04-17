@@ -111,16 +111,10 @@ public sealed class AudioRecordingService : IDisposable
         return _isWarmedUp;
     }
 
-    public static IReadOnlyList<(int DeviceNumber, string Name)> GetAvailableDevices()
-    {
-        var devices = new List<(int, string)>();
-        for (var i = 0; i < WaveInEvent.DeviceCount; i++)
-        {
-            var caps = WaveInEvent.GetCapabilities(i);
-            devices.Add((i, caps.ProductName));
-        }
-        return devices;
-    }
+    public static IReadOnlyList<(int DeviceNumber, string Name)> GetAvailableDevices() =>
+        Enumerable.Range(0, WaveInEvent.DeviceCount)
+            .Select(i => (i, WaveInEvent.GetCapabilities(i).ProductName))
+            .ToList();
 
     public void StartRecording()
     {

@@ -110,11 +110,10 @@ public sealed class ActiveWindowService : IActiveWindowService
         {
             var window = AutomationElement.FromHandle(hwnd);
 
-            // Strategy 1: Search toolbar children for Edit controls (fast, avoids web content tree)
-            var url = FindUrlInToolbars(window);
-
-            // Strategy 2: Fallback — search top-level pane children
-            url ??= FindUrlInPanes(window);
+            // Strategy 1: Search toolbar children for Edit controls (fast, avoids web content tree).
+            // Strategy 2: Fallback — search top-level pane children (some browsers nest the address bar in a Pane).
+            var url = FindUrlInControlType(window, ControlType.ToolBar)
+                   ?? FindUrlInControlType(window, ControlType.Pane);
 
             _cachedUrl = url;
             return url;
@@ -127,40 +126,18 @@ public sealed class ActiveWindowService : IActiveWindowService
     }
 
     /// <summary>
-    /// Search ToolBar elements (direct children of window) for an Edit control with a URL value.
-    /// This is the primary strategy for Chromium browsers.
+    /// Search direct children of <paramref name="window"/> matching <paramref name="controlType"/>
+    /// for an Edit control with a URL value. ToolBar is the primary path for Chromium browsers;
+    /// Pane is the fallback for browsers that nest the address bar in a Pane.
     /// </summary>
-    private static string? FindUrlInToolbars(AutomationElement window)
+    private static string? FindUrlInControlType(AutomationElement window, ControlType controlType)
     {
-        var toolbarCondition = new PropertyCondition(
-            AutomationElement.ControlTypeProperty, ControlType.ToolBar);
-        var toolbars = window.FindAll(TreeScope.Children, toolbarCondition);
-
-        foreach (AutomationElement toolbar in toolbars)
+        var condition = new PropertyCondition(AutomationElement.ControlTypeProperty, controlType);
+        foreach (AutomationElement child in window.FindAll(TreeScope.Children, condition))
         {
-            var url = FindEditWithUrl(toolbar);
+            var url = FindEditWithUrl(child);
             if (url is not null) return url;
         }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Fallback: search Pane children of window for Edit controls.
-    /// Some browsers nest the address bar inside a Pane, not a ToolBar.
-    /// </summary>
-    private static string? FindUrlInPanes(AutomationElement window)
-    {
-        var paneCondition = new PropertyCondition(
-            AutomationElement.ControlTypeProperty, ControlType.Pane);
-        var panes = window.FindAll(TreeScope.Children, paneCondition);
-
-        foreach (AutomationElement pane in panes)
-        {
-            var url = FindEditWithUrl(pane);
-            if (url is not null) return url;
-        }
-
         return null;
     }
 

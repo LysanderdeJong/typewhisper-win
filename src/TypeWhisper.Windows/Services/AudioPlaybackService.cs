@@ -35,15 +35,10 @@ public sealed class AudioPlaybackService : IDisposable
         // Toggle pause/resume for same file
         if (_currentFile == audioFileName && _waveOut is not null)
         {
-            if (_waveOut.PlaybackState == PlaybackState.Playing)
+            switch (_waveOut.PlaybackState)
             {
-                _waveOut.Pause();
-                return;
-            }
-            if (_waveOut.PlaybackState == PlaybackState.Paused)
-            {
-                _waveOut.Play();
-                return;
+                case PlaybackState.Playing: _waveOut.Pause(); return;
+                case PlaybackState.Paused:  _waveOut.Play();  return;
             }
         }
 
