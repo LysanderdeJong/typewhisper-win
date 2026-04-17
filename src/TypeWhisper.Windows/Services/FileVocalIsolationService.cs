@@ -207,19 +207,7 @@ public sealed class FileVocalIsolationService : IDisposable
         {
             return CreateSession(modelPath);
         }
-        catch (OnnxRuntimeException) when (!forceRedownload)
-        {
-            TryDelete(modelPath);
-            await DownloadModelAsync(modelPath, progress, cancellationToken);
-            return CreateSession(modelPath);
-        }
-        catch (InvalidOperationException) when (!forceRedownload)
-        {
-            TryDelete(modelPath);
-            await DownloadModelAsync(modelPath, progress, cancellationToken);
-            return CreateSession(modelPath);
-        }
-        catch (BadImageFormatException) when (!forceRedownload)
+        catch (Exception ex) when (!forceRedownload && ex is OnnxRuntimeException or InvalidOperationException or BadImageFormatException)
         {
             TryDelete(modelPath);
             await DownloadModelAsync(modelPath, progress, cancellationToken);
@@ -295,35 +283,7 @@ public sealed class FileVocalIsolationService : IDisposable
             _executionProvider = "DirectML";
             return directMlSession;
         }
-        catch (OnnxRuntimeException)
-        {
-            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
-            var cpuSession = new InferenceSession(modelPath, cpuOptions);
-            _executionProvider = "CPU";
-            return cpuSession;
-        }
-        catch (DllNotFoundException)
-        {
-            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
-            var cpuSession = new InferenceSession(modelPath, cpuOptions);
-            _executionProvider = "CPU";
-            return cpuSession;
-        }
-        catch (EntryPointNotFoundException)
-        {
-            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
-            var cpuSession = new InferenceSession(modelPath, cpuOptions);
-            _executionProvider = "CPU";
-            return cpuSession;
-        }
-        catch (PlatformNotSupportedException)
-        {
-            using var cpuOptions = CreateSessionOptions(useDirectMl: false);
-            var cpuSession = new InferenceSession(modelPath, cpuOptions);
-            _executionProvider = "CPU";
-            return cpuSession;
-        }
-        catch (BadImageFormatException)
+        catch (Exception ex) when (ex is OnnxRuntimeException or DllNotFoundException or EntryPointNotFoundException or PlatformNotSupportedException or BadImageFormatException)
         {
             using var cpuOptions = CreateSessionOptions(useDirectMl: false);
             var cpuSession = new InferenceSession(modelPath, cpuOptions);
@@ -701,14 +661,7 @@ public sealed class FileVocalIsolationService : IDisposable
     }
 
     private static bool GetCpuMemArenaEnabled()
-    {
-        var environmentValue = Environment.GetEnvironmentVariable(CpuMemArenaEnvironmentVariable);
-        return environmentValue is not null
-            && (environmentValue.Equals("1", StringComparison.OrdinalIgnoreCase)
-                || environmentValue.Equals("true", StringComparison.OrdinalIgnoreCase)
-                || environmentValue.Equals("on", StringComparison.OrdinalIgnoreCase)
-                || environmentValue.Equals("yes", StringComparison.OrdinalIgnoreCase));
-    }
+        => Environment.GetEnvironmentVariable(CpuMemArenaEnvironmentVariable)?.ToLowerInvariant() is "1" or "true" or "on" or "yes";
 
     private static GraphOptimizationLevel GetGraphOptimizationLevel()
     {
@@ -729,10 +682,7 @@ public sealed class FileVocalIsolationService : IDisposable
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }

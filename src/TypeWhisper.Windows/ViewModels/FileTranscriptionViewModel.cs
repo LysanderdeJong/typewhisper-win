@@ -778,10 +778,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }

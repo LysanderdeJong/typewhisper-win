@@ -127,27 +127,7 @@ public sealed class FileSpeakerDiarizationService : IDisposable
                 await DownloadFileAsync(EmbeddingModelUrl, GetEmbeddingModelPath(), FileSpeakerDiarizationStage.DownloadingEmbeddingModel, progress, cancellationToken);
             }
         }
-        catch (HttpRequestException) when (!attemptedRecovery)
-        {
-            TryDeleteDirectory(GetModelsRoot());
-            shouldRetry = true;
-        }
-        catch (IOException) when (!attemptedRecovery)
-        {
-            TryDeleteDirectory(GetModelsRoot());
-            shouldRetry = true;
-        }
-        catch (InvalidDataException) when (!attemptedRecovery)
-        {
-            TryDeleteDirectory(GetModelsRoot());
-            shouldRetry = true;
-        }
-        catch (InvalidOperationException) when (!attemptedRecovery)
-        {
-            TryDeleteDirectory(GetModelsRoot());
-            shouldRetry = true;
-        }
-        catch (UnauthorizedAccessException) when (!attemptedRecovery)
+        catch (Exception ex) when (!attemptedRecovery && ex is HttpRequestException or IOException or InvalidDataException or InvalidOperationException or UnauthorizedAccessException)
         {
             TryDeleteDirectory(GetModelsRoot());
             shouldRetry = true;
@@ -272,10 +252,7 @@ public sealed class FileSpeakerDiarizationService : IDisposable
             if (File.Exists(path))
                 File.Delete(path);
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }
@@ -287,10 +264,7 @@ public sealed class FileSpeakerDiarizationService : IDisposable
             if (Directory.Exists(path))
                 Directory.Delete(path, recursive: true);
         }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }
