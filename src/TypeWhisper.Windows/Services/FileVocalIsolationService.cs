@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.IO;
 using System.Net.Http;
-using System.Numerics;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using MathNet.Numerics.IntegralTransforms;
@@ -732,68 +731,6 @@ public sealed class FileVocalIsolationService : IDisposable
             ArrayPool<float>.Shared.Return(output);
             ArrayPool<float>.Shared.Return(windowSums);
         }
-    }
-
-    private Complex[,] ComputeStft(float[] samples)
-    {
-        var padded = new float[ChunkSamples + Nfft];
-        Array.Copy(samples, 0, padded, TrimSamples, samples.Length);
-
-        var spectrogram = new Complex[FullFrequencyBins, ModelFrames];
-        var fftBuffer = new Complex[Nfft];
-
-        for (var frame = 0; frame < ModelFrames; frame++)
-        {
-            var frameOffset = frame * HopLength;
-            for (var i = 0; i < Nfft; i++)
-                fftBuffer[i] = new Complex(padded[frameOffset + i] * _window[i], 0);
-
-            Fourier.Forward(fftBuffer, FourierOptions.AsymmetricScaling);
-
-            for (var bin = 0; bin < FullFrequencyBins; bin++)
-                spectrogram[bin, frame] = fftBuffer[bin];
-        }
-
-        return spectrogram;
-    }
-
-    private float[] ComputeIstft(Complex[,] spectrogram)
-    {
-        var output = new double[ChunkSamples + Nfft];
-        var windowSums = new double[ChunkSamples + Nfft];
-        var fftBuffer = new Complex[Nfft];
-
-        for (var frame = 0; frame < ModelFrames; frame++)
-        {
-            Array.Clear(fftBuffer, 0, fftBuffer.Length);
-
-            for (var bin = 0; bin < FullFrequencyBins; bin++)
-                fftBuffer[bin] = spectrogram[bin, frame];
-
-            for (var bin = 1; bin < FullFrequencyBins - 1; bin++)
-                fftBuffer[Nfft - bin] = Complex.Conjugate(fftBuffer[bin]);
-
-            Fourier.Inverse(fftBuffer, FourierOptions.AsymmetricScaling);
-
-            var frameOffset = frame * HopLength;
-            for (var i = 0; i < Nfft; i++)
-            {
-                var weighted = fftBuffer[i].Real * _window[i];
-                output[frameOffset + i] += weighted;
-                windowSums[frameOffset + i] += _window[i] * _window[i];
-            }
-        }
-
-        var reconstructed = new float[ChunkSamples];
-        for (var i = 0; i < ChunkSamples; i++)
-        {
-            var sourceIndex = i + TrimSamples;
-            reconstructed[i] = windowSums[sourceIndex] > 1e-8
-                ? (float)(output[sourceIndex] / windowSums[sourceIndex])
-                : 0;
-        }
-
-        return reconstructed;
     }
 
     private static float[] CreateHannWindow()
