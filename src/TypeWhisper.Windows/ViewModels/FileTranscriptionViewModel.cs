@@ -414,7 +414,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         return await _speechSegmentation.SegmentAsync(loadedSamples, cancellationToken);
     }
 
-    private async Task<TranscriptionResult> TranscribeSpeechSegmentsAsync(
+    private Task<TranscriptionResult> TranscribeSpeechSegmentsAsync(
         IReadOnlyList<AudioSpeechSegment> speechSegments,
         IReadOnlyList<DiarizedSpeakerSegment> diarizedSpeakers,
         string? language,
@@ -422,71 +422,17 @@ public partial class FileTranscriptionViewModel : ObservableObject
         PipelineOptions options,
         double totalDuration,
         CancellationToken cancellationToken)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        string? detectedLanguage = null;
-        var processedSegments = new List<TranscriptionSegment>();
+        => TranscribeSpeechSegmentsAsync(ToAsyncEnumerable(speechSegments), diarizedSpeakers, language, task, options, totalDuration, speechSegments.Count, cancellationToken);
 
-        for (var i = 0; i < speechSegments.Count; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            StatusText = Loc.Instance.GetString("FileTranscription.TranscribingSegmentFormat", i + 1, speechSegments.Count);
-
-            var speechSegment = speechSegments[i];
-            try
-            {
-                var rawResult = await _modelManager.Engine.TranscribeAsync(speechSegment.Samples, language, task, cancellationToken);
-                detectedLanguage ??= rawResult.DetectedLanguage;
-
-                if (rawResult.Segments.Count > 0)
-                {
-                    foreach (var rawSegment in rawResult.Segments)
-                    {
-                        var processed = await _pipeline.ProcessAsync(rawSegment.Text, options, cancellationToken);
-                        var text = processed.Text.Trim();
-                        if (text.Length == 0)
-                            continue;
-
-                        var (start, end) = ClampToSpeechSegment(
-                            speechSegment,
-                            speechSegment.StartSeconds + rawSegment.Start,
-                            speechSegment.StartSeconds + rawSegment.End);
-
-                        processedSegments.Add(new TranscriptionSegment(
-                            text,
-                            start,
-                            end));
-                    }
-
-                    continue;
-                }
-
-                var pipelineResult = await _pipeline.ProcessAsync(rawResult.Text, options, cancellationToken);
-                var segmentText = pipelineResult.Text.Trim();
-                if (segmentText.Length == 0)
-                    continue;
-
-                processedSegments.Add(new TranscriptionSegment(segmentText, speechSegment.StartSeconds, speechSegment.EndSeconds));
-            }
-            finally
-            {
-                speechSegment.ReleaseSamples();
-            }
-        }
-
-        stopwatch.Stop();
-
-        var (labeledSegments, speakerIds, hasSpeakerLabels) = LabelSegments(processedSegments, diarizedSpeakers);
-
-        return new TranscriptionResult
-        {
-            Text = CombineSegmentsText(labeledSegments, speakerIds, hasSpeakerLabels),
-            DetectedLanguage = detectedLanguage,
-            Duration = totalDuration,
-            ProcessingTime = stopwatch.Elapsed.TotalSeconds,
-            Segments = labeledSegments,
-        };
-    }
+    private Task<TranscriptionResult> TranscribeSpeechSegmentsAsync(
+        IAsyncEnumerable<AudioSpeechSegment> speechSegments,
+        IReadOnlyList<DiarizedSpeakerSegment> diarizedSpeakers,
+        string? language,
+        TranscriptionTask task,
+        PipelineOptions options,
+        double totalDuration,
+        CancellationToken cancellationToken)
+        => TranscribeSpeechSegmentsAsync(speechSegments, diarizedSpeakers, language, task, options, totalDuration, totalSegments: null, cancellationToken);
 
     private async Task<TranscriptionResult> TranscribeSpeechSegmentsAsync(
         IAsyncEnumerable<AudioSpeechSegment> speechSegments,
@@ -495,6 +441,7 @@ public partial class FileTranscriptionViewModel : ObservableObject
         TranscriptionTask task,
         PipelineOptions options,
         double totalDuration,
+        int? totalSegments,
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -506,7 +453,10 @@ public partial class FileTranscriptionViewModel : ObservableObject
         {
             cancellationToken.ThrowIfCancellationRequested();
             segmentIndex++;
-            StatusText = Loc.Instance.GetString("FileTranscription.TranscribingSegmentFormat", segmentIndex, "...");
+            StatusText = Loc.Instance.GetString(
+                "FileTranscription.TranscribingSegmentFormat",
+                segmentIndex,
+                totalSegments is int n ? (object)n : "...");
 
             try
             {
@@ -558,6 +508,13 @@ public partial class FileTranscriptionViewModel : ObservableObject
             ProcessingTime = stopwatch.Elapsed.TotalSeconds,
             Segments = labeledSegments,
         };
+    }
+
+    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(IReadOnlyList<T> items)
+    {
+        foreach (var item in items)
+            yield return item;
+        await Task.CompletedTask;
     }
 
     private static (List<TranscriptionSegment> Segments, List<int?> SpeakerIds, bool HasSpeakerLabels) LabelSegments(

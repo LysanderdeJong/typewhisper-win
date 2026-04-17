@@ -23,14 +23,10 @@ public sealed class AudioFileService
         ".mp4", ".mkv", ".avi", ".mov", ".webm"
     };
 
-    public static bool IsSupported(string filePath)
-    {
-        var ext = Path.GetExtension(filePath);
-        return SupportedExtensions.Contains(ext);
-    }
+    public static bool IsSupported(string filePath) => SupportedExtensions.Contains(Path.GetExtension(filePath));
 
-    public async Task<float[]> LoadAudioAsync(string filePath, CancellationToken cancellationToken = default)
-        => await LoadAudioAsync(filePath, TargetSampleRate, TargetChannels, cancellationToken);
+    public Task<float[]> LoadAudioAsync(string filePath, CancellationToken cancellationToken = default)
+        => LoadAudioAsync(filePath, TargetSampleRate, TargetChannels, cancellationToken);
 
     public async Task<float[]> LoadAudioAsync(
         string filePath,
@@ -219,15 +215,12 @@ public sealed class AudioFileService
 
     private static float ReadConvertedChannel(float[] samples, int sourceChannels, int targetChannels, int frameIndex, int targetChannel)
     {
-        if (targetChannels == sourceChannels)
-            return samples[frameIndex * sourceChannels + Math.Min(targetChannel, sourceChannels - 1)];
-        if (targetChannels > sourceChannels)
+        if (targetChannels >= sourceChannels)
             return samples[frameIndex * sourceChannels + Math.Min(targetChannel, sourceChannels - 1)];
 
         var sum = 0f;
         for (var i = 0; i < sourceChannels; i++)
             sum += samples[frameIndex * sourceChannels + i];
-
         return sum / sourceChannels;
     }
 
