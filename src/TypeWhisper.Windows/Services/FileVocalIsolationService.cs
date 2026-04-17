@@ -377,28 +377,53 @@ public sealed class FileVocalIsolationService : IDisposable
             var batchCount = Math.Min(InferenceBatchSize, chunkOffsets.Length - batchStart);
             var leftChunks = new float[batchCount][];
             var rightChunks = new float[batchCount][];
-            for (var i = 0; i < batchCount; i++)
+            (float[] Left, float[] Right)[]? batchOutputs = null;
+            try
             {
-                var chunkOffset = chunkOffsets[batchStart + i];
-                leftChunks[i] = new float[ChunkSamples];
-                rightChunks[i] = new float[ChunkSamples];
-                Array.Copy(leftPadded, chunkOffset, leftChunks[i], 0, ChunkSamples);
-                Array.Copy(rightPadded, chunkOffset, rightChunks[i], 0, ChunkSamples);
-            }
+                for (var i = 0; i < batchCount; i++)
+                {
+                    var chunkOffset = chunkOffsets[batchStart + i];
+                    leftChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
+                    rightChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
+                    Array.Copy(leftPadded, chunkOffset, leftChunks[i], 0, ChunkSamples);
+                    Array.Copy(rightPadded, chunkOffset, rightChunks[i], 0, ChunkSamples);
+                }
 
-            var batchOutputs = ProcessChunkBatch(session, leftChunks, rightChunks);
-            for (var i = 0; i < batchOutputs.Length; i++)
+                batchOutputs = ProcessChunkBatch(session, leftChunks, rightChunks);
+                for (var i = 0; i < batchOutputs.Length; i++)
+                {
+                    var writeOffset = (batchStart + i) * GeneratedSamples;
+                    Array.Copy(batchOutputs[i].Left, TrimSamples, outputLeft, writeOffset, GeneratedSamples);
+                    Array.Copy(batchOutputs[i].Right, TrimSamples, outputRight, writeOffset, GeneratedSamples);
+                }
+
+                processedChunks += batchCount;
+                progress?.Report(new FileVocalIsolationProgress(
+                    FileVocalIsolationStage.IsolatingVocals,
+                    processedChunks / (double)totalChunks,
+                    _executionProvider));
+            }
+            finally
             {
-                var writeOffset = (batchStart + i) * GeneratedSamples;
-                Array.Copy(batchOutputs[i].Left, TrimSamples, outputLeft, writeOffset, GeneratedSamples);
-                Array.Copy(batchOutputs[i].Right, TrimSamples, outputRight, writeOffset, GeneratedSamples);
-            }
+                for (var i = 0; i < batchCount; i++)
+                {
+                    if (leftChunks[i] is not null)
+                        ArrayPool<float>.Shared.Return(leftChunks[i]);
+                    if (rightChunks[i] is not null)
+                        ArrayPool<float>.Shared.Return(rightChunks[i]);
+                }
 
-            processedChunks += batchCount;
-            progress?.Report(new FileVocalIsolationProgress(
-                FileVocalIsolationStage.IsolatingVocals,
-                processedChunks / (double)totalChunks,
-                _executionProvider));
+                if (batchOutputs is not null)
+                {
+                    for (var i = 0; i < batchOutputs.Length; i++)
+                    {
+                        if (batchOutputs[i].Left is { } l)
+                            ArrayPool<float>.Shared.Return(l);
+                        if (batchOutputs[i].Right is { } r)
+                            ArrayPool<float>.Shared.Return(r);
+                    }
+                }
+            }
         }
 
         if (padSamples > 0)
@@ -506,20 +531,45 @@ public sealed class FileVocalIsolationService : IDisposable
                 var batchCount = Math.Min(InferenceBatchSize, availableChunks);
                 var leftChunks = new float[batchCount][];
                 var rightChunks = new float[batchCount][];
-                for (var i = 0; i < batchCount; i++)
+                (float[] Left, float[] Right)[]? batchOutputs = null;
+                try
                 {
-                    var chunkOffset = i * GeneratedSamples;
-                    leftChunks[i] = new float[ChunkSamples];
-                    rightChunks[i] = new float[ChunkSamples];
-                    Array.Copy(leftBuffer, chunkOffset, leftChunks[i], 0, ChunkSamples);
-                    Array.Copy(rightBuffer, chunkOffset, rightChunks[i], 0, ChunkSamples);
-                }
+                    for (var i = 0; i < batchCount; i++)
+                    {
+                        var chunkOffset = i * GeneratedSamples;
+                        leftChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
+                        rightChunks[i] = ArrayPool<float>.Shared.Rent(ChunkSamples);
+                        Array.Copy(leftBuffer, chunkOffset, leftChunks[i], 0, ChunkSamples);
+                        Array.Copy(rightBuffer, chunkOffset, rightChunks[i], 0, ChunkSamples);
+                    }
 
-                var batchOutputs = ProcessChunkBatch(session, leftChunks, rightChunks);
-                for (var i = 0; i < batchCount; i++)
+                    batchOutputs = ProcessChunkBatch(session, leftChunks, rightChunks);
+                    for (var i = 0; i < batchCount; i++)
+                    {
+                        var batchOutput = batchOutputs[i];
+                        monoResampler.WriteStereoChunk(writer, batchOutput.Left, batchOutput.Right, TrimSamples, GeneratedSamples);
+                    }
+                }
+                finally
                 {
-                    var batchOutput = batchOutputs[i];
-                    monoResampler.WriteStereoChunk(writer, batchOutput.Left, batchOutput.Right, TrimSamples, GeneratedSamples);
+                    for (var i = 0; i < batchCount; i++)
+                    {
+                        if (leftChunks[i] is not null)
+                            ArrayPool<float>.Shared.Return(leftChunks[i]);
+                        if (rightChunks[i] is not null)
+                            ArrayPool<float>.Shared.Return(rightChunks[i]);
+                    }
+
+                    if (batchOutputs is not null)
+                    {
+                        for (var i = 0; i < batchOutputs.Length; i++)
+                        {
+                            if (batchOutputs[i].Left is { } l)
+                                ArrayPool<float>.Shared.Return(l);
+                            if (batchOutputs[i].Right is { } r)
+                                ArrayPool<float>.Shared.Return(r);
+                        }
+                    }
                 }
 
                 var consumedFrames = batchCount * GeneratedSamples;
@@ -574,8 +624,9 @@ public sealed class FileVocalIsolationService : IDisposable
 
         Parallel.For(0, batchCount, batchIndex =>
         {
-            var isolatedLeft = new float[ChunkSamples];
-            var isolatedRight = new float[ChunkSamples];
+            // Rent from the shared pool; the caller owns these buffers and must return them.
+            var isolatedLeft = ArrayPool<float>.Shared.Rent(ChunkSamples);
+            var isolatedRight = ArrayPool<float>.Shared.Rent(ChunkSamples);
             CopyIstftFromTensor(outputTensor, batchIndex, 0, 1, isolatedLeft, 0, TrimSamples, ChunkSamples);
             CopyIstftFromTensor(outputTensor, batchIndex, 2, 3, isolatedRight, 0, TrimSamples, ChunkSamples);
             outputs[batchIndex] = (isolatedLeft, isolatedRight);
