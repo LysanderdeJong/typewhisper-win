@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using NAudio.Wave;
 using SherpaOnnx;
+using TypeWhisper.Core.Audio;
 using TypeWhisper.Windows.Services.Localization;
 
 namespace TypeWhisper.Windows.Services;
@@ -64,7 +65,9 @@ public sealed class FileSpeechSegmentationService
     private const int SampleRate = 16000;
     private const int VadWindowSize = 512;
     private const int MaxSegmentSamples = SampleRate * 60;
-    private const int ReadBufferBytes = 4096;
+    // 64 KiB = 32768 PCM16 samples (~2s at 16 kHz mono). Larger reads amortize per-call
+    // MediaFoundationResampler overhead and match the AudioFileService buffer size.
+    private const int ReadBufferBytes = 65536;
 
     private readonly AudioFileService _audioFile;
 
@@ -112,8 +115,9 @@ public sealed class FileSpeechSegmentationService
             cancellationToken.ThrowIfCancellationRequested();
 
             var samplesRead = bytesRead / 2;
-            for (var i = 0; i < samplesRead; i++)
-                sampleBuffer[i] = BitConverter.ToInt16(byteBuffer, i * 2) / 32768f;
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                byteBuffer.AsSpan(0, samplesRead * 2),
+                sampleBuffer.AsSpan(0, samplesRead));
 
             for (var offset = 0; offset < samplesRead; offset += VadWindowSize)
             {
