@@ -844,38 +844,52 @@ public sealed class FileVocalIsolationService : IDisposable
                 return;
 
             var carryCount = _hasLastMonoSample ? 1 : 0;
-            var source = new float[count + carryCount];
-            if (_hasLastMonoSample)
-                source[0] = _lastMonoSample;
+            var sourceLength = count + carryCount;
+            var resampledCapacity = (int)Math.Ceiling(sourceLength / _sourceFramesPerOutput) + 2;
 
-            for (var i = 0; i < count; i++)
-                source[carryCount + i] = (left[offset + i] + right[offset + i]) * 0.5f;
-
-            var sourceStartFrame = _totalSourceFrames - carryCount;
-            var sourceEndExclusive = _totalSourceFrames + count;
-            var resampled = new float[(int)Math.Ceiling((count + carryCount) / _sourceFramesPerOutput) + 2];
-            var outputCount = 0;
-
-            while (_nextOutputSourcePosition < sourceEndExclusive - 1)
+            // Pool the per-call mono-mixed source and resampled scratch buffers. These are ~1 MB
+            // and ~360 KB at typical 44.1 kHz -> 16 kHz ratios, called up to 4 times per inference
+            // batch so pooling removes ~5 MB of short-lived allocations per batch iteration.
+            var source = ArrayPool<float>.Shared.Rent(sourceLength);
+            var resampled = ArrayPool<float>.Shared.Rent(resampledCapacity);
+            try
             {
-                var localPosition = _nextOutputSourcePosition - sourceStartFrame;
-                var localIndex = (int)localPosition;
-                var fraction = localPosition - localIndex;
-                var first = source[localIndex];
-                var second = source[localIndex + 1];
-                resampled[outputCount++] = (float)(first + ((second - first) * fraction));
-                _nextOutputSourcePosition += _sourceFramesPerOutput;
-            }
+                if (_hasLastMonoSample)
+                    source[0] = _lastMonoSample;
 
-            if (outputCount > 0)
+                for (var i = 0; i < count; i++)
+                    source[carryCount + i] = (left[offset + i] + right[offset + i]) * 0.5f;
+
+                var sourceStartFrame = _totalSourceFrames - carryCount;
+                var sourceEndExclusive = _totalSourceFrames + count;
+                var outputCount = 0;
+
+                while (_nextOutputSourcePosition < sourceEndExclusive - 1)
+                {
+                    var localPosition = _nextOutputSourcePosition - sourceStartFrame;
+                    var localIndex = (int)localPosition;
+                    var fraction = localPosition - localIndex;
+                    var first = source[localIndex];
+                    var second = source[localIndex + 1];
+                    resampled[outputCount++] = (float)(first + ((second - first) * fraction));
+                    _nextOutputSourcePosition += _sourceFramesPerOutput;
+                }
+
+                if (outputCount > 0)
+                {
+                    writer.WriteSamples(resampled, 0, outputCount);
+                    _outputFramesWritten += outputCount;
+                }
+
+                _lastMonoSample = source[carryCount + count - 1];
+                _hasLastMonoSample = true;
+                _totalSourceFrames += count;
+            }
+            finally
             {
-                writer.WriteSamples(resampled, 0, outputCount);
-                _outputFramesWritten += outputCount;
+                ArrayPool<float>.Shared.Return(source);
+                ArrayPool<float>.Shared.Return(resampled);
             }
-
-            _lastMonoSample = source[carryCount + count - 1];
-            _hasLastMonoSample = true;
-            _totalSourceFrames += count;
         }
 
         public void Complete(WaveFileWriter writer)
