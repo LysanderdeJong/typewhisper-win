@@ -12,7 +12,7 @@ public static class WavEncoder
     {
         var bytesPerSample = bitsPerSample / 8;
         var dataLength = samples.Length * bytesPerSample;
-        var buffer = new byte[HeaderSize + dataLength];
+        var buffer = GC.AllocateUninitializedArray<byte>(HeaderSize + dataLength);
 
         WriteHeader(buffer.AsSpan(0, HeaderSize), dataLength, sampleRate, channels, bitsPerSample, bytesPerSample);
         WritePcm16Samples(buffer.AsSpan(HeaderSize), samples);
