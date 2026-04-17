@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using NAudio.Wave;
@@ -74,39 +75,45 @@ public sealed class AudioFileService
         // We fill the per-segment float[] directly from PCM conversions; consumers own the
         // buffer for their yield lifetime so pooling is not safe here.
         var currentSegment = new float[chunkSamples];
-        var byteBuffer = new byte[ReadBufferBytes];
+        var byteBuffer = ArrayPool<byte>.Shared.Rent(ReadBufferBytes);
         var bufferedSamples = 0;
         long emittedFrames = 0;
-        int bytesRead;
-
-        while ((bytesRead = resampled.Read(byteBuffer, 0, byteBuffer.Length)) > 0)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var sampleCount = bytesRead / 2;
-            var sampleOffset = 0;
-            while (sampleOffset < sampleCount)
+            int bytesRead;
+            while ((bytesRead = resampled.Read(byteBuffer, 0, ReadBufferBytes)) > 0)
             {
-                var capacityRemaining = chunkSamples - bufferedSamples;
-                var toCopy = Math.Min(capacityRemaining, sampleCount - sampleOffset);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                PcmSampleConverter.ConvertPcm16LeToFloat(
-                    byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
-                    currentSegment.AsSpan(bufferedSamples, toCopy));
+                var sampleCount = bytesRead / 2;
+                var sampleOffset = 0;
+                while (sampleOffset < sampleCount)
+                {
+                    var capacityRemaining = chunkSamples - bufferedSamples;
+                    var toCopy = Math.Min(capacityRemaining, sampleCount - sampleOffset);
 
-                bufferedSamples += toCopy;
-                sampleOffset += toCopy;
+                    PcmSampleConverter.ConvertPcm16LeToFloat(
+                        byteBuffer.AsSpan(sampleOffset * 2, toCopy * 2),
+                        currentSegment.AsSpan(bufferedSamples, toCopy));
 
-                if (bufferedSamples != chunkSamples)
-                    continue;
+                    bufferedSamples += toCopy;
+                    sampleOffset += toCopy;
 
-                var start = emittedFrames / (double)targetSampleRate;
-                emittedFrames += chunkFrameCount;
-                var end = emittedFrames / (double)targetSampleRate;
-                yield return new AudioSpeechSegment(currentSegment, start, end);
-                currentSegment = new float[chunkSamples];
-                bufferedSamples = 0;
+                    if (bufferedSamples != chunkSamples)
+                        continue;
+
+                    var start = emittedFrames / (double)targetSampleRate;
+                    emittedFrames += chunkFrameCount;
+                    var end = emittedFrames / (double)targetSampleRate;
+                    yield return new AudioSpeechSegment(currentSegment, start, end);
+                    currentSegment = new float[chunkSamples];
+                    bufferedSamples = 0;
+                }
             }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(byteBuffer);
         }
 
         if (bufferedSamples > 0)
@@ -169,21 +176,27 @@ public sealed class AudioFileService
             Math.Ceiling(reader.TotalTime.TotalSeconds * targetSampleRate * targetChannels));
         var samples = new float[Math.Max(estimatedSampleCount, ReadBufferBytes / 2)];
         var samplesWritten = 0;
-        var buffer = new byte[ReadBufferBytes];
-        int bytesRead;
-
-        while ((bytesRead = resampled.Read(buffer, 0, buffer.Length)) > 0)
+        var buffer = ArrayPool<byte>.Shared.Rent(ReadBufferBytes);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            int bytesRead;
+            while ((bytesRead = resampled.Read(buffer, 0, ReadBufferBytes)) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var sampleCount = bytesRead / 2; // 16-bit = 2 bytes per sample
-            EnsureCapacity(ref samples, samplesWritten + sampleCount);
+                var sampleCount = bytesRead / 2; // 16-bit = 2 bytes per sample
+                EnsureCapacity(ref samples, samplesWritten + sampleCount);
 
-            PcmSampleConverter.ConvertPcm16LeToFloat(
-                buffer.AsSpan(0, sampleCount * 2),
-                samples.AsSpan(samplesWritten, sampleCount));
+                PcmSampleConverter.ConvertPcm16LeToFloat(
+                    buffer.AsSpan(0, sampleCount * 2),
+                    samples.AsSpan(samplesWritten, sampleCount));
 
-            samplesWritten += sampleCount;
+                samplesWritten += sampleCount;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         if (samplesWritten != samples.Length)
