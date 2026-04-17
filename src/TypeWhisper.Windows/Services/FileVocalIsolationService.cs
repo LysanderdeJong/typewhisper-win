@@ -48,6 +48,12 @@ public sealed class FileVocalIsolationService : IDisposable
     private readonly SemaphoreSlim _inferenceGate = new(1, 1);
     private readonly float[] _window = CreateHannWindow();
     private readonly DenseTensor<float>?[] _inputTensorCache = new DenseTensor<float>[InferenceBatchSize + 1];
+    // Per-thread FFT scratch buffer. Fourier.Forward/Inverse operate on the full array length
+    // (Nfft = 7680, ~61 KB of Complex32 = ~123 KB when counting both halves), so this buffer
+    // cannot come from ArrayPool<T>.Shared (which rounds up to power-of-two buckets). Keeping
+    // one per worker thread eliminates ~16 allocations per inference batch (8 STFT + 8 ISTFT,
+    // 2 channels * 4 batch items) without introducing cross-thread aliasing.
+    private readonly ThreadLocal<MathNet.Numerics.Complex32[]> _fftBuffer = new(() => new MathNet.Numerics.Complex32[Nfft]);
     private readonly int? _directMlDeviceId;
 
     private InferenceSession? _session;
@@ -151,6 +157,7 @@ public sealed class FileVocalIsolationService : IDisposable
         _httpClient.Dispose();
         _modelGate.Dispose();
         _inferenceGate.Dispose();
+        _fftBuffer.Dispose();
     }
 
     private async Task<InferenceSession> GetOrLoadSessionAsync(
@@ -646,9 +653,10 @@ public sealed class FileVocalIsolationService : IDisposable
     {
         // Pool the ~1 MB padded scratch buffer. MathNet's Fourier.Forward operates on the full
         // array length, so the FFT workspace has to match Nfft exactly and cannot come from
-        // ArrayPool (which rounds up to power-of-two buckets).
+        // ArrayPool (which rounds up to power-of-two buckets) - it is shared per-thread via
+        // _fftBuffer instead.
         var padded = ArrayPool<float>.Shared.Rent(ChunkSamples + Nfft);
-        var fftBuffer = new MathNet.Numerics.Complex32[Nfft];
+        var fftBuffer = _fftBuffer.Value!;
         try
         {
             Array.Clear(padded, 0, ChunkSamples + Nfft);
@@ -687,11 +695,12 @@ public sealed class FileVocalIsolationService : IDisposable
     {
         // Pool the two ~1 MB scratch buffers. They are allocated up to 8 times per inference
         // batch (2 channels * 4 batch items), so pooling cuts ~16 MB of short-lived allocations
-        // per ProcessChunkBatch call. FFT workspace must match Nfft exactly - see CopyStftToTensor.
+        // per ProcessChunkBatch call. FFT workspace must match Nfft exactly - see CopyStftToTensor,
+        // so we reuse the per-thread _fftBuffer instead of allocating one here.
         var paddedLength = ChunkSamples + Nfft;
         var output = ArrayPool<float>.Shared.Rent(paddedLength);
         var windowSums = ArrayPool<float>.Shared.Rent(paddedLength);
-        var fftBuffer = new MathNet.Numerics.Complex32[Nfft];
+        var fftBuffer = _fftBuffer.Value!;
         try
         {
             Array.Clear(output, 0, paddedLength);
