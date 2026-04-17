@@ -1,4 +1,6 @@
+using System.Buffers;
 using NAudio.Wave;
+using TypeWhisper.Core.Audio;
 
 namespace TypeWhisper.Windows.Services;
 
@@ -174,57 +176,73 @@ public sealed class AudioRecordingService : IDisposable
         if (!_isRecording) return;
 
         var sampleCount = e.BytesRecorded / 2;
-        float agcGain = 1f;
+        if (sampleCount == 0) return;
 
-        // Compute pre-gain RMS for speech energy detection (unaffected by AGC)
-        float preGainSum = 0;
-        for (var i = 0; i < sampleCount; i++)
+        // Decode PCM16 -> float once using the vectorized converter. We still need a second
+        // per-sample pass for the AGC/peak/RMS work below, but this saves the per-sample
+        // BitConverter overhead (previously executed twice).
+        var floatBuffer = ArrayPool<float>.Shared.Rent(sampleCount);
+        try
         {
-            var s = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-            preGainSum += s * s;
-        }
-        var preGainRms = MathF.Sqrt(preGainSum / sampleCount);
-        if (preGainRms > _preGainPeakRms) _preGainPeakRms = preGainRms;
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                e.Buffer.AsSpan(0, sampleCount * 2),
+                floatBuffer.AsSpan(0, sampleCount));
 
-        if (WhisperModeEnabled)
-        {
-            if (preGainRms > 0.0001f)
-                agcGain = Math.Clamp(AgcTargetRms / preGainRms, AgcMinGain, AgcMaxGain);
-        }
-
-        float peak = 0;
-        float sumSquares = 0;
-        var shouldPublishSamples = SamplesAvailable is not null;
-        var chunkBuffer = shouldPublishSamples ? new float[sampleCount] : null;
-
-        lock (_bufferLock)
-        {
+            // Compute pre-gain RMS for speech energy detection (unaffected by AGC)
+            float preGainSum = 0;
             for (var i = 0; i < sampleCount; i++)
             {
-                var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
+                var s = floatBuffer[i];
+                preGainSum += s * s;
+            }
+            var preGainRms = MathF.Sqrt(preGainSum / sampleCount);
+            if (preGainRms > _preGainPeakRms) _preGainPeakRms = preGainRms;
 
-                if (WhisperModeEnabled)
-                    sample = Math.Clamp(sample * agcGain, -1f, 1f);
+            float agcGain = 1f;
+            if (WhisperModeEnabled)
+            {
+                if (preGainRms > 0.0001f)
+                    agcGain = Math.Clamp(AgcTargetRms / preGainRms, AgcMinGain, AgcMaxGain);
+            }
 
-                _sampleBuffer?.Add(sample);
-                if (chunkBuffer is not null)
-                    chunkBuffer[i] = sample;
+            float peak = 0;
+            float sumSquares = 0;
+            var shouldPublishSamples = SamplesAvailable is not null;
+            var chunkBuffer = shouldPublishSamples ? new float[sampleCount] : null;
 
-                var abs = MathF.Abs(sample);
-                if (abs > peak) peak = abs;
-                sumSquares += sample * sample;
+            lock (_bufferLock)
+            {
+                for (var i = 0; i < sampleCount; i++)
+                {
+                    var sample = floatBuffer[i];
+
+                    if (WhisperModeEnabled)
+                        sample = Math.Clamp(sample * agcGain, -1f, 1f);
+
+                    _sampleBuffer?.Add(sample);
+                    if (chunkBuffer is not null)
+                        chunkBuffer[i] = sample;
+
+                    var abs = MathF.Abs(sample);
+                    if (abs > peak) peak = abs;
+                    sumSquares += sample * sample;
+                }
+            }
+
+            var rms = MathF.Sqrt(sumSquares / sampleCount);
+            _currentRmsLevel = rms;
+            if (rms > _peakRmsLevel) _peakRmsLevel = rms;
+
+            AudioLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+
+            if (chunkBuffer is not null && SamplesAvailable is not null && _sampleBuffer is not null)
+            {
+                SamplesAvailable.Invoke(this, new SamplesAvailableEventArgs(chunkBuffer));
             }
         }
-
-        var rms = MathF.Sqrt(sumSquares / sampleCount);
-        _currentRmsLevel = rms;
-        if (rms > _peakRmsLevel) _peakRmsLevel = rms;
-
-        AudioLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
-
-        if (chunkBuffer is not null && SamplesAvailable is not null && _sampleBuffer is not null)
+        finally
         {
-            SamplesAvailable.Invoke(this, new SamplesAvailableEventArgs(chunkBuffer));
+            ArrayPool<float>.Shared.Return(floatBuffer);
         }
     }
 
@@ -363,18 +381,30 @@ public sealed class AudioRecordingService : IDisposable
         var sampleCount = e.BytesRecorded / 2;
         if (sampleCount == 0) return;
 
-        float peak = 0;
-        float sumSquares = 0;
-        for (var i = 0; i < sampleCount; i++)
+        var floatBuffer = ArrayPool<float>.Shared.Rent(sampleCount);
+        try
         {
-            var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-            var abs = MathF.Abs(sample);
-            if (abs > peak) peak = abs;
-            sumSquares += sample * sample;
-        }
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                e.Buffer.AsSpan(0, sampleCount * 2),
+                floatBuffer.AsSpan(0, sampleCount));
 
-        var rms = MathF.Sqrt(sumSquares / sampleCount);
-        PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+            float peak = 0;
+            float sumSquares = 0;
+            for (var i = 0; i < sampleCount; i++)
+            {
+                var sample = floatBuffer[i];
+                var abs = MathF.Abs(sample);
+                if (abs > peak) peak = abs;
+                sumSquares += sample * sample;
+            }
+
+            var rms = MathF.Sqrt(sumSquares / sampleCount);
+            PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(floatBuffer);
+        }
     }
 
     private void DisposeWaveIn()

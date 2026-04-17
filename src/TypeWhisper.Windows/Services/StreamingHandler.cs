@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 using System.Net.WebSockets;
+using TypeWhisper.Core.Audio;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.PluginSDK;
 
@@ -241,15 +242,7 @@ public sealed class StreamingHandler : IDisposable
     }
 
     private static void WritePcm16(Span<byte> destination, ReadOnlySpan<float> samples)
-    {
-        for (var i = 0; i < samples.Length; i++)
-        {
-            var clamped = Math.Clamp(samples[i], -1f, 1f);
-            var value = (short)(clamped * 32767f);
-            destination[i * 2] = (byte)(value & 0xFF);
-            destination[i * 2 + 1] = (byte)((value >> 8) & 0xFF);
-        }
-    }
+        => PcmSampleConverter.ConvertFloatToPcm16Le(samples, destination);
 
     /// <summary>
     /// Keeps confirmed text stable and only appends new content.
