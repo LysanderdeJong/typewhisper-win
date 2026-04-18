@@ -18,12 +18,12 @@ public sealed class StreamingHandler : IDisposable
     private readonly AudioRecordingService _audio;
     private readonly IDictionaryService _dictionary;
     private readonly SemaphoreSlim _sendGate = new(1, 1);
+    private readonly StreamingTranscriptState _transcriptState = new();
 
     private CancellationTokenSource? _cts;
     private Task? _streamingTask;
     private IStreamingSession? _session;
-    private string _confirmedText = "";
-    private string _lastDisplayedText = "";
+    private Action<StreamingTranscriptEvent>? _transcriptHandler;
 
     public Action<string>? OnPartialTextUpdate { get; set; }
 
@@ -44,17 +44,16 @@ public sealed class StreamingHandler : IDisposable
     {
         Stop();
 
-        _confirmedText = "";
-        _lastDisplayedText = "";
+        var sessionVersion = _transcriptState.StartSession();
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
         var plugin = _modelManager.ActiveTranscriptionPlugin;
 
         if (plugin is not null && plugin.SupportsStreaming)
-            _streamingTask = RunWebSocketStreamingAsync(plugin, language, ct);
+            _streamingTask = RunWebSocketStreamingAsync(plugin, language, sessionVersion, ct);
         else
-            _streamingTask = RunPollingFallbackAsync(language, task, isStillRecording, ct);
+            _streamingTask = RunPollingFallbackAsync(language, task, isStillRecording, sessionVersion, ct);
     }
 
     public string Stop()
@@ -62,10 +61,16 @@ public sealed class StreamingHandler : IDisposable
         _audio.SamplesAvailable -= OnStreamingSamplesAvailable;
         _cts?.Cancel();
 
-        var finalText = _lastDisplayedText;
+        var finalText = _transcriptState.StopSession();
 
         var session = _session;
+        var transcriptHandler = _transcriptHandler;
         _session = null;
+        _transcriptHandler = null;
+
+        if (session is not null && transcriptHandler is not null)
+            session.TranscriptReceived -= transcriptHandler;
+
         if (session is not null)
         {
             // Fire-and-forget with timeout to avoid deadlock
@@ -75,8 +80,6 @@ public sealed class StreamingHandler : IDisposable
         _cts?.Dispose();
         _cts = null;
         _streamingTask = null;
-        _confirmedText = "";
-        _lastDisplayedText = "";
 
         return finalText;
     }
@@ -93,14 +96,21 @@ public sealed class StreamingHandler : IDisposable
     // ── WebSocket streaming path ──
 
     private async Task RunWebSocketStreamingAsync(
-        ITranscriptionEnginePlugin plugin, string? language, CancellationToken ct)
+        ITranscriptionEnginePlugin plugin, string? language, int sessionVersion, CancellationToken ct)
     {
         try
         {
             var lang = language == "auto" ? null : language;
-            _session = await plugin.StartStreamingAsync(lang, ct);
+            var session = await plugin.StartStreamingAsync(lang, ct);
+            if (!_transcriptState.IsCurrentSession(sessionVersion) || ct.IsCancellationRequested)
+            {
+                await CleanupSessionAsync(session);
+                return;
+            }
 
-            _session.TranscriptReceived += OnTranscriptReceived;
+            _session = session;
+            _transcriptHandler = evt => OnTranscriptReceived(evt, sessionVersion);
+            session.TranscriptReceived += _transcriptHandler;
             _audio.SamplesAvailable += OnStreamingSamplesAvailable;
 
             // Keep alive until cancelled
@@ -146,36 +156,20 @@ public sealed class StreamingHandler : IDisposable
         finally { ArrayPool<byte>.Shared.Return(pcm16); }
     }
 
-    private void OnTranscriptReceived(StreamingTranscriptEvent evt)
+    private void OnTranscriptReceived(StreamingTranscriptEvent evt, int sessionVersion)
     {
-        var text = evt.Text?.Trim() ?? "";
-        if (string.IsNullOrEmpty(text)) return;
+        if (_cts is null || _cts.IsCancellationRequested)
+            return;
 
-        text = _dictionary.ApplyCorrections(text);
-
-        if (evt.IsFinal)
-        {
-            _confirmedText = string.IsNullOrEmpty(_confirmedText)
-                ? text
-                : _confirmedText + " " + text;
-            _lastDisplayedText = _confirmedText;
-            OnPartialTextUpdate?.Invoke(_confirmedText);
-        }
-        else
-        {
-            var display = string.IsNullOrEmpty(_confirmedText)
-                ? text
-                : _confirmedText + " " + text;
-            _lastDisplayedText = display;
+        if (_transcriptState.TryApplyRealtime(sessionVersion, evt, _dictionary.ApplyCorrections, out var display))
             OnPartialTextUpdate?.Invoke(display);
-        }
     }
 
     // ── Polling fallback path ──
 
     private async Task RunPollingFallbackAsync(
         string? language, TranscriptionTask task,
-        Func<bool> isStillRecording, CancellationToken ct)
+        Func<bool> isStillRecording, int sessionVersion, CancellationToken ct)
     {
         var engine = _modelManager.Engine;
         var pollInterval = TimeSpan.FromSeconds(3.0);
@@ -204,10 +198,14 @@ public sealed class StreamingHandler : IDisposable
 
                         if (!string.IsNullOrEmpty(text))
                         {
-                            text = _dictionary.ApplyCorrections(text);
-                            var stable = StabilizeText(_confirmedText, text);
-                            _confirmedText = stable;
-                            OnPartialTextUpdate?.Invoke(stable);
+                            if (_transcriptState.TryApplyPolling(
+                                sessionVersion,
+                                text,
+                                _dictionary.ApplyCorrections,
+                                out var stable))
+                            {
+                                OnPartialTextUpdate?.Invoke(stable);
+                            }
                         }
                     }
                     catch (OperationCanceledException) { throw; }

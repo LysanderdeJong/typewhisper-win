@@ -77,12 +77,6 @@ public partial class FileTranscriptionViewModel : ObservableObject
             return;
         }
 
-        if (!_modelManager.Engine.IsModelLoaded)
-        {
-            StatusText = Loc.Instance["Status.NoModelLoaded"];
-            return;
-        }
-
         FilePath = filePath;
         IsProcessing = true;
         HasResult = false;
@@ -97,6 +91,12 @@ public partial class FileTranscriptionViewModel : ObservableObject
 
         try
         {
+            if (!await _modelManager.EnsureModelLoadedAsync(cancellationToken: currentCts.Token))
+            {
+                StatusText = Loc.Instance["Status.NoModelLoaded"];
+                return;
+            }
+
             var useSpeechSegmentation = FileTranscriptionMemoryPolicy.UsesSpeechSegmentation(
                 UseVoiceActivityDetection,
                 UseSpeakerDiarization);

@@ -25,7 +25,7 @@
     </Window.Resources>
 
     <Grid Margin="8"
-          Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVis}}">
+          Visibility="{Binding HasOverlayContentVisible, Converter={StaticResource BoolToVis}}">
 
         <Border x:Name="IslandBorder"
                 CornerRadius="22"
@@ -34,7 +34,8 @@
                 BorderThickness="1"
                 HorizontalAlignment="Center"
                 MinWidth="280"
-                Padding="14,10">
+                Padding="14,10"
+                Visibility="{Binding IsOverlayVisible, Converter={StaticResource BoolToVis}}">
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="0"/>
             </Border.Effect>
@@ -84,18 +85,64 @@
                     </ScrollViewer>
                 </Border>
 
-                <!-- Feedback banner (errors only) -->
+                <!-- Inline feedback while overlay is already visible -->
                 <Border CornerRadius="0,0,22,22"
                         Padding="16,4,16,6"
-                        Background="#1AFF4444"
-                        Visibility="{Binding ShowFeedback, Converter={StaticResource BoolToVis}}">
+                        Visibility="{Binding ShowInlineFeedback, Converter={StaticResource BoolToVis}}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="#1AFF4444"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FeedbackIsError}" Value="False">
+                                    <Setter Property="Background" Value="#1A33D17A"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <TextBlock Text="{Binding FeedbackText}"
-                               Foreground="#FF6666"
                                FontSize="11"
                                HorizontalAlignment="Center"
-                               TextTrimming="CharacterEllipsis"/>
+                               TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#FF6666"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding FeedbackIsError}" Value="False">
+                                        <Setter Property="Foreground" Value="#66E3A2"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </Border>
             </StackPanel>
+        </Border>
+
+        <Border CornerRadius="18"
+                Padding="14,7"
+                HorizontalAlignment="Center"
+                Background="#F0181818"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                Visibility="{Binding ShowDetachedFeedback, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.5" ShadowDepth="0"/>
+            </Border.Effect>
+            <TextBlock Text="{Binding FeedbackText}"
+                       FontSize="11"
+                       HorizontalAlignment="Center"
+                       TextTrimming="CharacterEllipsis">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="#FF6666"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FeedbackIsError}" Value="False">
+                                <Setter Property="Foreground" Value="#66E3A2"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </Border>
     </Grid>
 </Window>

@@ -137,7 +137,7 @@ public sealed class HttpApiService : IDisposable
         var activePlugin = _modelManager.ActiveTranscriptionPlugin;
         return Json(200, new
         {
-            status = _modelManager.Engine.IsModelLoaded ? "ready" : "no_model",
+            status = _modelManager.ActiveModelId is not null ? "ready" : "no_model",
             activeModel = _modelManager.ActiveModelId,
             apiVersion = "1.0",
             supports_streaming = activePlugin?.SupportsStreaming ?? false,
@@ -166,7 +166,7 @@ public sealed class HttpApiService : IDisposable
 
     private async Task<(int, string)> HandleTranscribe(HttpListenerRequest request, CancellationToken ct)
     {
-        if (!_modelManager.Engine.IsModelLoaded)
+        if (!await _modelManager.EnsureModelLoadedAsync(cancellationToken: ct))
             return Json(503, new { error = "No model loaded" });
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"tw_api_{Guid.NewGuid()}.tmp");

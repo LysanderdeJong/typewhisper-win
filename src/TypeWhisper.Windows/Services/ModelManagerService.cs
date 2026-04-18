@@ -63,8 +63,15 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
     {
         get
         {
-            var plugin = ActiveTranscriptionPlugin ?? _pluginManager.TranscriptionEngines.FirstOrDefault();
-            return plugin is not null ? new PluginTranscriptionEngineAdapter(plugin) : NoOpTranscriptionEngine.Instance;
+            if (_activeModelId is not null && IsPluginModel(_activeModelId))
+            {
+                var (pluginId, _) = ParsePluginModelId(_activeModelId);
+                var plugin = FindPlugin(pluginId);
+                if (plugin is not null)
+                    return new PluginTranscriptionEngineAdapter(plugin);
+            }
+
+            return NoOpTranscriptionEngine.Instance;
         }
     }
 
@@ -235,6 +242,25 @@ public sealed class ModelManagerService : INotifyPropertyChanged, IDisposable
             UnloadModel();
 
         SetStatus(modelId, ModelStatus.NotDownloaded);
+    }
+
+    public async Task<bool> EnsureModelLoadedAsync(string? modelId = null, CancellationToken cancellationToken = default)
+    {
+        var targetModelId = modelId ?? _settings.Current.SelectedModelId;
+        if (string.IsNullOrWhiteSpace(targetModelId))
+            return false;
+
+        if (ActiveModelId == targetModelId)
+        {
+            CancelAutoUnload();
+            return true;
+        }
+
+        if (!IsDownloaded(targetModelId))
+            return false;
+
+        await LoadModelAsync(targetModelId, cancellationToken);
+        return true;
     }
 
     /// <summary>
