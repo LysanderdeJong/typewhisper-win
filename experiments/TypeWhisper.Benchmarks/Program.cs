@@ -62,6 +62,12 @@ static async Task<MeasurementResult> MeasureAsync(string targetDll, string scena
         "stream-process" => target.CanStream
             ? () => target.StreamAndProcessAsync(inputPath, chunkFrames)
             : () => Task.FromResult(RunMetrics.Unsupported()),
+        "stream-process-no-release" => target.CanStream
+            ? () => target.StreamAndProcessAsync(inputPath, chunkFrames, releaseSamples: false)
+            : () => Task.FromResult(RunMetrics.Unsupported()),
+        "auto-process" => target.CanAutoProcess
+            ? () => target.AutoProcessAsync(inputPath, chunkFrames)
+            : () => Task.FromResult(RunMetrics.Unsupported()),
         _ => throw new ArgumentException($"Unknown scenario: {scenario}", nameof(scenario))
     };
 
@@ -192,6 +198,7 @@ sealed class TargetAudioApi : IDisposable
     private readonly object _audioFileService;
     private readonly MethodInfo _loadAudioAsync;
     private readonly MethodInfo? _streamAudioChunksAsync;
+    private readonly MethodInfo? _shouldUseFileBackedTranscription;
 
     public TargetAudioApi(string targetDll)
     {
@@ -208,9 +215,19 @@ sealed class TargetAudioApi : IDisposable
             ?? throw new InvalidOperationException("LoadAudioAsync(string, CancellationToken) not found.");
 
         _streamAudioChunksAsync = audioFileServiceType.GetMethod("StreamAudioChunksAsync", [typeof(string), typeof(int), typeof(CancellationToken)]);
+
+        _shouldUseFileBackedTranscription = _assembly
+            .GetType("TypeWhisper.Windows.Services.FileTranscriptionMemoryPolicy")?
+            .GetMethod(
+                "ShouldUseFileBackedTranscription",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                [typeof(double), typeof(bool)],
+                null);
     }
 
     public bool CanStream => _streamAudioChunksAsync is not null;
+    public bool CanAutoProcess => _shouldUseFileBackedTranscription is not null && CanStream;
 
     public async Task<RunMetrics> LoadAndProcessAsync(string inputPath, int chunkFrames)
     {
@@ -228,7 +245,7 @@ sealed class TargetAudioApi : IDisposable
         }
     }
 
-    public async Task<RunMetrics> StreamAndProcessAsync(string inputPath, int chunkFrames)
+    public async Task<RunMetrics> StreamAndProcessAsync(string inputPath, int chunkFrames, bool releaseSamples = true)
     {
         if (_streamAudioChunksAsync is null)
             return RunMetrics.Unsupported();
@@ -263,7 +280,8 @@ sealed class TargetAudioApi : IDisposable
                 var processed = ProcessSamples(samples, chunkFrames);
                 totalSamples += processed.TotalSamples;
                 checksum += processed.Checksum;
-                current.GetType().GetMethod("ReleaseSamples")?.Invoke(current, null);
+                if (releaseSamples)
+                    current.GetType().GetMethod("ReleaseSamples")?.Invoke(current, null);
             }
         }
         finally
@@ -280,6 +298,15 @@ sealed class TargetAudioApi : IDisposable
         }
 
         return new RunMetrics("ok", 0, 0, 0, 0, totalSamples, checksum);
+    }
+
+    public Task<RunMetrics> AutoProcessAsync(string inputPath, int chunkFrames)
+    {
+        if (_shouldUseFileBackedTranscription is null)
+            return Task.FromResult(RunMetrics.Unsupported());
+
+        var useFileBacked = (bool)_shouldUseFileBackedTranscription.Invoke(null, [WaveFileHelper.GetDurationSeconds(inputPath), false])!;
+        return useFileBacked ? StreamAndProcessAsync(inputPath, chunkFrames) : LoadAndProcessAsync(inputPath, chunkFrames);
     }
 
     private static RunMetrics ProcessSamples(float[] samples, int chunkFrames)

@@ -244,33 +244,40 @@ public sealed class HttpApiService : IDisposable
         {
             ct.ThrowIfCancellationRequested();
 
-            var rawResult = await _modelManager.Engine.TranscribeAsync(chunk.Samples, language, task, ct);
-            detectedLanguage ??= rawResult.DetectedLanguage;
-
-            if (rawResult.Segments.Count > 0)
+            try
             {
-                foreach (var rawSegment in rawResult.Segments)
-                {
-                    var processed = await _pipeline.ProcessAsync(rawSegment.Text, options, ct);
-                    var text = processed.Text.Trim();
-                    if (text.Length == 0)
-                        continue;
+                var rawResult = await _modelManager.Engine.TranscribeAsync(chunk.Samples, language, task, ct);
+                detectedLanguage ??= rawResult.DetectedLanguage;
 
-                    processedSegments.Add(new TranscriptionSegment(
-                        text,
-                        chunk.StartSeconds + rawSegment.Start,
-                        chunk.StartSeconds + rawSegment.End));
+                if (rawResult.Segments.Count > 0)
+                {
+                    foreach (var rawSegment in rawResult.Segments)
+                    {
+                        var processed = await _pipeline.ProcessAsync(rawSegment.Text, options, ct);
+                        var text = processed.Text.Trim();
+                        if (text.Length == 0)
+                            continue;
+
+                        processedSegments.Add(new TranscriptionSegment(
+                            text,
+                            chunk.StartSeconds + rawSegment.Start,
+                            chunk.StartSeconds + rawSegment.End));
+                    }
+
+                    continue;
                 }
 
-                continue;
+                var pipelineResult = await _pipeline.ProcessAsync(rawResult.Text, options, ct);
+                var chunkText = pipelineResult.Text.Trim();
+                if (chunkText.Length == 0)
+                    continue;
+
+                processedSegments.Add(new TranscriptionSegment(chunkText, chunk.StartSeconds, chunk.EndSeconds));
             }
-
-            var pipelineResult = await _pipeline.ProcessAsync(rawResult.Text, options, ct);
-            var chunkText = pipelineResult.Text.Trim();
-            if (chunkText.Length == 0)
-                continue;
-
-            processedSegments.Add(new TranscriptionSegment(chunkText, chunk.StartSeconds, chunk.EndSeconds));
+            finally
+            {
+                chunk.ReleaseSamples();
+            }
         }
 
         stopwatch.Stop();
