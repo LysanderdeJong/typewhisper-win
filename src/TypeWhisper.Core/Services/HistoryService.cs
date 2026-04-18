@@ -258,34 +258,9 @@ public sealed class HistoryService : IHistoryService
         }
     }
 
-    private List<TranscriptionRecord> LoadFromDisk()
-    {
-        try
-        {
-            if (!File.Exists(_filePath)) return [];
+    private List<TranscriptionRecord> LoadFromDisk() => JsonCacheStore.Load<TranscriptionRecord>(_filePath);
 
-            var json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<List<TranscriptionRecord>>(json) ?? [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    private void SaveToDisk()
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var json = JsonSerializer.Serialize(_cache, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
-        }
-        catch { }
-    }
+    private void SaveToDisk() => JsonCacheStore.Save(_filePath, _cache);
 
     private void RebuildStats()
     {

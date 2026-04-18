@@ -98,34 +98,38 @@ public sealed class HotkeyService : IDisposable
         StopProfileHooks();
 
         var hybridKey = !string.IsNullOrWhiteSpace(s.PushToTalkHotkey) ? s.PushToTalkHotkey : s.ToggleHotkey;
-        if (!string.IsNullOrWhiteSpace(hybridKey))
-        {
-            _hybridHook.SetHotkey(hybridKey);
-            _hybridHook.Start();
-        }
-
-        if (!string.IsNullOrWhiteSpace(s.ToggleOnlyHotkey))
-        {
-            _toggleOnlyHook.SetHotkey(s.ToggleOnlyHotkey);
-            _toggleOnlyHook.Start();
-        }
-
-        if (!string.IsNullOrWhiteSpace(s.HoldOnlyHotkey))
-        {
-            _holdOnlyHook.SetHotkey(s.HoldOnlyHotkey);
-            _holdOnlyHook.Start();
-        }
-
-        if (!string.IsNullOrWhiteSpace(s.PromptPaletteHotkey))
-        {
-            _promptPaletteHook.SetHotkey(s.PromptPaletteHotkey);
-            _promptPaletteHook.Start();
-        }
+        Bind(_hybridHook, hybridKey);
+        Bind(_toggleOnlyHook, s.ToggleOnlyHotkey);
+        Bind(_holdOnlyHook, s.HoldOnlyHotkey);
+        Bind(_promptPaletteHook, s.PromptPaletteHotkey);
 
         _cancelHook.Start();
 
         ApplyProfileHotkeys();
         ApplyEnabledState();
+
+        static void Bind(KeyboardHook hook, string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            hook.SetHotkey(key);
+            hook.Start();
+        }
+    }
+
+    private void ToggleDictation(Action onStart)
+    {
+        if (_isActive)
+        {
+            _isActive = false;
+            CurrentMode = null;
+            DictationStopRequested?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            _isActive = true;
+            CurrentMode = HotkeyMode.Toggle;
+            onStart();
+        }
     }
 
     private void ApplyProfileHotkeys()
@@ -140,20 +144,8 @@ public sealed class HotkeyService : IDisposable
             var profileId = profile.Id;
             hook.KeyDown += (_, _) =>
             {
-                if (!IsEnabled) return;
-
-                if (_isActive)
-                {
-                    _isActive = false;
-                    CurrentMode = null;
-                    DictationStopRequested?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    _isActive = true;
-                    CurrentMode = HotkeyMode.Toggle;
-                    ProfileDictationRequested?.Invoke(this, profileId);
-                }
+                if (IsEnabled)
+                    ToggleDictation(() => ProfileDictationRequested?.Invoke(this, profileId));
             };
             hook.SetHotkey(profile.HotkeyData);
             hook.Start();
@@ -239,18 +231,7 @@ public sealed class HotkeyService : IDisposable
         if (now - _lastActionTime < DebounceInterval) return;
         _lastActionTime = now;
 
-        if (_isActive)
-        {
-            _isActive = false;
-            CurrentMode = null;
-            DictationStopRequested?.Invoke(this, EventArgs.Empty);
-        }
-        else
-        {
-            _isActive = true;
-            CurrentMode = HotkeyMode.Toggle;
-            DictationStartRequested?.Invoke(this, EventArgs.Empty);
-        }
+        ToggleDictation(() => DictationStartRequested?.Invoke(this, EventArgs.Empty));
     }
 
     // --- Hold-only: hold = record, release = stop ---

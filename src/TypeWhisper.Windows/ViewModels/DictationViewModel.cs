@@ -250,17 +250,10 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     private string? EffectiveModelId =>
         _activeProfile?.TranscriptionModelOverride;
 
-    [RelayCommand]
-    /// <summary>Public API for starting recording (used by HTTP API).</summary>
-    public Task StartRecordingAsync() => StartRecording();
-
-    /// <summary>Public API for stopping recording (used by HTTP API).</summary>
-    public Task StopRecordingAsync() => StopRecording();
-
     /// <summary>Whether the service is currently recording.</summary>
     public bool IsRecording => _isRecording;
 
-    private async Task StartRecording()
+    public async Task StartRecording()
     {
         if (_isRecording) return;
         _isRecording = true;
@@ -371,7 +364,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task StopRecording()
+    public async Task StopRecording()
     {
         if (!_isRecording) return;
         _isRecording = false;
@@ -380,11 +373,12 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _durationTimer?.Dispose();
         _durationTimer = null;
 
+        var recordingDurationSeconds = _audio.RecordingDuration.TotalSeconds;
         var streamingText = _streamingHandler.Stop();
         _audio.SamplesAvailable -= OnSamplesAvailable;
 
         var samples = _audio.StopRecording();
-        _eventBus.Publish(new RecordingStoppedEvent { DurationSeconds = _audio.RecordingDuration.TotalSeconds });
+        _eventBus.Publish(new RecordingStoppedEvent { DurationSeconds = recordingDurationSeconds });
         _audioDucking.RestoreAudio();
         _mediaPause.ResumeMedia();
         RecordingSeconds = 0;
@@ -713,8 +707,8 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 {
                     audioFileName = $"{Guid.NewGuid():N}.wav";
                     var audioPath = Path.Combine(TypeWhisperEnvironment.AudioPath, audioFileName);
-                    var wav = TypeWhisper.Core.Audio.WavEncoder.Encode(job.Samples);
-                    await File.WriteAllBytesAsync(audioPath, wav, ct);
+                    await using var audioFileStream = new FileStream(audioPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+                    await TypeWhisper.Core.Audio.WavEncoder.WriteAsync(audioFileStream, job.Samples, cancellationToken: ct);
                 }
                 catch
                 {

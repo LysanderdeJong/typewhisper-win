@@ -69,11 +69,6 @@ public sealed class UpdateService
         }
     }
 
-    public void SwitchChannel(ReleaseChannel channel)
-    {
-        Initialize(channel);
-    }
-
     public async Task CheckForUpdatesAsync()
     {
         if (_updateManager is null) return;

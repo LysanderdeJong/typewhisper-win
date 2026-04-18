@@ -112,6 +112,28 @@ Cloud providers are available as plugins and can be configured in Settings > Ext
 
 4. The app appears in the system tray — the welcome wizard guides you through extension installation, model download, and setup.
 
+## Local Security Checks
+
+Run the local pre-push verification pass with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Check-LocalSecurity.ps1
+```
+
+This runs the same core local checks used by CI: restore, build, targeted tests, NuGet vulnerability audit, and repo-wide .NET analyzers/code-style rules enabled in `Directory.Build.props` and `.editorconfig`.
+
+The analyzer portion currently reports existing repo-wide warnings but does not fail the build on them yet, so it is useful as an early warning pass without blocking unrelated work.
+
+To also run a local CodeQL pass before pushing, install the CodeQL CLI and run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Check-LocalSecurity.ps1 -IncludeCodeQl
+```
+
+That optional step is the practical local way to catch CodeQL-specific findings such as `cs/path-combine` before they show up on a pull request. Results are written under `artifacts/codeql/`.
+
+GitHub's `dependency-review` job is not fully reproducible from local source-only checks. If it fails with `Dependency review is not supported on this repository`, fix repository security settings instead of changing code.
+
 ## HTTP API
 
 TypeWhisper can run a local HTTP server (default port 9876, configurable in Settings) for integration with external tools.

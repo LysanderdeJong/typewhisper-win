@@ -62,32 +62,14 @@ public sealed class OpenRouterPlugin : ILlmProviderPlugin
     internal string? ApiKey => _apiKey;
     internal IPluginLocalization? Loc => _host?.Localization;
 
-    internal async Task SetApiKeyAsync(string apiKey)
+    internal Task SetApiKeyAsync(string apiKey)
     {
         _apiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey;
-        if (_host is not null)
-        {
-            if (string.IsNullOrWhiteSpace(apiKey))
-                await _host.DeleteSecretAsync("api-key");
-            else
-                await _host.StoreSecretAsync("api-key", apiKey);
-        }
+        return _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
     }
 
-    internal async Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/v1/models");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        try
-        {
-            var response = await _httpClient.SendAsync(request, ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    internal Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default) =>
+        OpenAiApiHelper.ValidateApiKeyAsync(_httpClient, $"{BaseUrl}/v1/models", apiKey, ct: ct);
 
     public void Dispose()
     {

@@ -233,9 +233,7 @@ public partial class DictionaryViewModel : ObservableObject
 
     private void RefreshEntries()
     {
-        Entries.Clear();
-        foreach (var e in _dictionary.Entries)
-            Entries.Add(e);
+        Entries.Replace(_dictionary.Entries);
         FilteredEntries.Refresh();
         OnPropertyChanged(nameof(EntryCount));
         OnPropertyChanged(nameof(ActiveBoostingTermCount));

@@ -67,6 +67,11 @@ public record AppSettings
     // History
     public bool SaveToHistoryEnabled { get; init; } = true;
 
+    // File transcription preprocessing
+    public bool FileTranscriptionVocalIsolationEnabled { get; init; }
+    public bool FileTranscriptionVadEnabled { get; init; } = true;
+    public bool FileTranscriptionSpeakerDiarizationEnabled { get; init; }
+
     // Spoken feedback (TTS readback after transcription)
     public bool SpokenFeedbackEnabled { get; init; }
 

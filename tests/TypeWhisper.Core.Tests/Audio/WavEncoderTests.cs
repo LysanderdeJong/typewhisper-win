@@ -85,4 +85,16 @@ public class WavEncoderTests
         // Data length
         Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(result.AsSpan(40)));
     }
+
+    [Fact]
+    public async Task WriteAsync_MatchesEncodeOutput()
+    {
+        float[] samples = [1.0f, -1.0f, 0.0f, 0.25f, -0.25f];
+        var expected = WavEncoder.Encode(samples, sampleRate: 16000);
+
+        await using var stream = new MemoryStream();
+        await WavEncoder.WriteAsync(stream, samples, sampleRate: 16000);
+
+        Assert.Equal(expected, stream.ToArray());
+    }
 }

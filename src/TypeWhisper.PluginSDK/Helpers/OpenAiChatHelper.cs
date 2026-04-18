@@ -42,7 +42,7 @@ public static class OpenAiChatHelper
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
-        var response = await OpenAiApiHelper.SendWithErrorHandlingAsync(httpClient, request, ct);
+        using var response = await OpenAiApiHelper.SendWithErrorHandlingAsync(httpClient, request, ct);
         var json = await response.Content.ReadAsStringAsync(ct);
         return ParseChatCompletionResponse(json);
     }

@@ -14,37 +14,24 @@ public sealed partial class MediaPauseService : IMediaPauseService
     [LibraryImport("user32.dll")]
     private static partial void keybd_event(byte bVk, byte bScan, uint dwFlags, nuint dwExtraInfo);
 
-    public void PauseMedia()
+    public void PauseMedia() => TryRun("pause", () =>
     {
-        try
-        {
-            if (_didPause) return;
-
-            SendMediaPlayPause();
-            _didPause = true;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MediaPause pause failed: {ex.Message}");
-        }
-    }
+        if (_didPause) return;
+        SendMediaPlayPause();
+        _didPause = true;
+    });
 
     public void ResumeMedia()
     {
         if (!_didPause) return;
+        TryRun("resume", SendMediaPlayPause);
+        _didPause = false;
+    }
 
-        try
-        {
-            SendMediaPlayPause();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"MediaPause resume failed: {ex.Message}");
-        }
-        finally
-        {
-            _didPause = false;
-        }
+    private static void TryRun(string label, Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"MediaPause {label} failed: {ex.Message}"); }
     }
 
     private static void SendMediaPlayPause()

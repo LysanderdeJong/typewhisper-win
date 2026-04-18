@@ -117,34 +117,9 @@ public sealed class PromptActionService : IPromptActionService
     private void EnsureCacheLoaded()
     {
         if (_cacheLoaded) return;
-
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                var json = File.ReadAllText(_filePath);
-                _cache = JsonSerializer.Deserialize<List<PromptAction>>(json) ?? [];
-            }
-        }
-        catch
-        {
-            _cache = [];
-        }
-
+        _cache = JsonCacheStore.Load<PromptAction>(_filePath);
         _cacheLoaded = true;
     }
 
-    private void SaveToDisk()
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var json = JsonSerializer.Serialize(_cache, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
-        }
-        catch { }
-    }
+    private void SaveToDisk() => JsonCacheStore.Save(_filePath, _cache);
 }

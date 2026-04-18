@@ -230,9 +230,7 @@ public partial class SnippetsViewModel : ObservableObject
             Snippets.Add(s);
         }
 
-        AvailableTags.Clear();
-        foreach (var tag in _snippets.AllTags)
-            AvailableTags.Add(tag);
+        AvailableTags.Replace(_snippets.AllTags);
 
         NotifyStateChanged();
     }

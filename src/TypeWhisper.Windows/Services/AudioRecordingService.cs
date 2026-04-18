@@ -1,4 +1,7 @@
+using System.Buffers;
+using System.Numerics;
 using NAudio.Wave;
+using TypeWhisper.Core.Audio;
 
 namespace TypeWhisper.Windows.Services;
 
@@ -21,7 +24,8 @@ public sealed class AudioRecordingService : IDisposable
 
     private WaveInEvent? _waveIn;
     private WaveInEvent? _previewWaveIn;
-    private List<float>? _sampleBuffer;
+    private float[]? _sampleBuffer;
+    private int _sampleBufferCount;
     private readonly object _bufferLock = new();
     private bool _isRecording;
     private bool _isWarmedUp;
@@ -107,16 +111,10 @@ public sealed class AudioRecordingService : IDisposable
         return _isWarmedUp;
     }
 
-    public static IReadOnlyList<(int DeviceNumber, string Name)> GetAvailableDevices()
-    {
-        var devices = new List<(int, string)>();
-        for (var i = 0; i < WaveInEvent.DeviceCount; i++)
-        {
-            var caps = WaveInEvent.GetCapabilities(i);
-            devices.Add((i, caps.ProductName));
-        }
-        return devices;
-    }
+    public static IReadOnlyList<(int DeviceNumber, string Name)> GetAvailableDevices() =>
+        Enumerable.Range(0, WaveInEvent.DeviceCount)
+            .Select(i => (i, WaveInEvent.GetCapabilities(i).ProductName))
+            .ToList();
 
     public void StartRecording()
     {
@@ -133,7 +131,8 @@ public sealed class AudioRecordingService : IDisposable
 
         if (_waveIn is null) return;
 
-        _sampleBuffer = new List<float>(SampleRate * 60); // Pre-alloc ~1 min
+        _sampleBuffer = new float[SampleRate * 60]; // Pre-alloc ~1 min
+        _sampleBufferCount = 0;
         _peakRmsLevel = 0;
         _preGainPeakRms = 0;
         _recordingStartTime = DateTime.UtcNow;
@@ -143,7 +142,12 @@ public sealed class AudioRecordingService : IDisposable
     public float[]? GetCurrentBuffer()
     {
         if (!_isRecording || _sampleBuffer is null) return null;
-        lock (_bufferLock) { return [.. _sampleBuffer]; }
+        lock (_bufferLock)
+        {
+            var snapshot = new float[_sampleBufferCount];
+            Array.Copy(_sampleBuffer, snapshot, _sampleBufferCount);
+            return snapshot;
+        }
     }
 
     public float[]? StopRecording()
@@ -156,8 +160,18 @@ public sealed class AudioRecordingService : IDisposable
         float[]? samples;
         lock (_bufferLock)
         {
-            samples = _sampleBuffer?.ToArray();
+            if (_sampleBuffer is null || _sampleBufferCount == 0)
+            {
+                samples = null;
+            }
+            else
+            {
+                samples = new float[_sampleBufferCount];
+                Array.Copy(_sampleBuffer, samples, _sampleBufferCount);
+            }
+
             _sampleBuffer = null;
+            _sampleBufferCount = 0;
         }
 
         if (samples is null || samples.Length == 0)
@@ -174,56 +188,71 @@ public sealed class AudioRecordingService : IDisposable
         if (!_isRecording) return;
 
         var sampleCount = e.BytesRecorded / 2;
-        float agcGain = 1f;
+        if (sampleCount == 0) return;
 
-        // Compute pre-gain RMS for speech energy detection (unaffected by AGC)
-        float preGainSum = 0;
-        for (var i = 0; i < sampleCount; i++)
+        // Decode PCM16 -> float once using the vectorized converter. We still need a second
+        // per-sample pass for the AGC/peak/RMS work below, but this saves the per-sample
+        // BitConverter overhead (previously executed twice).
+        var floatBuffer = ArrayPool<float>.Shared.Rent(sampleCount);
+        try
         {
-            var s = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-            preGainSum += s * s;
-        }
-        var preGainRms = MathF.Sqrt(preGainSum / sampleCount);
-        if (preGainRms > _preGainPeakRms) _preGainPeakRms = preGainRms;
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                e.Buffer.AsSpan(0, sampleCount * 2),
+                floatBuffer.AsSpan(0, sampleCount));
 
-        if (WhisperModeEnabled)
-        {
-            if (preGainRms > 0.0001f)
-                agcGain = Math.Clamp(AgcTargetRms / preGainRms, AgcMinGain, AgcMaxGain);
-        }
+            // Compute pre-gain RMS for speech energy detection (unaffected by AGC).
+            ComputePeakAndSumSquares(floatBuffer.AsSpan(0, sampleCount), out _, out var preGainSum);
+            var preGainRms = MathF.Sqrt(preGainSum / sampleCount);
+            if (preGainRms > _preGainPeakRms) _preGainPeakRms = preGainRms;
 
-        float peak = 0;
-        float sumSquares = 0;
-        var chunkBuffer = new float[sampleCount];
-
-        for (var i = 0; i < sampleCount; i++)
-        {
-            var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-
+            float agcGain = 1f;
             if (WhisperModeEnabled)
-                sample = Math.Clamp(sample * agcGain, -1f, 1f);
+            {
+                if (preGainRms > 0.0001f)
+                    agcGain = Math.Clamp(AgcTargetRms / preGainRms, AgcMinGain, AgcMaxGain);
+            }
 
-            chunkBuffer[i] = sample;
+            var shouldPublishSamples = SamplesAvailable is not null;
+            var chunkBuffer = shouldPublishSamples ? new float[sampleCount] : null;
+            var processedSamples = chunkBuffer is not null
+                ? chunkBuffer.AsSpan()
+                : floatBuffer.AsSpan(0, sampleCount);
 
-            var abs = MathF.Abs(sample);
-            if (abs > peak) peak = abs;
-            sumSquares += sample * sample;
+            for (var i = 0; i < sampleCount; i++)
+            {
+                var sample = floatBuffer[i];
+                if (WhisperModeEnabled)
+                    sample = Math.Clamp(sample * agcGain, -1f, 1f);
+
+                processedSamples[i] = sample;
+            }
+
+            lock (_bufferLock)
+            {
+                if (_sampleBuffer is not null)
+                {
+                    EnsureSampleBufferCapacity(sampleCount);
+                    processedSamples.CopyTo(_sampleBuffer.AsSpan(_sampleBufferCount));
+                    _sampleBufferCount += sampleCount;
+                }
+            }
+
+            ComputePeakAndSumSquares(processedSamples, out var peak, out var sumSquares);
+
+            var rms = MathF.Sqrt(sumSquares / sampleCount);
+            _currentRmsLevel = rms;
+            if (rms > _peakRmsLevel) _peakRmsLevel = rms;
+
+            AudioLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+
+            if (chunkBuffer is not null && SamplesAvailable is not null && _sampleBuffer is not null)
+            {
+                SamplesAvailable.Invoke(this, new SamplesAvailableEventArgs(chunkBuffer));
+            }
         }
-
-        lock (_bufferLock)
+        finally
         {
-            _sampleBuffer?.AddRange(chunkBuffer);
-        }
-
-        var rms = MathF.Sqrt(sumSquares / sampleCount);
-        _currentRmsLevel = rms;
-        if (rms > _peakRmsLevel) _peakRmsLevel = rms;
-
-        AudioLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
-
-        if (SamplesAvailable is not null && _sampleBuffer is not null)
-        {
-            SamplesAvailable.Invoke(this, new SamplesAvailableEventArgs(chunkBuffer));
+            ArrayPool<float>.Shared.Return(floatBuffer);
         }
     }
 
@@ -231,20 +260,11 @@ public sealed class AudioRecordingService : IDisposable
 
     private static void NormalizeAudio(float[] samples)
     {
-        float peakAmplitude = 0;
-        foreach (var s in samples)
-        {
-            var abs = MathF.Abs(s);
-            if (abs > peakAmplitude) peakAmplitude = abs;
-        }
-
+        ComputePeakAndSumSquares(samples, out var peakAmplitude, out _);
         if (peakAmplitude < 0.01f) return;
 
         var gain = NormalizationTarget / peakAmplitude;
-        if (gain <= 1.0f) return;
-
-        for (var i = 0; i < samples.Length; i++)
-            samples[i] = Math.Clamp(samples[i] * gain, -1f, 1f);
+        if (gain > 1.0f) ApplyGainAndClamp(samples, gain);
     }
 
     private static int FindBestMicrophoneDevice()
@@ -362,18 +382,22 @@ public sealed class AudioRecordingService : IDisposable
         var sampleCount = e.BytesRecorded / 2;
         if (sampleCount == 0) return;
 
-        float peak = 0;
-        float sumSquares = 0;
-        for (var i = 0; i < sampleCount; i++)
+        var floatBuffer = ArrayPool<float>.Shared.Rent(sampleCount);
+        try
         {
-            var sample = BitConverter.ToInt16(e.Buffer, i * 2) / 32768f;
-            var abs = MathF.Abs(sample);
-            if (abs > peak) peak = abs;
-            sumSquares += sample * sample;
-        }
+            PcmSampleConverter.ConvertPcm16LeToFloat(
+                e.Buffer.AsSpan(0, sampleCount * 2),
+                floatBuffer.AsSpan(0, sampleCount));
 
-        var rms = MathF.Sqrt(sumSquares / sampleCount);
-        PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+            ComputePeakAndSumSquares(floatBuffer.AsSpan(0, sampleCount), out var peak, out var sumSquares);
+
+            var rms = MathF.Sqrt(sumSquares / sampleCount);
+            PreviewLevelChanged?.Invoke(this, new AudioLevelEventArgs(peak, rms));
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(floatBuffer);
+        }
     }
 
     private void DisposeWaveIn()
@@ -399,6 +423,77 @@ public sealed class AudioRecordingService : IDisposable
             DisposeWaveIn();
             _disposed = true;
         }
+    }
+
+    private void EnsureSampleBufferCapacity(int additionalSamples)
+    {
+        if (_sampleBuffer is null)
+            return;
+
+        var requiredLength = _sampleBufferCount + additionalSamples;
+        if (requiredLength <= _sampleBuffer.Length)
+            return;
+
+        var newLength = _sampleBuffer.Length;
+        while (newLength < requiredLength)
+            newLength = Math.Max(requiredLength, newLength * 2);
+
+        Array.Resize(ref _sampleBuffer, newLength);
+    }
+
+    private static void ComputePeakAndSumSquares(ReadOnlySpan<float> samples, out float peak, out float sumSquares)
+    {
+        peak = 0;
+        sumSquares = 0;
+        var i = 0;
+
+        if (Vector.IsHardwareAccelerated && samples.Length >= Vector<float>.Count)
+        {
+            var vectorPeak = Vector<float>.Zero;
+            var vectorSumSquares = Vector<float>.Zero;
+            var lastVectorStart = samples.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var vector = new Vector<float>(samples.Slice(i, Vector<float>.Count));
+                var abs = Vector.Abs(vector);
+                vectorPeak = Vector.Max(vectorPeak, abs);
+                vectorSumSquares += vector * vector;
+            }
+
+            for (var lane = 0; lane < Vector<float>.Count; lane++)
+            {
+                peak = MathF.Max(peak, vectorPeak[lane]);
+                sumSquares += vectorSumSquares[lane];
+            }
+        }
+
+        for (; i < samples.Length; i++)
+        {
+            var sample = samples[i];
+            peak = MathF.Max(peak, MathF.Abs(sample));
+            sumSquares += sample * sample;
+        }
+    }
+
+    private static void ApplyGainAndClamp(Span<float> samples, float gain)
+    {
+        var i = 0;
+        if (Vector.IsHardwareAccelerated && samples.Length >= Vector<float>.Count)
+        {
+            var gainVector = new Vector<float>(gain);
+            var minVector = new Vector<float>(-1f);
+            var maxVector = new Vector<float>(1f);
+            var lastVectorStart = samples.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var scaled = new Vector<float>(samples.Slice(i, Vector<float>.Count)) * gainVector;
+                Vector.Min(Vector.Max(scaled, minVector), maxVector)
+                    .CopyTo(samples.Slice(i, Vector<float>.Count));
+            }
+        }
+
+        for (; i < samples.Length; i++)
+            samples[i] = Math.Clamp(samples[i] * gain, -1f, 1f);
     }
 }
 

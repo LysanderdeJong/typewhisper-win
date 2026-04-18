@@ -1,6 +1,9 @@
 <Project>
   <PropertyGroup>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Version Condition="'$(Version)' == ''">0.0.1-dev</Version>
     <Company>TypeWhisper</Company>
     <Product>TypeWhisper</Product>

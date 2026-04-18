@@ -111,12 +111,9 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void RefreshMicrophones()
     {
-        Microphones.Clear();
-        Microphones.Add(new MicrophoneItem(null, Loc.Instance["Microphone.Default"]));
-        foreach (var (number, name) in AudioRecordingService.GetAvailableDevices())
-        {
-            Microphones.Add(new MicrophoneItem(number, name));
-        }
+        Microphones.Replace(
+            [new MicrophoneItem(null, Loc.Instance["Microphone.Default"]),
+             .. AudioRecordingService.GetAvailableDevices().Select(device => new MicrophoneItem(device.DeviceNumber, device.Name))]);
     }
 
     public void StartMicrophonePreview()
@@ -239,16 +236,9 @@ public partial class SettingsViewModel : ObservableObject
 
     private void RefreshLocalizedCollections()
     {
-        ReplaceCollection(TranslationTargetOptions, LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions));
-        ReplaceCollection(WidgetOptions, BuildWidgetOptions());
+        TranslationTargetOptions.Replace(LocalizeTranslationOptions(TranslationModelInfo.GlobalTargetOptions));
+        WidgetOptions.Replace(BuildWidgetOptions());
         RefreshMicrophones();
-    }
-
-    private static void ReplaceCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> values)
-    {
-        target.Clear();
-        foreach (var value in values)
-            target.Add(value);
     }
 }
 

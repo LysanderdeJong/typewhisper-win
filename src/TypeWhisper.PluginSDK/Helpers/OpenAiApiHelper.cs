@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace TypeWhisper.PluginSDK.Helpers;
@@ -28,20 +29,48 @@ public static class OpenAiApiHelper
             throw new InvalidOperationException("API request timed out.", ex);
         }
 
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            var message = (int)response.StatusCode switch
+            if (!response.IsSuccessStatusCode)
             {
-                401 => "Invalid API key",
-                413 => "Audio too large (max 25 MB)",
-                429 => "Rate limit reached, please wait",
-                _ => $"API error {(int)response.StatusCode}: {ExtractErrorMessage(errorBody)}"
-            };
-            throw new InvalidOperationException(message);
-        }
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                var message = (int)response.StatusCode switch
+                {
+                    401 => "Invalid API key",
+                    413 => "Audio too large (max 25 MB)",
+                    429 => "Rate limit reached, please wait",
+                    _ => $"API error {(int)response.StatusCode}: {ExtractErrorMessage(errorBody)}"
+                };
+                throw new InvalidOperationException(message);
+            }
 
-        return response;
+            return response;
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+    }
+
+    public static async Task<bool> ValidateApiKeyAsync(
+        HttpClient httpClient, string url, string apiKey, string? scheme = "Bearer", CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (scheme is null)
+            request.Headers.Add("Authorization", apiKey);
+        else
+            request.Headers.Authorization = new AuthenticationHeaderValue(scheme, apiKey);
+
+        try
+        {
+            using var response = await httpClient.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>

@@ -111,35 +111,10 @@ public sealed class ProfileService : IProfileService
     private void EnsureCacheLoaded()
     {
         if (_cacheLoaded) return;
-
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                var json = File.ReadAllText(_filePath);
-                _cache = JsonSerializer.Deserialize<List<Profile>>(json) ?? [];
-            }
-        }
-        catch
-        {
-            _cache = [];
-        }
-
+        _cache = JsonCacheStore.Load<Profile>(_filePath);
         SortCache();
         _cacheLoaded = true;
     }
 
-    private void SaveToDisk()
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var json = JsonSerializer.Serialize(_cache, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
-        }
-        catch { }
-    }
+    private void SaveToDisk() => JsonCacheStore.Save(_filePath, _cache);
 }

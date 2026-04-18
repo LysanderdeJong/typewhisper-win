@@ -77,7 +77,6 @@ public sealed partial class SupporterDiscordService : ObservableObject
     public bool HasLinkedRoles => LinkedRoles.Length > 0;
     public string LinkedRolesText => string.Join(", ", LinkedRoles);
     public string GitHubSponsorsUrl => $"{BaseUrl}/claims/github";
-    public string CallbackUri => $"{CallbackScheme}://{CallbackHost}{CallbackPath}";
 
     private string BaseUrl =>
         Environment.GetEnvironmentVariable("TYPEWHISPER_DISCORD_CLAIM_BASE_URL")
@@ -370,17 +369,12 @@ public sealed partial class SupporterDiscordService : ObservableObject
         }
     }
 
-    private static bool IsHelperUnavailableError(Exception ex)
-    {
-        if (ex is HttpRequestException)
-            return true;
+    private static readonly string[] HelperUnavailableMarkers =
+        ["127.0.0.1:8787", "actively refused", "No connection could be made", "Connection refused"];
 
-        var text = ex.ToString();
-        return text.Contains("127.0.0.1:8787", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("actively refused", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("No connection could be made", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsHelperUnavailableError(Exception ex) =>
+        ex is HttpRequestException ||
+        HelperUnavailableMarkers.Any(m => ex.ToString().Contains(m, StringComparison.OrdinalIgnoreCase));
 
     private static string GetAppVersion()
     {

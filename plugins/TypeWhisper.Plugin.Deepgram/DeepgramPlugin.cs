@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Windows.Controls;
 using TypeWhisper.PluginSDK;
+using TypeWhisper.PluginSDK.Helpers;
 using TypeWhisper.PluginSDK.Models;
 
 namespace TypeWhisper.Plugin.Deepgram;
@@ -116,32 +117,14 @@ public sealed class DeepgramPlugin : ITranscriptionEnginePlugin
     internal string? ApiKey => _apiKey;
     internal IPluginLocalization? Loc => _host?.Localization;
 
-    internal async Task SetApiKeyAsync(string apiKey)
+    internal Task SetApiKeyAsync(string apiKey)
     {
         _apiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey;
-        if (_host is not null)
-        {
-            if (string.IsNullOrWhiteSpace(apiKey))
-                await _host.DeleteSecretAsync("api-key");
-            else
-                await _host.StoreSecretAsync("api-key", apiKey);
-        }
+        return _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
     }
 
-    internal async Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/v1/projects");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Token", apiKey);
-        try
-        {
-            var response = await _httpClient.SendAsync(request, ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    internal Task<bool> ValidateApiKeyAsync(string apiKey, CancellationToken ct = default) =>
+        OpenAiApiHelper.ValidateApiKeyAsync(_httpClient, $"{BaseUrl}/v1/projects", apiKey, "Token", ct);
 
     public void Dispose()
     {

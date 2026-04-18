@@ -41,7 +41,8 @@ internal sealed class AssemblyAiStreamingSession : IStreamingSession
 
         if (_audioBuffer.Length < MinChunkBytes) return;
 
-        var chunk = _audioBuffer.ToArray();
+        var chunkLength = (int)_audioBuffer.Length;
+        var chunk = _audioBuffer.GetBuffer().AsMemory(0, chunkLength);
         _audioBuffer.SetLength(0);
 
         await _ws.SendAsync(chunk, WebSocketMessageType.Binary, true, ct);
@@ -50,6 +51,15 @@ internal sealed class AssemblyAiStreamingSession : IStreamingSession
     public async Task FinalizeAsync(CancellationToken ct)
     {
         if (_ws.State != WebSocketState.Open) return;
+
+        if (_audioBuffer.Length > 0)
+        {
+            var chunkLength = (int)_audioBuffer.Length;
+            var chunk = _audioBuffer.GetBuffer().AsMemory(0, chunkLength);
+            _audioBuffer.SetLength(0);
+            await _ws.SendAsync(chunk, WebSocketMessageType.Binary, true, ct);
+        }
+
         var msg = Encoding.UTF8.GetBytes("""{"terminate_session":true}""");
         await _ws.SendAsync(msg, WebSocketMessageType.Text, true, ct);
     }

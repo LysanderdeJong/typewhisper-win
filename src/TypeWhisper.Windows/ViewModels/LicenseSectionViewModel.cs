@@ -11,15 +11,6 @@ namespace TypeWhisper.Windows.ViewModels;
 public sealed partial class LicenseSectionViewModel : ObservableObject
 {
     private const string CustomerPortalUrl = "https://polar.sh/typewhisper/portal";
-    private const string CheckoutUrlIndividual = "https://buy.polar.sh/polar_cl_Yfw7BSIXSNFESlrNPL0fNG8GHPqX9qhmxGce32wZfYJ";
-    private const string CheckoutUrlTeam = "https://buy.polar.sh/polar_cl_kSqGfvss0Ces3W7R4xw7hr5NdgvEbPbhhUGRH4ad3Hj";
-    private const string CheckoutUrlEnterprise = "https://buy.polar.sh/polar_cl_uzCNIsF0vY9gx2peWljyJU7JQoEzxHUueCPTA0MoOQe";
-    private const string CheckoutUrlIndividualLifetime = "https://buy.polar.sh/polar_cl_Uiv5AnvLoQjx4JowO3gGciT7MLOovY4oY4ESz3PIxgI";
-    private const string CheckoutUrlTeamLifetime = "https://buy.polar.sh/polar_cl_GjG4jf1fT9HGQn051cgN6xsWH9Xm6Z7oe0Ke71xq6Po";
-    private const string CheckoutUrlEnterpriseLifetime = "https://buy.polar.sh/polar_cl_ngagiyJjXtxDBqv19EooEGJOLRcgzBWKBFYrZ2V2Xm7";
-    private const string CheckoutUrlSupporterBronze = "https://buy.polar.sh/polar_cl_yilyo1V90RnuUX59V2PyLUIg45FpzYI8aMhG824wYn8";
-    private const string CheckoutUrlSupporterSilver = "https://buy.polar.sh/polar_cl_lXFAqnanhrrPd1RZ95SCb2L05L3lNrUQIkYVd0ZmK5b";
-    private const string CheckoutUrlSupporterGold = "https://buy.polar.sh/polar_cl_FpojMlLmyF73gOqpXLihSE0lNYnoQoaMxGp724IIor4";
 
     public LicenseSectionViewModel(LicenseService license, SupporterDiscordService discord)
     {
@@ -28,37 +19,24 @@ public sealed partial class LicenseSectionViewModel : ObservableObject
 
         MonthlyCommercialOptions =
         [
-            new LicensePurchaseOption("Individual", "5 EUR/mo", Loc.Instance["License.TierIndividualHint"], CheckoutUrlIndividual),
-            new LicensePurchaseOption("Team", "19 EUR/mo", Loc.Instance["License.TierTeamHint"], CheckoutUrlTeam),
-            new LicensePurchaseOption("Enterprise", "99 EUR/mo", Loc.Instance["License.TierEnterpriseHint"], CheckoutUrlEnterprise),
+            new LicensePurchaseOption("Individual", "5 EUR/mo", Loc.Instance["License.TierIndividualHint"], "https://buy.polar.sh/polar_cl_Yfw7BSIXSNFESlrNPL0fNG8GHPqX9qhmxGce32wZfYJ"),
+            new LicensePurchaseOption("Team", "19 EUR/mo", Loc.Instance["License.TierTeamHint"], "https://buy.polar.sh/polar_cl_kSqGfvss0Ces3W7R4xw7hr5NdgvEbPbhhUGRH4ad3Hj"),
+            new LicensePurchaseOption("Enterprise", "99 EUR/mo", Loc.Instance["License.TierEnterpriseHint"], "https://buy.polar.sh/polar_cl_uzCNIsF0vY9gx2peWljyJU7JQoEzxHUueCPTA0MoOQe"),
         ];
 
         LifetimeCommercialOptions =
         [
-            new LicensePurchaseOption("Individual", "99 EUR", Loc.Instance["License.TierIndividualHint"], CheckoutUrlIndividualLifetime),
-            new LicensePurchaseOption("Team", "299 EUR", Loc.Instance["License.TierTeamHint"], CheckoutUrlTeamLifetime),
-            new LicensePurchaseOption("Enterprise", "999 EUR", Loc.Instance["License.TierEnterpriseHint"], CheckoutUrlEnterpriseLifetime),
+            new LicensePurchaseOption("Individual", "99 EUR", Loc.Instance["License.TierIndividualHint"], "https://buy.polar.sh/polar_cl_Uiv5AnvLoQjx4JowO3gGciT7MLOovY4oY4ESz3PIxgI"),
+            new LicensePurchaseOption("Team", "299 EUR", Loc.Instance["License.TierTeamHint"], "https://buy.polar.sh/polar_cl_GjG4jf1fT9HGQn051cgN6xsWH9Xm6Z7oe0Ke71xq6Po"),
+            new LicensePurchaseOption("Enterprise", "999 EUR", Loc.Instance["License.TierEnterpriseHint"], "https://buy.polar.sh/polar_cl_ngagiyJjXtxDBqv19EooEGJOLRcgzBWKBFYrZ2V2Xm7"),
         ];
 
         SupporterOptions =
         [
-            new LicensePurchaseOption("Bronze", "10 EUR", Loc.Instance["License.SupporterBronzeHint"], CheckoutUrlSupporterBronze),
-            new LicensePurchaseOption("Silver", "25 EUR", Loc.Instance["License.SupporterSilverHint"], CheckoutUrlSupporterSilver),
-            new LicensePurchaseOption("Gold", "50 EUR", Loc.Instance["License.SupporterGoldHint"], CheckoutUrlSupporterGold),
+            new LicensePurchaseOption("Bronze", "10 EUR", Loc.Instance["License.SupporterBronzeHint"], "https://buy.polar.sh/polar_cl_yilyo1V90RnuUX59V2PyLUIg45FpzYI8aMhG824wYn8"),
+            new LicensePurchaseOption("Silver", "25 EUR", Loc.Instance["License.SupporterSilverHint"], "https://buy.polar.sh/polar_cl_lXFAqnanhrrPd1RZ95SCb2L05L3lNrUQIkYVd0ZmK5b"),
+            new LicensePurchaseOption("Gold", "50 EUR", Loc.Instance["License.SupporterGoldHint"], "https://buy.polar.sh/polar_cl_FpojMlLmyF73gOqpXLihSE0lNYnoQoaMxGp724IIor4"),
         ];
-
-        SelectPrivateUserCommand = new RelayCommand(() => License.SetUserType(LicenseUserType.PrivateUser));
-        SelectBusinessUserCommand = new RelayCommand(() => License.SetUserType(LicenseUserType.Business));
-        OpenUrlCommand = new RelayCommand<string>(OpenUrl);
-        OpenCustomerPortalCommand = new RelayCommand(() => OpenUrl(CustomerPortalUrl));
-        ActivateCommercialLicenseCommand = new AsyncRelayCommand(ActivateCommercialLicenseAsync, CanActivateCommercialLicense);
-        ActivateSupporterLicenseCommand = new AsyncRelayCommand(ActivateSupporterLicenseAsync, CanActivateSupporterLicense);
-        DeactivateCommercialLicenseCommand = new AsyncRelayCommand(() => License.DeactivateCommercialLicenseAsync());
-        DeactivateSupporterLicenseCommand = new AsyncRelayCommand(DeactivateSupporterLicenseAsync);
-        ConnectDiscordCommand = new AsyncRelayCommand(ConnectDiscordAsync, CanConnectDiscord);
-        ReconnectDiscordCommand = new AsyncRelayCommand(ReconnectDiscordAsync, CanReconnectDiscord);
-        RefreshDiscordStatusCommand = new AsyncRelayCommand(RefreshDiscordStatusAsync, CanRefreshDiscord);
-        OpenGitHubSponsorsClaimCommand = new RelayCommand(() => OpenUrl(Discord.GitHubSponsorsUrl));
 
         License.PropertyChanged += OnServicePropertyChanged;
         Discord.PropertyChanged += OnServicePropertyChanged;
@@ -151,19 +129,6 @@ public sealed partial class LicenseSectionViewModel : ObservableObject
         }
     }
 
-    public RelayCommand SelectPrivateUserCommand { get; }
-    public RelayCommand SelectBusinessUserCommand { get; }
-    public RelayCommand<string> OpenUrlCommand { get; }
-    public RelayCommand OpenCustomerPortalCommand { get; }
-    public RelayCommand OpenGitHubSponsorsClaimCommand { get; }
-    public AsyncRelayCommand ActivateCommercialLicenseCommand { get; }
-    public AsyncRelayCommand ActivateSupporterLicenseCommand { get; }
-    public AsyncRelayCommand DeactivateCommercialLicenseCommand { get; }
-    public AsyncRelayCommand DeactivateSupporterLicenseCommand { get; }
-    public AsyncRelayCommand ConnectDiscordCommand { get; }
-    public AsyncRelayCommand ReconnectDiscordCommand { get; }
-    public AsyncRelayCommand RefreshDiscordStatusCommand { get; }
-
     public async Task InitializeAsync()
     {
         await License.ValidateAllIfNeededAsync();
@@ -171,72 +136,13 @@ public sealed partial class LicenseSectionViewModel : ObservableObject
         RefreshComputedProperties();
     }
 
-    partial void OnCommercialLicenseKeyInputChanged(string value) =>
-        ActivateCommercialLicenseCommand.NotifyCanExecuteChanged();
+    [RelayCommand]
+    private void SelectPrivateUser() => License.SetUserType(LicenseUserType.PrivateUser);
 
-    partial void OnSupporterLicenseKeyInputChanged(string value) =>
-        ActivateSupporterLicenseCommand.NotifyCanExecuteChanged();
+    [RelayCommand]
+    private void SelectBusinessUser() => License.SetUserType(LicenseUserType.Business);
 
-    private bool CanActivateCommercialLicense() =>
-        !string.IsNullOrWhiteSpace(CommercialLicenseKeyInput) && !License.IsCommercialActivating;
-
-    private bool CanActivateSupporterLicense() =>
-        !string.IsNullOrWhiteSpace(SupporterLicenseKeyInput) && !License.IsSupporterActivating;
-
-    private bool CanConnectDiscord() =>
-        License.HasSupporterLicense && !Discord.IsWorking;
-
-    private bool CanReconnectDiscord() =>
-        License.HasSupporterLicense && !Discord.IsWorking;
-
-    private bool CanRefreshDiscord() =>
-        License.HasSupporterLicense && !Discord.IsWorking;
-
-    private async Task ActivateCommercialLicenseAsync()
-    {
-        await License.ActivateCommercialLicenseAsync(CommercialLicenseKeyInput.Trim());
-        if (License.CommercialStatus == LicenseStatus.Active)
-            CommercialLicenseKeyInput = string.Empty;
-        RefreshComputedProperties();
-    }
-
-    private async Task ActivateSupporterLicenseAsync()
-    {
-        await License.ActivateSupporterKeyAsync(SupporterLicenseKeyInput.Trim());
-        if (License.HasSupporterLicense)
-            SupporterLicenseKeyInput = string.Empty;
-        RefreshComputedProperties();
-    }
-
-    private async Task DeactivateSupporterLicenseAsync()
-    {
-        await License.DeactivateSupporterLicenseAsync();
-        Discord.HandleSupporterEntitlementRemoved();
-        RefreshComputedProperties();
-    }
-
-    private async Task ConnectDiscordAsync()
-    {
-        var url = await Discord.CreateClaimSessionAsync(License);
-        if (url is not null)
-            OpenUrl(url.ToString());
-        RefreshComputedProperties();
-    }
-
-    private async Task ReconnectDiscordAsync()
-    {
-        var url = await Discord.ReconnectAsync(License);
-        if (url is not null)
-            OpenUrl(url.ToString());
-        RefreshComputedProperties();
-    }
-
-    private async Task RefreshDiscordStatusAsync()
-    {
-        await Discord.RefreshClaimStatusAsync(License);
-        RefreshComputedProperties();
-    }
-
+    [RelayCommand]
     private void OpenUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -254,6 +160,81 @@ public sealed partial class LicenseSectionViewModel : ObservableObject
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    [RelayCommand]
+    private void OpenCustomerPortal() => OpenUrl(CustomerPortalUrl);
+
+    [RelayCommand]
+    private void OpenGitHubSponsorsClaim() => OpenUrl(Discord.GitHubSponsorsUrl);
+
+    partial void OnCommercialLicenseKeyInputChanged(string value) =>
+        ActivateCommercialLicenseCommand.NotifyCanExecuteChanged();
+
+    partial void OnSupporterLicenseKeyInputChanged(string value) =>
+        ActivateSupporterLicenseCommand.NotifyCanExecuteChanged();
+
+    private bool CanActivateCommercialLicense() =>
+        !string.IsNullOrWhiteSpace(CommercialLicenseKeyInput) && !License.IsCommercialActivating;
+
+    private bool CanActivateSupporterLicense() =>
+        !string.IsNullOrWhiteSpace(SupporterLicenseKeyInput) && !License.IsSupporterActivating;
+
+    private bool CanUseDiscordCommand() =>
+        License.HasSupporterLicense && !Discord.IsWorking;
+
+    [RelayCommand(CanExecute = nameof(CanActivateCommercialLicense))]
+    private async Task ActivateCommercialLicenseAsync()
+    {
+        await License.ActivateCommercialLicenseAsync(CommercialLicenseKeyInput.Trim());
+        if (License.CommercialStatus == LicenseStatus.Active)
+            CommercialLicenseKeyInput = string.Empty;
+        RefreshComputedProperties();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanActivateSupporterLicense))]
+    private async Task ActivateSupporterLicenseAsync()
+    {
+        await License.ActivateSupporterKeyAsync(SupporterLicenseKeyInput.Trim());
+        if (License.HasSupporterLicense)
+            SupporterLicenseKeyInput = string.Empty;
+        RefreshComputedProperties();
+    }
+
+    [RelayCommand]
+    private Task DeactivateCommercialLicenseAsync() => License.DeactivateCommercialLicenseAsync();
+
+    [RelayCommand]
+    private async Task DeactivateSupporterLicenseAsync()
+    {
+        await License.DeactivateSupporterLicenseAsync();
+        Discord.HandleSupporterEntitlementRemoved();
+        RefreshComputedProperties();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUseDiscordCommand))]
+    private async Task ConnectDiscordAsync()
+    {
+        var url = await Discord.CreateClaimSessionAsync(License);
+        if (url is not null)
+            OpenUrl(url.ToString());
+        RefreshComputedProperties();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUseDiscordCommand))]
+    private async Task ReconnectDiscordAsync()
+    {
+        var url = await Discord.ReconnectAsync(License);
+        if (url is not null)
+            OpenUrl(url.ToString());
+        RefreshComputedProperties();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUseDiscordCommand))]
+    private async Task RefreshDiscordStatusAsync()
+    {
+        await Discord.RefreshClaimStatusAsync(License);
+        RefreshComputedProperties();
     }
 
     private void OnServicePropertyChanged(object? sender, PropertyChangedEventArgs e)

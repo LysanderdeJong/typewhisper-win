@@ -1,4 +1,8 @@
+using System.Buffers;
 using System.Diagnostics;
+using System.IO;
+using System.Net.WebSockets;
+using TypeWhisper.Core.Audio;
 using TypeWhisper.Core.Interfaces;
 using TypeWhisper.PluginSDK;
 
@@ -13,6 +17,7 @@ public sealed class StreamingHandler : IDisposable
     private readonly ModelManagerService _modelManager;
     private readonly AudioRecordingService _audio;
     private readonly IDictionaryService _dictionary;
+    private readonly SemaphoreSlim _sendGate = new(1, 1);
 
     private CancellationTokenSource? _cts;
     private Task? _streamingTask;
@@ -114,13 +119,31 @@ public sealed class StreamingHandler : IDisposable
         var cts = _cts;
         if (session is null || cts is null || cts.IsCancellationRequested) return;
 
-        var pcm16 = FloatToPcm16(e.Samples);
-        _ = Task.Run(async () =>
+        var pcm16 = RentPcm16(e.Samples, out var byteCount);
+        _ = SendAudioChunkAsync(session, pcm16, byteCount, cts.Token);
+    }
+
+    private async Task SendAudioChunkAsync(IStreamingSession session, byte[] pcm16, int byteCount, CancellationToken ct)
+    {
+        try
         {
-            try { await session.SendAudioAsync(pcm16, cts.Token); }
-            catch (OperationCanceledException) { }
-            catch (Exception ex) { Debug.WriteLine($"SendAudio error: {ex.Message}"); }
-        });
+            await _sendGate.WaitAsync(ct);
+            try
+            {
+                if (!ct.IsCancellationRequested)
+                    await session.SendAudioAsync(pcm16.AsMemory(0, byteCount), ct);
+            }
+            finally
+            {
+                _sendGate.Release();
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) when (ex is ObjectDisposedException or InvalidOperationException or IOException or WebSocketException)
+        {
+            Debug.WriteLine($"SendAudio error: {ex.Message}");
+        }
+        finally { ArrayPool<byte>.Shared.Return(pcm16); }
     }
 
     private void OnTranscriptReceived(StreamingTranscriptEvent evt)
@@ -202,19 +225,16 @@ public sealed class StreamingHandler : IDisposable
 
     // ── Helpers ──
 
-    /// <summary>Converts float[-1..1] PCM samples to 16-bit signed little-endian bytes.</summary>
-    internal static byte[] FloatToPcm16(float[] samples)
+    private static byte[] RentPcm16(float[] samples, out int byteCount)
     {
-        var bytes = new byte[samples.Length * 2];
-        for (var i = 0; i < samples.Length; i++)
-        {
-            var clamped = Math.Clamp(samples[i], -1f, 1f);
-            var value = (short)(clamped * 32767f);
-            bytes[i * 2] = (byte)(value & 0xFF);
-            bytes[i * 2 + 1] = (byte)((value >> 8) & 0xFF);
-        }
+        byteCount = samples.Length * 2;
+        var bytes = ArrayPool<byte>.Shared.Rent(byteCount);
+        WritePcm16(bytes.AsSpan(0, byteCount), samples);
         return bytes;
     }
+
+    private static void WritePcm16(Span<byte> destination, ReadOnlySpan<float> samples)
+        => PcmSampleConverter.ConvertFloatToPcm16Le(samples, destination);
 
     /// <summary>
     /// Keeps confirmed text stable and only appends new content.
@@ -268,5 +288,6 @@ public sealed class StreamingHandler : IDisposable
     public void Dispose()
     {
         Stop();
+        _sendGate.Dispose();
     }
 }

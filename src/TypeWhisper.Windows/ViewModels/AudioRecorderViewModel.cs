@@ -82,7 +82,7 @@ public partial class AudioRecorderViewModel : ObservableObject, IDisposable
         IsRecording = false;
         var duration = DateTime.UtcNow - _recordingStart;
 
-        if (samples.Length == 0)
+        if (samples is null || samples.Length == 0)
         {
             SetLocalizedStatus("Recorder.NoAudioCaptured");
             return;
@@ -91,8 +91,8 @@ public partial class AudioRecorderViewModel : ObservableObject, IDisposable
         // Save WAV
         var fileName = $"recording-{DateTime.Now:yyyy-MM-dd-HHmmss}.wav";
         var filePath = Path.Combine(TypeWhisperEnvironment.AudioPath, fileName);
-        var wav = WavEncoder.Encode(samples);
-        await File.WriteAllBytesAsync(filePath, wav);
+        await using (var audioFileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            await WavEncoder.WriteAsync(audioFileStream, samples);
 
         SetLocalizedStatus("Recorder.SavedTranscribing");
         IsTranscribing = true;
@@ -101,10 +101,10 @@ public partial class AudioRecorderViewModel : ObservableObject, IDisposable
         string? transcript = null;
         try
         {
-            var engine = _modelManager.ActiveTranscriptionPlugin;
-            if (engine is not null)
+            var engine = _modelManager.Engine;
+            if (engine.IsModelLoaded)
             {
-                var result = await engine.TranscribeAsync(wav, null, false, null, CancellationToken.None);
+                var result = await engine.TranscribeAsync(samples, cancellationToken: CancellationToken.None);
                 transcript = result.Text;
                 if (!string.IsNullOrEmpty(transcript))
                 {

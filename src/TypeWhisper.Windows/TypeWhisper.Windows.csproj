@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="TypeWhisper.PluginSystem.Tests" />
+    <InternalsVisibleTo Include="KimVocalRuntime" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,8 +40,10 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.1" />
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.12.23" />
+    <PackageReference Include="SharpCompress" Version="0.39.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="System.Speech" Version="10.0.0" />
     <PackageReference Include="WPF-UI" Version="4.2.0" />

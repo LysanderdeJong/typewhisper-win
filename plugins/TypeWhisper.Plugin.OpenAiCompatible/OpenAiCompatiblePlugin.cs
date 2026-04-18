@@ -55,20 +55,7 @@ public sealed class OpenAiCompatiblePlugin : ITranscriptionEnginePlugin, ILlmPro
 
     public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl);
 
-    public IReadOnlyList<PluginModelInfo> TranscriptionModels
-    {
-        get
-        {
-            var models = _fetchedModels
-                .Select(m => new PluginModelInfo(m.Id, m.Id))
-                .ToList();
-
-            if (models.Count == 0 && !string.IsNullOrEmpty(_selectedModelId))
-                return [new PluginModelInfo(_selectedModelId, _selectedModelId)];
-
-            return models;
-        }
-    }
+    public IReadOnlyList<PluginModelInfo> TranscriptionModels => GetModels(_selectedModelId);
 
     public string? SelectedModelId => _selectedModelId;
 
@@ -99,20 +86,7 @@ public sealed class OpenAiCompatiblePlugin : ITranscriptionEnginePlugin, ILlmPro
 
     public bool IsAvailable => IsConfigured && !string.IsNullOrEmpty(_selectedLlmModelId);
 
-    public IReadOnlyList<PluginModelInfo> SupportedModels
-    {
-        get
-        {
-            var models = _fetchedModels
-                .Select(m => new PluginModelInfo(m.Id, m.Id))
-                .ToList();
-
-            if (models.Count == 0 && !string.IsNullOrEmpty(_selectedLlmModelId))
-                return [new PluginModelInfo(_selectedLlmModelId, _selectedLlmModelId)];
-
-            return models;
-        }
-    }
+    public IReadOnlyList<PluginModelInfo> SupportedModels => GetModels(_selectedLlmModelId);
 
     public async Task<string> ProcessAsync(
         string systemPrompt, string userText, string model, CancellationToken ct)
@@ -147,16 +121,10 @@ public sealed class OpenAiCompatiblePlugin : ITranscriptionEnginePlugin, ILlmPro
         _host?.NotifyCapabilitiesChanged();
     }
 
-    internal async Task SetApiKeyAsync(string key)
+    internal Task SetApiKeyAsync(string key)
     {
         _apiKey = string.IsNullOrWhiteSpace(key) ? null : key;
-        if (_host is not null)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                await _host.DeleteSecretAsync("api-key");
-            else
-                await _host.StoreSecretAsync("api-key", key);
-        }
+        return _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
     }
 
     internal void SelectLlmModel(string modelId)
@@ -175,6 +143,14 @@ public sealed class OpenAiCompatiblePlugin : ITranscriptionEnginePlugin, ILlmPro
         }
         catch { /* best effort */ }
         _host?.NotifyCapabilitiesChanged();
+    }
+
+    private List<PluginModelInfo> GetModels(string? selectedModelId)
+    {
+        var models = _fetchedModels.Select(model => new PluginModelInfo(model.Id, model.Id)).ToList();
+        return models.Count == 0 && !string.IsNullOrEmpty(selectedModelId)
+            ? [new PluginModelInfo(selectedModelId, selectedModelId)]
+            : models;
     }
 
     internal async Task<List<FetchedModel>> FetchModelsAsync(CancellationToken ct = default)

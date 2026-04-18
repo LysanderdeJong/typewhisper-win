@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Numerics;
 using System.Net.Http;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -90,13 +92,10 @@ public sealed class TranslationService : ITranslationService, IDisposable
         throw new NotSupportedException(Loc.Instance.GetString("Error.TranslationNotAvailableFormat", sourceLang, targetLang));
     }
 
-    private async Task<LoadedTranslationModel> GetOrLoadModelAsync(string sourceLang, string targetLang, CancellationToken ct)
-    {
-        var key = ModelKey(sourceLang, targetLang);
-        if (_loadedModels.TryGetValue(key, out var model))
-            return model;
-        return await EnsureModelLoadedAsync(sourceLang, targetLang, ct);
-    }
+    private async Task<LoadedTranslationModel> GetOrLoadModelAsync(string sourceLang, string targetLang, CancellationToken ct) =>
+        _loadedModels.TryGetValue(ModelKey(sourceLang, targetLang), out var model)
+            ? model
+            : await EnsureModelLoadedAsync(sourceLang, targetLang, ct);
 
     private async Task<LoadedTranslationModel> EnsureModelLoadedAsync(string sourceLang, string targetLang, CancellationToken ct)
     {
@@ -160,22 +159,44 @@ public sealed class TranslationService : ITranslationService, IDisposable
         }
     }
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Encoder/decoder ownership is transferred to LoadedTranslationModel on success; "
+            + "the catch block disposes partially-constructed sessions along the failure path.")]
     private static LoadedTranslationModel LoadModel(string modelDir)
     {
         var config = MarianConfig.Load(Path.Combine(modelDir, "config.json"));
         var tokenizer = MarianTokenizer.Load(Path.Combine(modelDir, "tokenizer.json"), config.EosTokenId);
 
-        var sessionOptions = new SessionOptions
+        // SessionOptions is only needed during session construction; InferenceSession
+        // captures the settings internally, so disposing it afterwards is safe.
+        using var sessionOptions = new SessionOptions
         {
             GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
             InterOpNumThreads = 1,
             IntraOpNumThreads = Environment.ProcessorCount
         };
 
-        var encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
-        var decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
+        InferenceSession? encoder = null;
+        InferenceSession? decoder = null;
+        try
+        {
+            encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
+            decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
 
-        return new LoadedTranslationModel(encoder, decoder, tokenizer, config);
+            var model = new LoadedTranslationModel(encoder, decoder, tokenizer, config);
+            // Ownership transferred to LoadedTranslationModel.
+            encoder = null;
+            decoder = null;
+            return model;
+        }
+        catch
+        {
+            decoder?.Dispose();
+            encoder?.Dispose();
+            throw;
+        }
     }
 
     private static string RunInference(LoadedTranslationModel model, string text)
@@ -183,8 +204,14 @@ public sealed class TranslationService : ITranslationService, IDisposable
         var inputIds = model.Tokenizer.Encode(text);
         var seqLen = inputIds.Length;
 
-        var inputIdsTensor = new DenseTensor<long>(inputIds.Select(i => (long)i).ToArray(), [1, seqLen]);
-        var attentionMask = new DenseTensor<long>(Enumerable.Repeat(1L, seqLen).ToArray(), [1, seqLen]);
+        var inputIdsBuffer = new long[seqLen];
+        var attentionMaskBuffer = new long[seqLen];
+        for (var i = 0; i < seqLen; i++) inputIdsBuffer[i] = inputIds[i];
+        Array.Fill(attentionMaskBuffer, 1L);
+
+        var encoderDimensions = new[] { 1, seqLen };
+        var inputIdsTensor = new DenseTensor<long>(inputIdsBuffer.AsMemory(), encoderDimensions);
+        var attentionMask = new DenseTensor<long>(attentionMaskBuffer.AsMemory(), encoderDimensions);
 
         using var encoderResults = model.Encoder.Run(
         [
@@ -196,20 +223,24 @@ public sealed class TranslationService : ITranslationService, IDisposable
             ?? throw new InvalidOperationException("Encoder output is not a float tensor");
 
         var maxTokens = Math.Min(model.Config.MaxLength, 200);
-        var decodedIds = new List<int> { model.Config.DecoderStartTokenId };
+        var decodedIds = new int[maxTokens + 1];
+        var decoderInputIdsBuffer = new long[maxTokens + 1];
+        var decoderDimensions = new[] { 1, 1 };
+        decodedIds[0] = model.Config.DecoderStartTokenId;
+        decoderInputIdsBuffer[0] = model.Config.DecoderStartTokenId;
+        var decodedCount = 1;
+        var encoderAttentionMaskInput = NamedOnnxValue.CreateFromTensor("encoder_attention_mask", attentionMask);
+        var encoderHiddenInput = NamedOnnxValue.CreateFromTensor("encoder_hidden_states", encoderHidden);
+        var decoderInputs = new NamedOnnxValue[3];
+        decoderInputs[1] = encoderAttentionMaskInput;
+        decoderInputs[2] = encoderHiddenInput;
 
         for (var step = 0; step < maxTokens; step++)
         {
-            var decoderLen = decodedIds.Count;
-            var decoderInputIds = new DenseTensor<long>(
-                decodedIds.Select(i => (long)i).ToArray(), [1, decoderLen]);
-
-            var decoderInputs = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("input_ids", decoderInputIds),
-                NamedOnnxValue.CreateFromTensor("encoder_attention_mask", attentionMask),
-                NamedOnnxValue.CreateFromTensor("encoder_hidden_states", encoderHidden)
-            };
+            var decoderLen = decodedCount;
+            decoderDimensions[1] = decoderLen;
+            var decoderInputIds = new DenseTensor<long>(decoderInputIdsBuffer.AsMemory(0, decoderLen), decoderDimensions);
+            decoderInputs[0] = NamedOnnxValue.CreateFromTensor("input_ids", decoderInputIds);
 
             using var decoderResults = model.Decoder.Run(decoderInputs);
             var logits = decoderResults.First().Value as DenseTensor<float>
@@ -217,23 +248,53 @@ public sealed class TranslationService : ITranslationService, IDisposable
 
             var vocabSize = logits.Dimensions[2];
             var lastTokenOffset = (decoderLen - 1) * vocabSize;
-            var bestId = 0;
-            var bestVal = float.NegativeInfinity;
-            for (var v = 0; v < vocabSize; v++)
-            {
-                var val = logits.Buffer.Span[lastTokenOffset + v];
-                if (val > bestVal)
-                {
-                    bestVal = val;
-                    bestId = v;
-                }
-            }
+            var bestId = FindBestLogitIndex(logits.Buffer.Span.Slice(lastTokenOffset, vocabSize));
 
             if (bestId == model.Config.EosTokenId) break;
-            decodedIds.Add(bestId);
+            decodedIds[decodedCount] = bestId;
+            decoderInputIdsBuffer[decodedCount] = bestId;
+            decodedCount++;
         }
 
-        return model.Tokenizer.Decode(decodedIds.ToArray().AsSpan(1));
+        return model.Tokenizer.Decode(decodedIds.AsSpan(1, decodedCount - 1));
+    }
+
+    private static int FindBestLogitIndex(ReadOnlySpan<float> logits)
+    {
+        var maxValue = float.NegativeInfinity;
+        var i = 0;
+
+        if (Vector.IsHardwareAccelerated && logits.Length >= Vector<float>.Count)
+        {
+            var negativeInfinity = new Vector<float>(float.NegativeInfinity);
+            var vectorMax = negativeInfinity;
+            var lastVectorStart = logits.Length - Vector<float>.Count;
+            for (; i <= lastVectorStart; i += Vector<float>.Count)
+            {
+                var vector = new Vector<float>(logits.Slice(i, Vector<float>.Count));
+                var validMask = Vector.Equals(vector, vector);
+                var sanitized = Vector.ConditionalSelect(validMask, vector, negativeInfinity);
+                vectorMax = Vector.Max(vectorMax, sanitized);
+            }
+
+            for (var lane = 0; lane < Vector<float>.Count; lane++)
+                maxValue = MathF.Max(maxValue, vectorMax[lane]);
+        }
+
+        for (; i < logits.Length; i++)
+        {
+            var value = logits[i];
+            if (!float.IsNaN(value) && value > maxValue)
+                maxValue = value;
+        }
+
+        for (var index = 0; index < logits.Length; index++)
+        {
+            if (logits[index] == maxValue)
+                return index;
+        }
+
+        return 0;
     }
 
     private static string ModelKey(string sourceLang, string targetLang) =>

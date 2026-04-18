@@ -9,7 +9,7 @@ using TypeWhisper.PluginSDK.Models;
 
 namespace TypeWhisper.Plugin.SherpaOnnx;
 
-public sealed class SherpaOnnxPlugin : ITypeWhisperPlugin, ITranscriptionEnginePlugin
+public sealed class SherpaOnnxPlugin : ITypeWhisperPlugin, ITranscriptionEnginePlugin, IPcmTranscriptionEnginePlugin
 {
     private const string ParakeetRepo = "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main";
     private const string CanaryRepo = "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-canary-180m-flash-en-es-de-fr-int8/resolve/main";
@@ -182,31 +182,45 @@ public sealed class SherpaOnnxPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
         return Task.Run(() =>
         {
             var audioSamples = DecodeWav(wavAudio);
-            var audioDuration = audioSamples.Length / 16000.0;
-
-            lock (_sync)
-            {
-                if (_recognizer is null || _loadedModelId is null)
-                    throw new InvalidOperationException("Kein Modell geladen. LoadModelAsync zuerst aufrufen.");
-
-                var model = GetModelDefinition(_loadedModelId);
-
-                if (model.SupportsTranslation)
-                    EnsureCanaryLanguage(language, translate);
-
-                using var stream = _recognizer.CreateStream();
-                stream.AcceptWaveform(16000, audioSamples);
-                _recognizer.Decode(stream);
-
-                var rawText = stream.Result.Text.Trim();
-
-                var (text, detectedLanguage) = model.SupportsTranslation
-                    ? ParseCanaryResult(rawText)
-                    : (rawText, (string?)null);
-
-                return new PluginTranscriptionResult(text, detectedLanguage, audioDuration, NoSpeechProbability: null);
-            }
+            return TranscribeSamples(audioSamples, 16000, language, translate);
         }, ct);
+    }
+
+    public Task<PluginTranscriptionResult> TranscribePcmAsync(
+        float[] audioSamples, int sampleRate, string? language, bool translate, string? prompt, CancellationToken ct)
+    {
+        return Task.Run(() => TranscribeSamples(audioSamples, sampleRate, language, translate), ct);
+    }
+
+    private PluginTranscriptionResult TranscribeSamples(float[] audioSamples, int sampleRate, string? language, bool translate)
+    {
+        if (sampleRate != 16000)
+            throw new NotSupportedException($"Unsupported sample rate: {sampleRate}. Sherpa-ONNX expects 16000 Hz PCM.");
+
+        var audioDuration = audioSamples.Length / (double)sampleRate;
+
+        lock (_sync)
+        {
+            if (_recognizer is null || _loadedModelId is null)
+                throw new InvalidOperationException("Kein Modell geladen. LoadModelAsync zuerst aufrufen.");
+
+            var model = GetModelDefinition(_loadedModelId);
+
+            if (model.SupportsTranslation)
+                EnsureCanaryLanguage(language, translate);
+
+            using var stream = _recognizer.CreateStream();
+            stream.AcceptWaveform(sampleRate, audioSamples);
+            _recognizer.Decode(stream);
+
+            var rawText = stream.Result.Text.Trim();
+
+            var (text, detectedLanguage) = model.SupportsTranslation
+                ? ParseCanaryResult(rawText)
+                : (rawText, null);
+
+            return new PluginTranscriptionResult(text, detectedLanguage, audioDuration, NoSpeechProbability: null);
+        }
     }
 
     public void Dispose()

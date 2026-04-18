@@ -76,36 +76,26 @@ public partial class DashboardViewModel : ObservableObject
                 .ToList();
 
         // Stat cards
+        static int Wpm(int words, double seconds) => seconds > 0 ? (int)Math.Round(words / (seconds / 60.0)) : 0;
+        static int CountApps(List<TranscriptionRecord> xs) =>
+            xs.Where(r => r.AppProcessName is not null).Select(r => r.AppProcessName!).Distinct().Count();
+        static int SavedMinutes(int words, double seconds) => (int)(words / 45.0 - seconds / 60.0);
+
         WordsCount = records.Sum(r => r.WordCount);
         var prevWords = prevRecords.Sum(r => r.WordCount);
         WordsTrend = FormatTrend(WordsCount, prevWords, isAllTime);
 
         var totalSeconds = records.Sum(r => r.DurationSeconds);
-        var wpm = totalSeconds > 0 ? (int)Math.Round(WordsCount / (totalSeconds / 60.0)) : 0;
-        AverageWpm = wpm.ToString();
         var prevSeconds = prevRecords.Sum(r => r.DurationSeconds);
-        var prevWpm = prevSeconds > 0 ? (int)Math.Round(prevWords / (prevSeconds / 60.0)) : 0;
-        WpmTrend = FormatTrend(wpm, prevWpm, isAllTime);
+        var wpm = Wpm(WordsCount, totalSeconds);
+        AverageWpm = wpm.ToString();
+        WpmTrend = FormatTrend(wpm, Wpm(prevWords, prevSeconds), isAllTime);
 
-        AppsUsed = records
-            .Where(r => r.AppProcessName is not null)
-            .Select(r => r.AppProcessName!)
-            .Distinct()
-            .Count();
-        var prevApps = prevRecords
-            .Where(r => r.AppProcessName is not null)
-            .Select(r => r.AppProcessName!)
-            .Distinct()
-            .Count();
-        AppsTrend = FormatTrend(AppsUsed, prevApps, isAllTime);
+        AppsUsed = CountApps(records);
+        AppsTrend = FormatTrend(AppsUsed, CountApps(prevRecords), isAllTime);
 
-        double typingMinutes = WordsCount / 45.0;
-        double speakingMinutes = totalSeconds / 60.0;
-        var savedMinutes = typingMinutes - speakingMinutes;
-        TimeSaved = FormatTimeSaved(savedMinutes);
-        double prevTyping = prevWords / 45.0;
-        double prevSpeaking = prevSeconds / 60.0;
-        TimeTrend = FormatTrend((int)savedMinutes, (int)(prevTyping - prevSpeaking), isAllTime);
+        TimeSaved = FormatTimeSaved(WordsCount / 45.0 - totalSeconds / 60.0);
+        TimeTrend = FormatTrend(SavedMinutes(WordsCount, totalSeconds), SavedMinutes(prevWords, prevSeconds), isAllTime);
 
         // Chart
         ChartData.Clear();

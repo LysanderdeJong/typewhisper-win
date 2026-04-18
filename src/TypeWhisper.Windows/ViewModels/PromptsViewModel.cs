@@ -194,29 +194,24 @@ public partial class PromptsViewModel : ObservableObject
 
     private void RefreshActions()
     {
-        Actions.Clear();
-        foreach (var action in _promptActions.Actions.OrderBy(a => a.SortOrder))
-            Actions.Add(action);
+        Actions.Replace(_promptActions.Actions.OrderBy(a => a.SortOrder));
         NotifyStateChanged();
     }
 
     public void RefreshProviders()
     {
-        AvailableProviders.Clear();
-        AvailableProviders.Add(new ProviderOption(null, GetDefaultProviderLabel()));
-        foreach (var provider in _pluginManager.LlmProviders)
-        {
-            if (!provider.IsAvailable) continue;
-            var plugin = _pluginManager.AllPlugins
-                .FirstOrDefault(p => p.Instance == provider);
-            if (plugin is null) continue;
-
-            foreach (var model in provider.SupportedModels)
-            {
-                var modelId = $"plugin:{plugin.Manifest.Id}:{model.Id}";
-                AvailableProviders.Add(new ProviderOption(modelId, $"{provider.ProviderName} / {model.DisplayName}"));
-            }
-        }
+        AvailableProviders.Replace(
+            [new ProviderOption(null, GetDefaultProviderLabel()),
+             .. _pluginManager.LlmProviders
+                 .Where(provider => provider.IsAvailable)
+                 .SelectMany(provider =>
+                 {
+                     var plugin = _pluginManager.AllPlugins.FirstOrDefault(p => p.Instance == provider);
+                     return plugin is null
+                         ? Enumerable.Empty<ProviderOption>()
+                         : provider.SupportedModels.Select(model =>
+                             new ProviderOption($"plugin:{plugin.Manifest.Id}:{model.Id}", $"{provider.ProviderName} / {model.DisplayName}"));
+                 })]);
         OnPropertyChanged(nameof(HasLlmProviders));
         OnPropertyChanged(nameof(DefaultProviderSummary));
     }
