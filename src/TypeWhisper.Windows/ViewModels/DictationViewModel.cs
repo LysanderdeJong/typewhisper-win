@@ -497,6 +497,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     {
         if (!_isRecording) return;
         _isRecording = false;
+        var shouldReleaseCapture = ShouldReleaseCaptureAfterStop(CurrentHotkeyMode);
 
         _durationTimer?.Stop();
         _durationTimer?.Dispose();
@@ -507,6 +508,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         _audio.SamplesAvailable -= OnSamplesAvailable;
 
         var samples = _audio.StopRecording();
+        if (shouldReleaseCapture)
+            _audio.ReleaseCapture();
+
         _eventBus.Publish(new RecordingStoppedEvent { DurationSeconds = recordingDurationSeconds });
         _audioDucking.RestoreAudio();
         _mediaPause.ResumeMedia();
@@ -562,7 +566,11 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         if (_isRecording)
         {
             _isRecording = false;
+            var shouldReleaseCapture = ShouldReleaseCaptureAfterStop(CurrentHotkeyMode);
             _audio.StopRecording();
+            if (shouldReleaseCapture)
+                _audio.ReleaseCapture();
+
             StopActiveRecordingInfrastructure();
             ApplyTransientIdleFeedback(Loc.Instance["Status.Cancelled"]);
             return Task.CompletedTask;
@@ -991,6 +999,9 @@ public partial class DictationViewModel : ObservableObject, IDisposable
     {
         AudioLevel = e.RmsLevel;
     }
+
+    internal static bool ShouldReleaseCaptureAfterStop(HotkeyMode? hotkeyMode) =>
+        hotkeyMode == HotkeyMode.PushToTalk;
 
     private Func<string, string>? GetVocabularyBooster() =>
         _settings.Current.VocabularyBoostingEnabled ? _vocabularyBoosting.Apply : null;

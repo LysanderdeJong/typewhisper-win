@@ -183,6 +183,18 @@ public sealed class AudioRecordingService : IDisposable
         return samples;
     }
 
+    internal void ReleaseCapture()
+    {
+        _isRecording = false;
+        lock (_bufferLock)
+        {
+            _sampleBuffer = null;
+            _sampleBufferCount = 0;
+        }
+
+        DisposeWaveIn();
+    }
+
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
         if (!_isRecording) return;
