@@ -8,7 +8,7 @@ namespace TypeWhisper.Windows;
 public static class Program
 {
     private static Mutex? _singleInstanceMutex;
-    private static readonly string CallbackInboxPath = Path.Combine(TypeWhisperEnvironment.DataPath, "protocol-callback.txt");
+    private static readonly string CallbackInboxPath = Path.Join(TypeWhisperEnvironment.DataPath, "protocol-callback.txt");
 
     public static bool StartMinimized { get; private set; }
 

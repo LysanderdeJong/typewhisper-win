@@ -124,17 +124,12 @@ public partial class PromptPaletteWindow : Window
 
     private void ApplyFilter(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            _filteredActions = _allActions.ToList();
-        }
-        else
-        {
-            _filteredActions = _allActions
+        _filteredActions = string.IsNullOrWhiteSpace(query)
+            ? _allActions.ToList()
+            : _allActions
                 .Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            a.SystemPrompt.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-        }
 
         ActionListBox.ItemsSource = _filteredActions;
         EmptyText.Visibility = _filteredActions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

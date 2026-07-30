@@ -36,7 +36,7 @@ public sealed class OpenAiVectorMemoryPlugin : IMemoryStoragePlugin
     public async Task ActivateAsync(IPluginHostServices host)
     {
         _host = host;
-        _filePath = Path.Combine(host.PluginDataDirectory, "vector-memories.json");
+        _filePath = Path.Join(host.PluginDataDirectory, "vector-memories.json");
         _apiKey = await host.LoadSecretAsync("api-key");
         host.Log(PluginLogLevel.Info, $"Activated (configured={!string.IsNullOrEmpty(_apiKey)})");
     }

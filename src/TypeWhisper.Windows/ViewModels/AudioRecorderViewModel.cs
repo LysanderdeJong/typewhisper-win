@@ -90,7 +90,7 @@ public partial class AudioRecorderViewModel : ObservableObject, IDisposable
 
         // Save WAV
         var fileName = $"recording-{DateTime.Now:yyyy-MM-dd-HHmmss}.wav";
-        var filePath = Path.Combine(TypeWhisperEnvironment.AudioPath, fileName);
+        var filePath = Path.Join(TypeWhisperEnvironment.AudioPath, fileName);
         await using (var audioFileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
             await WavEncoder.WriteAsync(audioFileStream, samples);
 

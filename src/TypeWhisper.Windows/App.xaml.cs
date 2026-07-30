@@ -23,7 +23,7 @@ public partial class App : Application
     private FileTranscriptionWindow? _fileTranscriptionWindow;
     private WelcomeWindow? _welcomeWindow;
     private DispatcherTimer? _protocolCallbackTimer;
-    private static readonly string ProtocolCallbackInboxPath = Path.Combine(TypeWhisperEnvironment.DataPath, "protocol-callback.txt");
+    private static readonly string ProtocolCallbackInboxPath = Path.Join(TypeWhisperEnvironment.DataPath, "protocol-callback.txt");
 
     public static ServiceProvider Services { get; private set; } = null!;
 
@@ -318,16 +318,16 @@ public partial class App : Application
         services.AddSingleton<IErrorLogService>(
             new ErrorLogService(dataPath));
         services.AddSingleton<IHistoryService>(
-            new HistoryService(Path.Combine(dataPath, "history.json"), TypeWhisperEnvironment.AudioPath));
+            new HistoryService(Path.Join(dataPath, "history.json"), TypeWhisperEnvironment.AudioPath));
         services.AddSingleton<IDictionaryService>(
-            new DictionaryService(Path.Combine(dataPath, "dictionary.json")));
+            new DictionaryService(Path.Join(dataPath, "dictionary.json")));
         services.AddSingleton<IVocabularyBoostingService, VocabularyBoostingService>();
         services.AddSingleton<ISnippetService>(
-            new SnippetService(Path.Combine(dataPath, "snippets.json")));
+            new SnippetService(Path.Join(dataPath, "snippets.json")));
         services.AddSingleton<IProfileService>(
-            new ProfileService(Path.Combine(dataPath, "profiles.json")));
+            new ProfileService(Path.Join(dataPath, "profiles.json")));
         services.AddSingleton<IPromptActionService>(
-            new PromptActionService(Path.Combine(dataPath, "prompt-actions.json")));
+            new PromptActionService(Path.Join(dataPath, "prompt-actions.json")));
 
         // Post-processing pipeline
         services.AddSingleton<IPostProcessingPipeline, PostProcessingPipeline>();
@@ -437,7 +437,7 @@ public partial class App : Application
                 errorLog.AddEntry(ex.Message, ErrorCategory.General);
 
             // Also keep crash.log as safety net
-            var logPath = System.IO.Path.Combine(TypeWhisperEnvironment.LogsPath, "crash.log");
+            var logPath = System.IO.Path.Join(TypeWhisperEnvironment.LogsPath, "crash.log");
             var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n";
             System.IO.File.AppendAllText(logPath, entry);
         }

@@ -82,8 +82,6 @@ public class StreamingTranscriptionTests
     {
         var expectedResult = new PluginTranscriptionResult("Streamed text", "de", 5.0);
         var audio = new byte[] { 1, 2, 3, 4, 5 };
-        var progressCalls = new List<string>();
-
         var mock = new Mock<ITranscriptionEnginePlugin>();
         mock.Setup(e => e.TranscribeStreamingAsync(
             audio, "de", false, null,
@@ -93,7 +91,7 @@ public class StreamingTranscriptionTests
 
         var result = await mock.Object.TranscribeStreamingAsync(
             audio, "de", false, null,
-            partial => { progressCalls.Add(partial); return true; },
+            _ => true,
             CancellationToken.None);
 
         Assert.Equal("Streamed text", result.Text);

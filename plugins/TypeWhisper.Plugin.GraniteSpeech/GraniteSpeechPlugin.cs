@@ -78,15 +78,15 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
     }
 
     public bool IsModelDownloaded(string modelId) =>
-        File.Exists(Path.Combine(GetDataDirectory(), ".setup-complete"));
+        File.Exists(Path.Join(GetDataDirectory(), ".setup-complete"));
 
     public async Task DownloadModelAsync(string modelId, IProgress<double>? progress, CancellationToken ct)
     {
         var dataDir = GetDataDirectory();
         Directory.CreateDirectory(dataDir);
 
-        var pythonDir = Path.Combine(dataDir, "python");
-        var pythonExe = Path.Combine(pythonDir, "python.exe");
+        var pythonDir = Path.Join(dataDir, "python");
+        var pythonExe = Path.Join(pythonDir, "python.exe");
 
         // Step 1: Download & extract embedded Python (~11 MB)
         if (!File.Exists(pythonExe) || !ValidatePythonInstallation(pythonDir))
@@ -105,7 +105,7 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
                 if (Directory.Exists(pythonDir))
                     Directory.Delete(pythonDir, recursive: true);
 
-                var zipPath = Path.Combine(dataDir, "python-embed.zip");
+                var zipPath = Path.Join(dataDir, "python-embed.zip");
                 await DownloadFileAsync(PythonEmbedUrl, zipPath, ct);
                 Directory.CreateDirectory(pythonDir);
                 ZipFile.ExtractToDirectory(zipPath, pythonDir, overwriteFiles: true);
@@ -123,18 +123,18 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
 
         // Step 2: Bootstrap pip
         progress?.Report(0.05);
-        if (!File.Exists(Path.Combine(pythonDir, "Scripts", "pip.exe")))
+        if (!File.Exists(Path.Join(pythonDir, "Scripts", "pip.exe")))
         {
             Log(PluginLogLevel.Info, "Step 2: Bootstrapping pip...");
 
             await RetryAsync(async () =>
             {
-                var getPipPath = Path.Combine(pythonDir, "get-pip.py");
+                var getPipPath = Path.Join(pythonDir, "get-pip.py");
                 await DownloadFileAsync(GetPipUrl, getPipPath, ct);
                 await RunProcessAsync(pythonExe, $"\"{getPipPath}\"", ct, timeoutMs: 300_000);
                 File.Delete(getPipPath);
 
-                if (!File.Exists(Path.Combine(pythonDir, "Scripts", "pip.exe")))
+                if (!File.Exists(Path.Join(pythonDir, "Scripts", "pip.exe")))
                     throw new InvalidOperationException("pip.exe not found after bootstrap");
             }, maxRetries: 2, ct);
 
@@ -215,7 +215,7 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
         }
 
         await File.WriteAllTextAsync(
-            Path.Combine(dataDir, ".setup-complete"),
+            Path.Join(dataDir, ".setup-complete"),
             DateTime.UtcNow.ToString("O"), ct);
 
         Log(PluginLogLevel.Info, "Setup complete");
@@ -303,7 +303,7 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
 
     private void StartSidecar()
     {
-        var pythonExe = Path.Combine(GetDataDirectory(), "python", "python.exe");
+        var pythonExe = Path.Join(GetDataDirectory(), "python", "python.exe");
         var scriptPath = GetScriptPath("granite_speech_server.py");
 
         var psi = new ProcessStartInfo
@@ -419,7 +419,7 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
 
     private static bool ValidatePythonInstallation(string pythonDir)
     {
-        if (!File.Exists(Path.Combine(pythonDir, "python.exe")))
+        if (!File.Exists(Path.Join(pythonDir, "python.exe")))
             return false;
         if (Directory.GetFiles(pythonDir, "python*.zip").Length == 0)
             return false;
@@ -437,12 +437,12 @@ public sealed class GraniteSpeechPlugin : ITypeWhisperPlugin, ITranscriptionEngi
     }
 
     private string GetDataDirectory() =>
-        _host?.PluginDataDirectory ?? Path.Combine(".", "PluginData");
+        _host?.PluginDataDirectory ?? Path.Join(".", "PluginData");
 
     private static string GetScriptPath(string fileName)
     {
         var pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
-        return Path.Combine(pluginDir, "Scripts", fileName);
+        return Path.Join(pluginDir, "Scripts", fileName);
     }
 
     private static async Task RunProcessAsync(string exe, string args, CancellationToken ct,

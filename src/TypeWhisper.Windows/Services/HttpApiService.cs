@@ -169,7 +169,7 @@ public sealed class HttpApiService : IDisposable
         if (!await _modelManager.EnsureModelLoadedAsync(cancellationToken: ct))
             return Json(503, new { error = "No model loaded" });
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"tw_api_{Guid.NewGuid()}.tmp");
+        var tempPath = Path.Join(Path.GetTempPath(), $"tw_api_{Guid.NewGuid()}.tmp");
         try
         {
             await using (var fs = File.Create(tempPath))

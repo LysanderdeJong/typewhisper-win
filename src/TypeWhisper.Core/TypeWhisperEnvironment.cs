@@ -10,19 +10,19 @@ public static class TypeWhisperEnvironment
     public const string PluginRegistryUrl = GithubReleaseDownloadBaseUrl + "/" + GithubRegistryReleaseTag + "/plugins.json";
     public const string TermPackRegistryUrl = GithubReleaseDownloadBaseUrl + "/" + GithubRegistryReleaseTag + "/termpacks.json";
 
-    private static readonly string _basePath = Path.Combine(
+    private static readonly string _basePath = Path.Join(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TypeWhisper");
 
     public static string BasePath => _basePath;
-    public static string ModelsPath => Path.Combine(_basePath, "Models");
-    public static string DataPath => Path.Combine(_basePath, "Data");
-    public static string LogsPath => Path.Combine(_basePath, "Logs");
-    public static string PluginsPath => Path.Combine(_basePath, "Plugins");
-    public static string AudioPath => Path.Combine(_basePath, "Audio");
-    public static string PluginDataPath => Path.Combine(_basePath, "PluginData");
-    public static string SettingsFilePath => Path.Combine(_basePath, "settings.json");
-    public static string DatabasePath => Path.Combine(DataPath, "typewhisper.db");
+    public static string ModelsPath => Path.Join(_basePath, "Models");
+    public static string DataPath => Path.Join(_basePath, "Data");
+    public static string LogsPath => Path.Join(_basePath, "Logs");
+    public static string PluginsPath => Path.Join(_basePath, "Plugins");
+    public static string AudioPath => Path.Join(_basePath, "Audio");
+    public static string PluginDataPath => Path.Join(_basePath, "PluginData");
+    public static string SettingsFilePath => Path.Join(_basePath, "settings.json");
+    public static string DatabasePath => Path.Join(DataPath, "typewhisper.db");
 
     public static void EnsureDirectories()
     {

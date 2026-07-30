@@ -92,7 +92,7 @@ public sealed class FileSpeechSegmentationService
         if (!File.Exists(filePath))
             throw new FileNotFoundException(Loc.Instance["Error.FileNotFound"], filePath);
 
-        var modelPath = Path.Combine(AppContext.BaseDirectory, "Resources", "silero_vad.onnx");
+        var modelPath = Path.Join(AppContext.BaseDirectory, "Resources", "silero_vad.onnx");
         if (!File.Exists(modelPath))
         {
             Debug.WriteLine($"[FileSpeechSegmentation] Missing VAD model at {modelPath}; falling back to full audio.");
@@ -156,7 +156,7 @@ public sealed class FileSpeechSegmentationService
         if (samples.Length == 0)
             return [];
 
-        var modelPath = Path.Combine(AppContext.BaseDirectory, "Resources", "silero_vad.onnx");
+        var modelPath = Path.Join(AppContext.BaseDirectory, "Resources", "silero_vad.onnx");
         if (!File.Exists(modelPath))
         {
             Debug.WriteLine($"[FileSpeechSegmentation] Missing VAD model at {modelPath}; falling back to full audio.");

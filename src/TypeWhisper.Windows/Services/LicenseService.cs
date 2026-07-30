@@ -89,8 +89,8 @@ public sealed partial class LicenseService : ObservableObject
 
     public LicenseService()
     {
-        _credentialPath = Path.Combine(TypeWhisperEnvironment.DataPath, "licenses.dat");
-        _legacyCredentialPath = Path.Combine(TypeWhisperEnvironment.DataPath, "license.json");
+        _credentialPath = Path.Join(TypeWhisperEnvironment.DataPath, "licenses.dat");
+        _legacyCredentialPath = Path.Join(TypeWhisperEnvironment.DataPath, "license.json");
         LoadStore();
     }
 

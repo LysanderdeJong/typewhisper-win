@@ -52,7 +52,7 @@ public static class StartupService
         Debug.WriteLine($"[StartupService] {message}");
         try
         {
-            var logPath = Path.Combine(TypeWhisperEnvironment.LogsPath, "startup.log");
+            var logPath = Path.Join(TypeWhisperEnvironment.LogsPath, "startup.log");
             File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
         }
         catch { /* ignore logging failures */ }

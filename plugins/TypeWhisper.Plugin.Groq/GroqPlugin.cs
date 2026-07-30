@@ -156,10 +156,11 @@ public sealed class GroqPlugin : ITranscriptionEnginePlugin, ILlmProviderPlugin
 
     private async Task PersistApiKeyAsync(bool changed, bool wasConfigured)
     {
-        await _host.StoreOrDeleteSecretAsync("api-key", _apiKey);
+        var host = _host ?? throw new InvalidOperationException("Plugin is not activated.");
+        await host.StoreOrDeleteSecretAsync("api-key", _apiKey);
 
         if (changed && wasConfigured != IsConfigured)
-            _host?.NotifyCapabilitiesChanged();
+            host.NotifyCapabilitiesChanged();
     }
 
     internal void SelectLlmModel(string modelId)

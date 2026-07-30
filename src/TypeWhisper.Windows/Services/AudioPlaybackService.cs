@@ -29,7 +29,7 @@ public sealed class AudioPlaybackService : IDisposable
     /// </summary>
     public void Play(string audioFileName)
     {
-        var path = Path.Combine(TypeWhisperEnvironment.AudioPath, audioFileName);
+        var path = Path.Join(TypeWhisperEnvironment.AudioPath, audioFileName);
         if (!File.Exists(path)) return;
 
         // Toggle pause/resume for same file

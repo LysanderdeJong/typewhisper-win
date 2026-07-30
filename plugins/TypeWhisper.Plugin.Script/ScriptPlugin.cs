@@ -36,7 +36,7 @@ public sealed class ScriptService
     public ScriptService(IPluginHostServices host)
     {
         _host = host;
-        _configPath = Path.Combine(host.PluginDataDirectory, "scripts.json");
+        _configPath = Path.Join(host.PluginDataDirectory, "scripts.json");
         Load();
     }
 

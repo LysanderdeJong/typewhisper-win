@@ -60,7 +60,7 @@ public sealed class Loc : INotifyPropertyChanged
     public void Initialize()
     {
         var baseDir = AppContext.BaseDirectory;
-        _localizationDir = Path.Combine(baseDir, "Resources", "Localization");
+        _localizationDir = Path.Join(baseDir, "Resources", "Localization");
 
         var available = new List<string>();
 

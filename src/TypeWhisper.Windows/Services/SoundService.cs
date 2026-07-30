@@ -6,7 +6,7 @@ namespace TypeWhisper.Windows.Services;
 
 public sealed class SoundService
 {
-    private static readonly string SoundsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Sounds");
+    private static readonly string SoundsPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Sounds");
 
     private readonly byte[]? _start = LoadWav("start.wav");
     private readonly byte[]? _stop = LoadWav("stop.wav");
@@ -66,7 +66,7 @@ public sealed class SoundService
     {
         try
         {
-            var path = Path.Combine(SoundsPath, fileName);
+            var path = Path.Join(SoundsPath, fileName);
             return File.Exists(path) ? File.ReadAllBytes(path) : null;
         }
         catch

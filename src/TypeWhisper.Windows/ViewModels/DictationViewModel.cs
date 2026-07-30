@@ -819,7 +819,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
                 try
                 {
                     audioFileName = $"{Guid.NewGuid():N}.wav";
-                    var audioPath = Path.Combine(TypeWhisperEnvironment.AudioPath, audioFileName);
+                    var audioPath = Path.Join(TypeWhisperEnvironment.AudioPath, audioFileName);
                     await using var audioFileStream = new FileStream(audioPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
                     await TypeWhisper.Core.Audio.WavEncoder.WriteAsync(audioFileStream, job.Samples, cancellationToken: ct);
                 }
@@ -969,7 +969,7 @@ public partial class DictationViewModel : ObservableObject, IDisposable
         {
             SileroVad = new SileroVadModelConfig
             {
-                Model = Path.Combine(AppContext.BaseDirectory, "Resources", "silero_vad.onnx"),
+                Model = Path.Join(AppContext.BaseDirectory, "Resources", "silero_vad.onnx"),
                 Threshold = 0.5f,
                 MinSilenceDuration = 0.5f,
                 MinSpeechDuration = 0.25f,

@@ -103,11 +103,11 @@ public sealed class SettingsService : ISettingsService
 
         try
         {
-            var logDir = Path.Combine(
+            var logDir = Path.Join(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "TypeWhisper", "Logs");
             Directory.CreateDirectory(logDir);
-            File.AppendAllText(Path.Combine(logDir, "settings.log"), line + Environment.NewLine);
+            File.AppendAllText(Path.Join(logDir, "settings.log"), line + Environment.NewLine);
         }
         catch { /* logging must never throw */ }
     }

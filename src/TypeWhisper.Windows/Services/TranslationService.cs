@@ -112,7 +112,7 @@ public sealed class TranslationService : ITranslationService, IDisposable
             var modelInfo = TranslationModelInfo.FindModel(sourceLang, targetLang)
                 ?? throw new NotSupportedException($"No translation model for {sourceLang}->{targetLang}");
 
-            var modelDir = Path.Combine(TypeWhisperEnvironment.ModelsPath, modelInfo.SubDirectory);
+            var modelDir = Path.Join(TypeWhisperEnvironment.ModelsPath, modelInfo.SubDirectory);
             Directory.CreateDirectory(modelDir);
 
             await DownloadMissingFilesAsync(modelInfo, modelDir, ct);
@@ -139,7 +139,7 @@ public sealed class TranslationService : ITranslationService, IDisposable
     {
         foreach (var file in modelInfo.Files)
         {
-            var filePath = Path.Combine(modelDir, file.FileName);
+            var filePath = Path.Join(modelDir, file.FileName);
             if (File.Exists(filePath)) continue;
 
             System.Diagnostics.Debug.WriteLine($"Downloading translation model file: {file.FileName}");
@@ -166,8 +166,8 @@ public sealed class TranslationService : ITranslationService, IDisposable
             + "the catch block disposes partially-constructed sessions along the failure path.")]
     private static LoadedTranslationModel LoadModel(string modelDir)
     {
-        var config = MarianConfig.Load(Path.Combine(modelDir, "config.json"));
-        var tokenizer = MarianTokenizer.Load(Path.Combine(modelDir, "tokenizer.json"), config.EosTokenId);
+        var config = MarianConfig.Load(Path.Join(modelDir, "config.json"));
+        var tokenizer = MarianTokenizer.Load(Path.Join(modelDir, "tokenizer.json"), config.EosTokenId);
 
         // SessionOptions is only needed during session construction; InferenceSession
         // captures the settings internally, so disposing it afterwards is safe.
@@ -182,8 +182,8 @@ public sealed class TranslationService : ITranslationService, IDisposable
         InferenceSession? decoder = null;
         try
         {
-            encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
-            decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
+            encoder = new InferenceSession(Path.Join(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
+            decoder = new InferenceSession(Path.Join(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
 
             return new LoadedTranslationModel(encoder, decoder, tokenizer, config);
         }

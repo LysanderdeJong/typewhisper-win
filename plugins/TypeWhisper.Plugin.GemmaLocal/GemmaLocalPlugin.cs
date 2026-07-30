@@ -149,7 +149,7 @@ public sealed class GemmaLocalPlugin : ILlmProviderPlugin
         var dir = GetModelDirectory(modelId);
         Directory.CreateDirectory(dir);
 
-        var filePath = Path.Combine(dir, model.FileName);
+        var filePath = Path.Join(dir, model.FileName);
         if (File.Exists(filePath))
         {
             progress?.Report(1.0);
@@ -254,10 +254,10 @@ public sealed class GemmaLocalPlugin : ILlmProviderPlugin
     }
 
     private string GetModelDirectory(string modelId) =>
-        Path.Combine(_host?.PluginDataDirectory ?? ".", "Models", modelId);
+        Path.Join(_host?.PluginDataDirectory ?? ".", "Models", modelId);
 
     private string GetModelFilePath(string modelId, string fileName) =>
-        Path.Combine(GetModelDirectory(modelId), fileName);
+        Path.Join(GetModelDirectory(modelId), fileName);
 
     private static GemmaModelDefinition GetModelDefinition(string modelId) =>
         Models.FirstOrDefault(m => m.Id == modelId)

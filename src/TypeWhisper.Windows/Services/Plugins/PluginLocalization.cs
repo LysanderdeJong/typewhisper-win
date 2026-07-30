@@ -29,7 +29,7 @@ public sealed class PluginLocalization : IPluginLocalization
 
     public PluginLocalization(string pluginDirectory, string? languageOverride = null)
     {
-        _localizationDir = Path.Combine(pluginDirectory, LocalizationFolder);
+        _localizationDir = Path.Join(pluginDirectory, LocalizationFolder);
         CurrentLanguage = languageOverride
             ?? Loc.Instance.CurrentLanguage;
 

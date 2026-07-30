@@ -52,7 +52,7 @@ public sealed class WebhookService
     public WebhookService(IPluginHostServices host)
     {
         _host = host;
-        _configPath = Path.Combine(host.PluginDataDirectory, "webhooks.json");
+        _configPath = Path.Join(host.PluginDataDirectory, "webhooks.json");
         Load();
     }
 

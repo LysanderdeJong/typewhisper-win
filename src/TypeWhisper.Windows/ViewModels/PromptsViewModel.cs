@@ -224,7 +224,7 @@ public partial class PromptsViewModel : ObservableObject
                  .Where(provider => provider.IsAvailable)
                  .SelectMany(provider =>
                  {
-                     var plugin = _pluginManager.AllPlugins.FirstOrDefault(p => p.Instance == provider);
+                     var plugin = _pluginManager.AllPlugins.FirstOrDefault(p => ReferenceEquals(p.Instance, provider));
                      return plugin is null
                          ? Enumerable.Empty<ProviderOption>()
                          : provider.SupportedModels.Select(model =>

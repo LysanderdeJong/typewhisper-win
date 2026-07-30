@@ -165,7 +165,7 @@ public partial class ProfilesViewModel : ObservableObject
         }
         else
         {
-            _lastExternalProcessName = processName ?? "-";
+            _lastExternalProcessName = processName;
             _lastExternalWindowTitle = title ?? "-";
             _lastExternalUrl = url ?? "-";
         }

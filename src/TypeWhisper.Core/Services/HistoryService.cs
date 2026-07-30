@@ -285,7 +285,7 @@ public sealed class HistoryService : IHistoryService
         if (string.IsNullOrEmpty(audioFileName) || string.IsNullOrEmpty(_audioDirectory)) return;
         try
         {
-            var path = Path.Combine(_audioDirectory, audioFileName);
+            var path = Path.Join(_audioDirectory, audioFileName);
             if (File.Exists(path)) File.Delete(path);
         }
         catch { }

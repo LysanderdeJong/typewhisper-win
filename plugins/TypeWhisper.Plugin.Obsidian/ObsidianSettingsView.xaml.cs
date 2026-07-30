@@ -133,7 +133,7 @@ public partial class ObsidianSettingsView : UserControl
         }
         else
         {
-            var obsidianDir = Path.Combine(vaultPath, ".obsidian");
+            var obsidianDir = Path.Join(vaultPath, ".obsidian");
             StatusText.Text = Directory.Exists(obsidianDir)
                 ? $"Vault detected: {Path.GetFileName(vaultPath)}"
                 : $"Folder exists but is not an Obsidian vault (no .obsidian directory).";

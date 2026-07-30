@@ -50,10 +50,9 @@ public sealed class StreamingHandler : IDisposable
 
         var plugin = _modelManager.ActiveTranscriptionPlugin;
 
-        if (plugin is not null && plugin.SupportsStreaming)
-            _streamingTask = RunWebSocketStreamingAsync(plugin, language, sessionVersion, ct);
-        else
-            _streamingTask = RunPollingFallbackAsync(language, task, isStillRecording, sessionVersion, ct);
+        _streamingTask = plugin is { SupportsStreaming: true }
+            ? RunWebSocketStreamingAsync(plugin, language, sessionVersion, ct)
+            : RunPollingFallbackAsync(language, task, isStillRecording, sessionVersion, ct);
     }
 
     public string Stop()

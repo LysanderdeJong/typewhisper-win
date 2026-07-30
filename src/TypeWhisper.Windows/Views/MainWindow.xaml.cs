@@ -105,9 +105,8 @@ public partial class MainWindow : Window
 
         Left = workLeft + (workWidth - width) / 2;
 
-        if (_settings.Current.OverlayPosition == OverlayPosition.Top)
-            Top = workTop;
-        else
-            Top = workBottom - height;
+        Top = _settings.Current.OverlayPosition == OverlayPosition.Top
+            ? workTop
+            : workBottom - height;
     }
 }

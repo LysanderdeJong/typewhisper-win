@@ -94,7 +94,7 @@ public class PluginEventBusTests
     {
         var callCount = 0;
 
-        var subscription = _bus.Subscribe<RecordingStartedEvent>(_ =>
+        using var subscription = _bus.Subscribe<RecordingStartedEvent>(_ =>
         {
             Interlocked.Increment(ref callCount);
             return Task.CompletedTask;

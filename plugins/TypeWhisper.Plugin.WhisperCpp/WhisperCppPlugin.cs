@@ -96,7 +96,7 @@ public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
                 return;
             }
 
-            var tempPath = Path.Combine(modelDirectory, $"{Path.GetFileName(modelPath)}.{Guid.NewGuid():N}.tmp");
+            var tempPath = Path.Join(modelDirectory, $"{Path.GetFileName(modelPath)}.{Guid.NewGuid():N}.tmp");
 
             try
             {
@@ -262,7 +262,7 @@ public sealed class WhisperCppPlugin : ITypeWhisperPlugin, ITranscriptionEngineP
     {
         var host = _host ?? throw new InvalidOperationException("Plugin is not activated.");
         var model = GetModel(modelId);
-        return Path.Combine(host.PluginDataDirectory, "Models", model.FileName);
+        return Path.Join(host.PluginDataDirectory, "Models", model.FileName);
     }
 
     private void DisposeFactoryUnsafe()

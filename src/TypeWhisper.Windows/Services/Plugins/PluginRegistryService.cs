@@ -107,7 +107,7 @@ public sealed class PluginRegistryService
         if (!FeatureFlags.IsPluginVisible(registryPlugin.Category))
             throw new InvalidOperationException($"Plugin '{registryPlugin.Id}' is disabled by feature flag.");
 
-        var pluginDir = Path.Combine(TypeWhisperEnvironment.PluginsPath, registryPlugin.Id);
+        var pluginDir = Path.Join(TypeWhisperEnvironment.PluginsPath, registryPlugin.Id);
 
         // Unload existing version if present
         if (_pluginManager.GetPlugin(registryPlugin.Id) is not null)
@@ -185,7 +185,7 @@ public sealed class PluginRegistryService
     {
         await _pluginManager.UnloadPluginAsync(pluginId);
 
-        var pluginDir = Path.Combine(TypeWhisperEnvironment.PluginsPath, pluginId);
+        var pluginDir = Path.Join(TypeWhisperEnvironment.PluginsPath, pluginId);
         if (Directory.Exists(pluginDir))
         {
             try

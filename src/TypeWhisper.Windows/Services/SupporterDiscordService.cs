@@ -70,7 +70,7 @@ public sealed partial class SupporterDiscordService : ObservableObject
         _http.DefaultRequestHeaders.Accept.Clear();
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        _statusPath = Path.Combine(TypeWhisperEnvironment.DataPath, "supporter-discord.json");
+        _statusPath = Path.Join(TypeWhisperEnvironment.DataPath, "supporter-discord.json");
         LoadPersistedStatus();
     }
 

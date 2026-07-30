@@ -38,7 +38,7 @@ public sealed class PluginManager : IDisposable
         IProfileService profiles,
         ISettingsService settings)
         : this(loader, eventBus, activeWindow, profiles, settings,
-            [Path.Combine(AppContext.BaseDirectory, "Plugins"), TypeWhisperEnvironment.PluginsPath])
+            [Path.Join(AppContext.BaseDirectory, "Plugins"), TypeWhisperEnvironment.PluginsPath])
     {
     }
 

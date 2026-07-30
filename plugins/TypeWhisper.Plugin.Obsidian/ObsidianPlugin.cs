@@ -51,7 +51,7 @@ public sealed partial class ObsidianPlugin : IActionPlugin
             filenameTemplate = "{{date}} {{time}} Transcription";
 
         var now = DateTime.Now;
-        var targetDir = Path.Combine(vaultPath, subfolder);
+        var targetDir = Path.Join(vaultPath, subfolder);
         Directory.CreateDirectory(targetDir);
 
         string filePath;
@@ -61,7 +61,7 @@ public sealed partial class ObsidianPlugin : IActionPlugin
         if (dailyNoteMode)
         {
             filename = $"{now:yyyy-MM-dd}.md";
-            filePath = Path.Combine(targetDir, filename);
+            filePath = Path.Join(targetDir, filename);
 
             var entry = BuildDailyNoteEntry(input, context, now);
 
@@ -80,7 +80,7 @@ public sealed partial class ObsidianPlugin : IActionPlugin
         else
         {
             filename = BuildFilename(filenameTemplate, context, now) + ".md";
-            filePath = Path.Combine(targetDir, filename);
+            filePath = Path.Join(targetDir, filename);
 
             // Ensure unique filename
             filePath = EnsureUniqueFilePath(filePath);
@@ -180,7 +180,7 @@ public sealed partial class ObsidianPlugin : IActionPlugin
         string candidate;
         do
         {
-            candidate = Path.Combine(dir, $"{nameWithoutExt} {counter}{ext}");
+            candidate = Path.Join(dir, $"{nameWithoutExt} {counter}{ext}");
             counter++;
         } while (File.Exists(candidate));
 
@@ -200,7 +200,7 @@ public sealed partial class ObsidianPlugin : IActionPlugin
         try
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var obsidianConfigPath = Path.Combine(appData, "obsidian", "obsidian.json");
+            var obsidianConfigPath = Path.Join(appData, "obsidian", "obsidian.json");
 
             if (!File.Exists(obsidianConfigPath))
                 return vaults;

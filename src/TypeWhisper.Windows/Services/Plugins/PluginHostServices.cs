@@ -48,8 +48,8 @@ public sealed class PluginHostServices : IPluginHostServices
         _profiles = profiles;
         _onCapabilitiesChanged = onCapabilitiesChanged;
         _localization = new PluginLocalization(pluginDirectory, AppLocalization.Loc.Instance.CurrentLanguage);
-        _pluginDataDirectory = Path.Combine(Core.TypeWhisperEnvironment.PluginDataPath, pluginId);
-        _settingsFilePath = Path.Combine(_pluginDataDirectory, "settings.json");
+        _pluginDataDirectory = Path.Join(Core.TypeWhisperEnvironment.PluginDataPath, pluginId);
+        _settingsFilePath = Path.Join(_pluginDataDirectory, "settings.json");
     }
 
     public string PluginDataDirectory

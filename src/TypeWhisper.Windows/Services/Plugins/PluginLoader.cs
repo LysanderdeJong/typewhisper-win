@@ -94,7 +94,7 @@ public sealed partial class PluginLoader
 
     internal LoadedPlugin? LoadPlugin(string pluginDir)
     {
-        var manifestPath = Path.Combine(pluginDir, "manifest.json");
+        var manifestPath = Path.Join(pluginDir, "manifest.json");
         if (!File.Exists(manifestPath))
         {
             Debug.WriteLine($"[PluginLoader] No manifest.json in {pluginDir}, skipping");
@@ -109,7 +109,7 @@ public sealed partial class PluginLoader
             return null;
         }
 
-        var assemblyPath = Path.Combine(pluginDir, manifest.AssemblyName);
+        var assemblyPath = Path.Join(pluginDir, manifest.AssemblyName);
         if (!File.Exists(assemblyPath))
         {
             Debug.WriteLine($"[PluginLoader] Assembly not found: {assemblyPath}");
