@@ -184,8 +184,6 @@ public sealed class HttpApiService : IDisposable
                 : WebUtility.HtmlEncode(requestedLanguage);
             var taskStr = request.QueryString["task"] ?? s.TranscriptionTask;
             var task = taskStr == "translate" ? TranscriptionTask.Translate : TranscriptionTask.Transcribe;
-            var responseFormat = request.QueryString["response_format"] ?? "json";
-
             var pipelineOptions = new PipelineOptions
             {
                 VocabularyBooster = GetVocabularyBooster(),

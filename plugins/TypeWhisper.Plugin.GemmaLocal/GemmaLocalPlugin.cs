@@ -208,7 +208,7 @@ public sealed class GemmaLocalPlugin : ILlmProviderPlugin
             {
                 ContextSize = 4096,
                 GpuLayerCount = 0,  // CPU only (Backend.Cpu)
-                Threads = (int)Math.Max(1, Environment.ProcessorCount / 2),
+                Threads = Math.Max(1, Environment.ProcessorCount / 2),
             };
 
             _weights = LLamaWeights.LoadFromFile(modelParams);

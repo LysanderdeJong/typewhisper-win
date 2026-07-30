@@ -188,9 +188,9 @@ public sealed class FileSpeechSegmentationService
         vad.Flush();
         DrainSegments(vad, segments, cancellationToken);
 
-        var speechSegments = segments.Count > 0
+        IReadOnlyList<AudioSpeechSegment> speechSegments = segments.Count > 0
             ? segments
-            : (IReadOnlyList<AudioSpeechSegment>)[new AudioSpeechSegment(samples, 0, samples.Length / (double)SampleRate)];
+            : [new AudioSpeechSegment(samples, 0, samples.Length / (double)SampleRate)];
 
         var result = new List<AudioSpeechSegment>(speechSegments.Count);
         foreach (var s in speechSegments)

@@ -52,10 +52,6 @@ public sealed class SoundService
             };
             output.Play();
 
-            // Ownership has been transferred to the PlaybackStopped handler.
-            reader = null;
-            ms = null;
-            output = null;
         }
         catch (Exception ex)
         {

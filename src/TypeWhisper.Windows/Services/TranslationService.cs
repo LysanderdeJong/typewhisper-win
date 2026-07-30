@@ -185,11 +185,7 @@ public sealed class TranslationService : ITranslationService, IDisposable
             encoder = new InferenceSession(Path.Combine(modelDir, "encoder_model_quantized.onnx"), sessionOptions);
             decoder = new InferenceSession(Path.Combine(modelDir, "decoder_model_quantized.onnx"), sessionOptions);
 
-            var model = new LoadedTranslationModel(encoder, decoder, tokenizer, config);
-            // Ownership transferred to LoadedTranslationModel.
-            encoder = null;
-            decoder = null;
-            return model;
+            return new LoadedTranslationModel(encoder, decoder, tokenizer, config);
         }
         catch
         {

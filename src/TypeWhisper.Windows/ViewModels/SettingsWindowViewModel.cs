@@ -190,12 +190,12 @@ public sealed partial class SettingsWindowViewModel : ObservableObject
 
     public void Open(SettingsRoute route)
     {
-        if (!_sectionFactories.ContainsKey(route))
+        if (!_sectionFactories.TryGetValue(route, out var factory))
             return;
 
         if (!_sectionCache.TryGetValue(route, out var section))
         {
-            section = _sectionFactories[route]();
+            section = factory();
             _sectionCache[route] = section;
         }
 

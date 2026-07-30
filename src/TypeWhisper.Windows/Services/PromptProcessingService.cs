@@ -72,9 +72,7 @@ public sealed class PromptProcessingService
         var modelId = parts[2];
 
         var provider = _pluginManager.LlmProviders
-            .FirstOrDefault(p => p is ITypeWhisperPlugin twp &&
-                _pluginManager.GetPlugin(pluginId)?.Instance == twp &&
-                p.IsAvailable);
+            .FirstOrDefault(p => _pluginManager.GetPlugin(pluginId)?.Instance == p && p.IsAvailable);
 
         return provider is not null ? (provider, modelId) : (null, "");
     }
