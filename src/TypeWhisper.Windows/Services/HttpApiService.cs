@@ -178,7 +178,10 @@ public sealed class HttpApiService : IDisposable
             }
 
             var s = _settings.Current;
-            var language = request.QueryString["language"] ?? (s.Language == "auto" ? null : s.Language);
+            var requestedLanguage = request.QueryString["language"];
+            var language = requestedLanguage is null
+                ? (s.Language == "auto" ? null : s.Language)
+                : WebUtility.HtmlEncode(requestedLanguage);
             var taskStr = request.QueryString["task"] ?? s.TranscriptionTask;
             var task = taskStr == "translate" ? TranscriptionTask.Translate : TranscriptionTask.Transcribe;
             var responseFormat = request.QueryString["response_format"] ?? "json";

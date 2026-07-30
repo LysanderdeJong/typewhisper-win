@@ -40,7 +40,7 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: csharp
-          queries: security-extended,security-and-quality
+          queries: security-extended
 
       - name: Ensure NuGet global packages folder
         shell: pwsh

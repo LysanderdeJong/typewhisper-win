@@ -229,8 +229,12 @@ public sealed class FileSpeakerDiarizationService : IDisposable
     private static void ExtractArchive(string archivePath, string destinationDirectory, CancellationToken cancellationToken)
     {
         using var fileStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var bzipStream = new BZip2Stream(fileStream, CompressionMode.Decompress, false);
-        using var reader = ReaderFactory.Open(bzipStream);
+        using var bzipStream = BZip2Stream.Create(
+            fileStream,
+            CompressionMode.Decompress,
+            decompressConcatenated: false,
+            leaveOpen: false);
+        using var reader = ReaderFactory.OpenReader(bzipStream);
         while (reader.MoveToNextEntry())
         {
             cancellationToken.ThrowIfCancellationRequested();
